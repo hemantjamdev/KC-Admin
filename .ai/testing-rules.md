@@ -1,0 +1,22 @@
+# Testing Rules
+
+- Every controller containing business logic requires comprehensive unit tests.
+- Repository implementations must be tested using mock data sources.
+- Critical presentation widgets require widget tests.
+- Navigation guards and router logic require unit/widget tests.
+- Pagination tests must cover:
+  - Initial load
+  - Load more
+  - Duplicate request prevention
+  - Refresh
+  - End of list
+  - Error and retry
+  - Query/filter reset
+- Tests must be deterministic (no random data generators without seeds).
+- Do **NOT** invoke live Firebase or remote APIs in unit tests.
+- Use `ProviderScope(overrides: [...])` for provider dependency overrides.
+- Bug fixes should include regression tests where practical.
+- Every commit must pass:
+  - `dart format .`
+  - `flutter analyze`
+  - `flutter test`

@@ -27,3 +27,10 @@ This application uses:
 
 The application does not use continuous database listeners for normal data.
 Data is fetched on screen load, pagination, or explicit pull-to-refresh.
+
+## Development Rules
+
+All development rules are stored inside the `.ai/` directory.
+
+AI coding agents must read `AGENTS.md` before modifying the project.
+

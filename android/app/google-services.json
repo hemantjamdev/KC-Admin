@@ -1,0 +1,82 @@
+{
+  "project_info": {
+    "project_number": "892894654736",
+    "project_id": "kapada-creation-dev",
+    "storage_bucket": "kapada-creation-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:892894654736:android:117050ca14c6dccbf2f595",
+        "android_client_info": {
+          "package_name": "com.kc.kcadmin.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "892894654736-jbgj5dqgpck3saohr28jrh8jjeg780so.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3DClDa5pr9dblpAtNXfRvGU9trr7ZtwI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "892894654736-jbgj5dqgpck3saohr28jrh8jjeg780so.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "892894654736-idt2lt8l3e9o55cueuvg6hgr0plmq40v.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.kc.kcadmin.app"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:892894654736:android:29f83633c08fcaecf2f595",
+        "android_client_info": {
+          "package_name": "com.kc.kcapp.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "892894654736-jbgj5dqgpck3saohr28jrh8jjeg780so.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3DClDa5pr9dblpAtNXfRvGU9trr7ZtwI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "892894654736-jbgj5dqgpck3saohr28jrh8jjeg780so.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "892894654736-idt2lt8l3e9o55cueuvg6hgr0plmq40v.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.kc.kcadmin.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
