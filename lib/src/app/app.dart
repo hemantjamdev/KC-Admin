@@ -1,24 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'router/app_router.dart';
-import 'theme/app_theme.dart';
-import 'theme/app_theme_mode.dart';
+import '../features/boutique/presentation/controllers/boutique_selection_controller.dart';
+import 'app_routes.dart';
+import 'app_theme.dart';
 
-class KcAdminApp extends ConsumerWidget {
+/// Root application widget for Kapada Creation Admin.
+class KcAdminApp extends StatefulWidget {
   const KcAdminApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(appRouterProvider);
-    final themeMode = ref.watch(appThemeModeProvider);
+  State<KcAdminApp> createState() => _KcAdminAppState();
+}
 
-    return MaterialApp.router(
-      title: 'Kapada Creation Admin',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,
-      routerConfig: router,
+class _KcAdminAppState extends State<KcAdminApp> {
+  final _selectionController = BoutiqueSelectionController();
+
+  @override
+  void dispose() {
+    _selectionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BoutiqueSelectionScope(
+      controller: _selectionController,
+      child: MaterialApp.router(
+        title: 'Kapada Creation Admin',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        routerConfig: appRouter,
+      ),
     );
   }
 }
