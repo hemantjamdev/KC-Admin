@@ -468,26 +468,50 @@ class _NotificationCard extends StatelessWidget {
             // Bottom Bar: Target Audience, Timestamp & Quick Actions
             Row(
               children: [
-                PhosphorIcon(
-                  PhosphorIcons.usersThree(),
-                  size: 14,
-                  color: AppColors.textMuted,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  notification.audienceType.label,
-                  style: GoogleFonts.montserrat(
-                    color: AppColors.textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  _formatDate(notification.publishedAt ?? notification.createdAt),
-                  style: GoogleFonts.montserrat(
-                    color: AppColors.textHint,
-                    fontSize: 11,
+                Expanded(
+                  child: Row(
+                    children: [
+                      PhosphorIcon(
+                        PhosphorIcons.usersThree(),
+                        size: 14,
+                        color: AppColors.textMuted,
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          notification.audienceType.label,
+                          style: GoogleFonts.montserrat(
+                            color: AppColors.textMuted,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '•',
+                        style: GoogleFonts.montserrat(
+                          color: AppColors.textMuted,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          _formatDate(
+                            notification.publishedAt ?? notification.createdAt,
+                          ),
+                          style: GoogleFonts.montserrat(
+                            color: AppColors.textHint,
+                            fontSize: 11,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 8),
