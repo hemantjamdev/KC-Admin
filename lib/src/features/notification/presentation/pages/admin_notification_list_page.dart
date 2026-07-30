@@ -1,51 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_radius.dart';
-import '../../../../core/constants/app_spacing.dart';
-import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../../boutique/presentation/controllers/boutique_selection_controller.dart';
+import '../../../../core/navigation/navigation_extensions.dart';
+import '../../../../core/widgets/admin_app_bar.dart';
+import '../../../../core/widgets/app_state_views.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../domain/models/notification_model.dart';
-import '../controllers/notification_controller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../application/providers/notification_providers.dart';
 
-/// Admin Notification List Page — manage drafts, scheduled, published, and archived notifications.
-class AdminNotificationListPage extends StatefulWidget {
+/// Clean & neat Admin Notification List Page — search, listing, and add button.
+class AdminNotificationListPage extends ConsumerStatefulWidget {
   const AdminNotificationListPage({super.key});
 
   @override
-  State<AdminNotificationListPage> createState() =>
+  ConsumerState<AdminNotificationListPage> createState() =>
       _AdminNotificationListPageState();
 }
 
-class _AdminNotificationListPageState extends State<AdminNotificationListPage> {
-  late NotificationController _controller;
+class _AdminNotificationListPageState
+    extends ConsumerState<AdminNotificationListPage> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutiqueId = scope.selectedBoutique?.id ?? 'boutique_01';
-    final branchId = scope.selectedBranch?.id;
-
-    _controller = NotificationController(
-      boutiqueId: boutiqueId,
-      branchId: branchId,
-    );
-    _controller.addListener(_onUpdate);
-  }
-
-  void _onUpdate() {
-    if (mounted) setState(() {});
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _controller.removeListener(_onUpdate);
-    _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      ref.read(paginatedNotificationsProvider.notifier).fetchNextPage();
+    }
   }
 
   Future<void> _confirmDelete(NotificationModel notification) async {
@@ -53,28 +52,31 @@ class _AdminNotificationListPageState extends State<AdminNotificationListPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderLg),
-        title: const Text(
-          'Delete Draft?',
-          style: TextStyle(color: AppColors.textPrimary),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Delete Notification?',
+          style: GoogleFonts.playfairDisplay(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Text(
-          'Delete draft notification "${notification.title}"?',
-          style: const TextStyle(color: AppColors.textMuted),
+          'Are you sure you want to delete "${notification.title}"?',
+          style: GoogleFonts.montserrat(color: AppColors.textMuted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(
+            child: Text(
               'Cancel',
-              style: TextStyle(color: AppColors.textMuted),
+              style: GoogleFonts.montserrat(color: AppColors.textMuted),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
+            child: Text(
               'Delete',
-              style: TextStyle(color: AppColors.error),
+              style: GoogleFonts.montserrat(color: AppColors.error),
             ),
           ),
         ],
@@ -82,245 +84,197 @@ class _AdminNotificationListPageState extends State<AdminNotificationListPage> {
     );
 
     if (confirmed == true && mounted) {
-      await _controller.deleteDraft(notification.id);
+      await ref
+          .read(adminNotificationMutationProvider.notifier)
+          .delete(notification.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Draft "${notification.title}" deleted.'),
-          backgroundColor: AppColors.surfaceLight,
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppToast.show(
+        context,
+        'Notification "${notification.title}" deleted.',
+        type: ToastType.success,
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutique = scope.selectedBoutique;
-    final branch = scope.selectedBranch;
-    final notifications = _controller.visibleNotificationsForAdmin;
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Notifications',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+    return PopScope(
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (context.mounted) context.popOrGo(AppRoutes.adminHome);
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AdminAppBar(
+          title: 'Notifications',
+          onBackTap: () => context.popOrGo(AppRoutes.adminHome),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.background,
+          elevation: 4,
+          icon: PhosphorIcon(PhosphorIcons.plus(), size: 20),
+          label: Text(
+            'Create Notification',
+            style: GoogleFonts.montserrat(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
           ),
+          onPressed: () => context.push(AppRoutes.adminNotificationAdd),
         ),
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_rounded,
-            color: AppColors.textPrimary,
-          ),
-          onPressed: () => context.go(AppRoutes.adminHome),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.background,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text(
-          'Create Notification',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        onPressed: () => context.go(AppRoutes.adminNotificationAdd),
-      ),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                AppSpacing.md,
-                AppSpacing.lg,
-                0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          boutique?.name ?? '—',
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (branch != null)
-                        Text(
-                          branch.name,
-                          style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      const SizedBox(width: AppSpacing.md),
-                      Text(
-                        '${notifications.length} items',
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Search Input Field
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                child: TextField(
+                  controller: _searchController,
+                  style: GoogleFonts.montserrat(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  // Search Bar
-                  TextField(
-                    controller: _searchController,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
+                  cursorColor: AppColors.primary,
+                  decoration: InputDecoration(
+                    hintText: 'Search notifications by title or message…',
+                    hintStyle: GoogleFonts.montserrat(
+                      color: AppColors.textHint,
+                      fontSize: 13,
                     ),
-                    cursorColor: AppColors.primary,
-                    decoration: InputDecoration(
-                      hintText: 'Search title or body text…',
-                      hintStyle: const TextStyle(
-                        color: AppColors.textHint,
-                        fontSize: 14,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.search_rounded,
-                        color: AppColors.textMuted,
-                        size: 20,
-                      ),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(
-                                Icons.clear_rounded,
-                                color: AppColors.textMuted,
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                _searchController.clear();
-                                _controller.searchNotifications('');
-                              },
-                            )
-                          : null,
-                      filled: true,
-                      fillColor: AppColors.surface,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.sm,
-                      ),
-                      border: const OutlineInputBorder(
-                        borderRadius: AppRadius.borderMd,
-                        borderSide: BorderSide(color: AppColors.surfaceBorder),
-                      ),
-                      enabledBorder: const OutlineInputBorder(
-                        borderRadius: AppRadius.borderMd,
-                        borderSide: BorderSide(color: AppColors.surfaceBorder),
-                      ),
-                      focusedBorder: const OutlineInputBorder(
-                        borderRadius: AppRadius.borderMd,
-                        borderSide: BorderSide(
-                          color: AppColors.primary,
-                          width: 1.5,
-                        ),
-                      ),
+                    prefixIcon: PhosphorIcon(
+                      PhosphorIcons.magnifyingGlass(),
+                      color: AppColors.textMuted,
+                      size: 18,
                     ),
-                    onChanged: (q) => _controller.searchNotifications(q),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  // Status & Type Filter Chips
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _statusFilterChip(null, 'All Statuses'),
-                        const SizedBox(width: AppSpacing.xs),
-                        ...NotificationStatus.values.map(
-                          (s) => Padding(
-                            padding: const EdgeInsets.only(
-                              right: AppSpacing.xs,
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: PhosphorIcon(
+                              PhosphorIcons.x(),
+                              color: AppColors.textMuted,
+                              size: 16,
                             ),
-                            child: _statusFilterChip(s, s.label),
-                          ),
-                        ),
-                      ],
+                            onPressed: () {
+                              _searchController.clear();
+                              ref
+                                  .read(paginatedNotificationsProvider.notifier)
+                                  .fetchInitial(query: '');
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                        color: AppColors.surfaceBorder,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                        color: AppColors.surfaceBorder,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                ],
+                  onChanged: (q) => ref
+                      .read(paginatedNotificationsProvider.notifier)
+                      .fetchInitial(query: q),
+                ),
               ),
-            ),
-            Expanded(
-              child: _controller.isLoading
-                  ? const Center(child: AppLoadingIndicator(size: 32))
-                  : notifications.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.lg,
-                        AppSpacing.sm,
-                        AppSpacing.lg,
-                        AppSpacing.xxl + AppSpacing.xl,
-                      ),
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: notifications.length,
-                      separatorBuilder: (_, _) =>
-                          const SizedBox(height: AppSpacing.sm),
-                      itemBuilder: (context, i) {
-                        final notif = notifications[i];
-                        return _NotificationCard(
-                          notification: notif,
-                          onTapDetails: () => context.go(
-                            AppRoutes.adminNotificationDetails,
-                            extra: notif,
-                          ),
-                          onEdit: () => context.go(
-                            AppRoutes.adminNotificationEdit,
-                            extra: notif,
-                          ),
-                          onPreview: () => context.go(
-                            AppRoutes.adminNotificationPreview,
-                            extra: notif,
-                          ),
-                          onDelete: () => _confirmDelete(notif),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _statusFilterChip(NotificationStatus? status, String label) {
-    final selected = _controller.selectedStatusFilter == status;
-    return GestureDetector(
-      onTap: () => _controller.filterByStatus(status),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.xs,
-        ),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.surface,
-          borderRadius: AppRadius.borderPill,
-          border: Border.all(
-            color: selected ? AppColors.primary : AppColors.surfaceBorder,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? AppColors.background : AppColors.textMuted,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+              // Notifications List
+              Expanded(
+                child: Builder(
+                  builder: (context) {
+                    final paginatedState = ref.watch(paginatedNotificationsProvider);
+                    final notifications = paginatedState.items;
+
+                    return RefreshIndicator(
+                      color: AppColors.primary,
+                      onRefresh: () async {
+                        await ref
+                            .read(paginatedNotificationsProvider.notifier)
+                            .refresh();
+                      },
+                      child: paginatedState.isLoading && notifications.isEmpty
+                          ? const AppLoadingState(type: AppLoadingType.list)
+                          : paginatedState.errorMessage != null && notifications.isEmpty
+                          ? AppErrorState(
+                              message: 'Failed to load notifications list.',
+                              onRetry: () => ref
+                                  .read(paginatedNotificationsProvider.notifier)
+                                  .refresh(),
+                            )
+                          : notifications.isEmpty
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: [
+                                SizedBox(
+                                  height: MediaQuery.of(context).size.height * 0.5,
+                                  child: _buildEmptyState(),
+                                ),
+                              ],
+                            )
+                          : ListView.separated(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.fromLTRB(20, 4, 20, 88),
+                              physics: const AlwaysScrollableScrollPhysics(
+                                parent: BouncingScrollPhysics(),
+                              ),
+                              itemCount: notifications.length +
+                                  (paginatedState.isLoadingMore ? 1 : 0),
+                              separatorBuilder: (ctx, i) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (context, i) {
+                                if (i == notifications.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                final notif = notifications[i];
+                                return _NotificationCard(
+                                  notification: notif,
+                                  onTapDetails: () => context.push(
+                                    AppRoutes.adminNotificationDetails,
+                                    extra: notif,
+                                  ),
+                                  onEdit: () => context.push(
+                                    AppRoutes.adminNotificationEdit,
+                                    extra: notif,
+                                  ),
+                                  onPreview: () => context.push(
+                                    AppRoutes.adminNotificationPreview,
+                                    extra: notif,
+                                  ),
+                                  onDelete: () => _confirmDelete(notif),
+                                );
+                              },
+                            ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -328,41 +282,23 @@ class _AdminNotificationListPageState extends State<AdminNotificationListPage> {
   }
 
   Widget _buildEmptyState() {
-    final hasFilter =
-        _searchController.text.isNotEmpty ||
-        _controller.selectedStatusFilter != null;
+    final hasFilter = _searchController.text.isNotEmpty;
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              hasFilter
-                  ? Icons.search_off_rounded
-                  : Icons.notifications_none_rounded,
-              color: AppColors.textMuted,
-              size: 48,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              hasFilter
-                  ? 'No notifications match the selected filters.'
-                  : 'No notifications have been created for this boutique.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return AppEmptyState(
+      icon: hasFilter
+          ? PhosphorIcons.magnifyingGlass()
+          : PhosphorIcons.bell(),
+      title: hasFilter ? 'No Notifications Found' : 'No Notifications Yet',
+      message: hasFilter
+          ? 'No notifications match your search "$_searchQuery". Try searching with different keywords.'
+          : 'Created announcements and customer notifications will appear here.',
     );
   }
+
+  String get _searchQuery => _searchController.text;
 }
+
+// ── Notification Card ─────────────────────────────────────────────────────────
 
 class _NotificationCard extends StatelessWidget {
   const _NotificationCard({
@@ -381,60 +317,102 @@ class _NotificationCard extends StatelessWidget {
 
   String _formatDate(DateTime? dt) {
     if (dt == null) return 'N/A';
-    return '${dt.day}/${dt.month}/${dt.year}';
+    return DateFormat('d MMM yyyy').format(dt);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isPublished = notification.status == NotificationStatus.published;
+    final statusColor = isPublished
+        ? const Color(0xFF2E7D32)
+        : const Color(0xFFE65100);
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: AppRadius.borderLg,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.surfaceBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ListTile(
         onTap: onTapDetails,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.xs,
+        contentPadding: const EdgeInsets.all(14),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Center(
+            child: PhosphorIcon(
+              isPublished
+                  ? PhosphorIcons.megaphone()
+                  : PhosphorIcons.bell(),
+              size: 22,
+              color: statusColor,
+            ),
+          ),
         ),
         title: Row(
           children: [
             Expanded(
               child: Text(
                 notification.title,
-                style: const TextStyle(
+                style: GoogleFonts.playfairDisplay(
                   color: AppColors.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: AppSpacing.xs),
-            _StatusBadge(status: notification.status),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                notification.status.label,
+                style: GoogleFonts.montserrat(
+                  color: statusColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
               notification.body,
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+              style: GoogleFonts.montserrat(
+                color: AppColors.textMuted,
+                fontSize: 12,
+                height: 1.3,
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Row(
               children: [
-                _TypeBadge(type: notification.type),
-                const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: Text(
                     '${notification.audienceType.label} • ${_formatDate(notification.publishedAt ?? notification.createdAt)}',
-                    style: const TextStyle(
+                    style: GoogleFonts.montserrat(
                       color: AppColors.textHint,
                       fontSize: 11,
                     ),
@@ -446,80 +424,85 @@ class _NotificationCard extends StatelessWidget {
           ],
         ),
         trailing: PopupMenuButton<String>(
-          color: AppColors.surfaceLight,
-          shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderLg),
-          icon: const Icon(
-            Icons.more_vert_rounded,
+          color: AppColors.surface,
+          elevation: 3,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          icon: PhosphorIcon(
+            PhosphorIcons.dotsThreeVertical(),
             color: AppColors.textMuted,
             size: 20,
           ),
           itemBuilder: (_) => [
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'details',
               child: Row(
                 children: [
-                  Icon(
-                    Icons.visibility_outlined,
+                  PhosphorIcon(
+                    PhosphorIcons.eye(),
                     color: AppColors.primary,
                     size: 18,
                   ),
-                  SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: 10),
                   Text(
                     'View Details',
-                    style: TextStyle(color: AppColors.textPrimary),
+                    style: GoogleFonts.montserrat(color: AppColors.textPrimary),
                   ),
                 ],
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'preview',
               child: Row(
                 children: [
-                  Icon(
-                    Icons.preview_rounded,
+                  PhosphorIcon(
+                    PhosphorIcons.deviceMobile(),
                     color: AppColors.primary,
                     size: 18,
                   ),
-                  SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: 10),
                   Text(
                     'Preview In-App',
-                    style: TextStyle(color: AppColors.textPrimary),
+                    style: GoogleFonts.montserrat(color: AppColors.textPrimary),
                   ),
                 ],
               ),
             ),
             if (notification.status == NotificationStatus.draft)
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'edit',
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.edit_rounded,
+                    PhosphorIcon(
+                      PhosphorIcons.pencilSimple(),
                       color: AppColors.primary,
                       size: 18,
                     ),
-                    SizedBox(width: AppSpacing.sm),
+                    const SizedBox(width: 10),
                     Text(
                       'Edit Draft',
-                      style: TextStyle(color: AppColors.textPrimary),
+                      style: GoogleFonts.montserrat(
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ],
                 ),
               ),
             if (notification.status == NotificationStatus.draft)
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.delete_outline_rounded,
+                    PhosphorIcon(
+                      PhosphorIcons.trash(),
                       color: AppColors.error,
                       size: 18,
                     ),
-                    SizedBox(width: AppSpacing.sm),
+                    const SizedBox(width: 10),
                     Text(
                       'Delete Draft',
-                      style: TextStyle(color: AppColors.error),
+                      style: GoogleFonts.montserrat(color: AppColors.error),
                     ),
                   ],
                 ),
@@ -541,64 +524,4 @@ class _NotificationCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.status});
-  final NotificationStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = switch (status) {
-      NotificationStatus.draft => AppColors.textMuted,
-      NotificationStatus.scheduled => AppColors.warning,
-      NotificationStatus.published => AppColors.success,
-      NotificationStatus.cancelled => AppColors.error,
-      NotificationStatus.archived => AppColors.surfaceBorder,
-    };
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: 2,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: AppRadius.borderPill,
-      ),
-      child: Text(
-        status.label,
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-}
-
-class _TypeBadge extends StatelessWidget {
-  const _TypeBadge({required this.type});
-  final NotificationType type;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(
-      horizontal: AppSpacing.xs + 2,
-      vertical: 1,
-    ),
-    decoration: BoxDecoration(
-      color: AppColors.primary.withValues(alpha: 0.12),
-      borderRadius: AppRadius.borderPill,
-    ),
-    child: Text(
-      type.label,
-      style: const TextStyle(
-        color: AppColors.primary,
-        fontSize: 9,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-  );
 }

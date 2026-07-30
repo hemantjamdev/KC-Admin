@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_radius.dart';
-import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/navigation/navigation_extensions.dart';
 import '../../../../core/widgets/app_button.dart';
-import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../../boutique/presentation/controllers/boutique_selection_controller.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../domain/models/category_model.dart';
-import '../controllers/category_controller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../application/providers/category_providers.dart';
 
-/// Add / Edit Category form page.
-/// Pass a [CategoryModel] via GoRouter `extra` for edit mode.
-class CategoryFormPage extends StatefulWidget {
+/// Redesigned Add / Edit Category Form.
+/// Minimalist form focusing strictly on Name, Description, and Active status.
+class CategoryFormPage extends ConsumerStatefulWidget {
   const CategoryFormPage({super.key, this.existingCategory});
 
   final CategoryModel? existingCategory;
@@ -21,75 +20,59 @@ class CategoryFormPage extends StatefulWidget {
   bool get isEditMode => existingCategory != null;
 
   @override
-  State<CategoryFormPage> createState() => _CategoryFormPageState();
+  ConsumerState<CategoryFormPage> createState() => _CategoryFormPageState();
 }
 
-class _CategoryFormPageState extends State<CategoryFormPage> {
+class _CategoryFormPageState extends ConsumerState<CategoryFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _slugController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _imageUrlController = TextEditingController();
-  final _sortOrderController = TextEditingController();
+
+  final _nameFocusNode = FocusNode();
+  final _descFocusNode = FocusNode();
 
   bool _isActive = true;
   bool _isSaving = false;
   bool _hasChanges = false;
-  bool _slugEditedManually = false;
-
-  late CategoryController _controller;
+  bool _allowDiscardPop = false;
 
   @override
   void initState() {
     super.initState();
-    final boutiqueId =
-        BoutiqueSelectionScope.of(context).selectedBoutique?.id ?? '';
-    _controller = CategoryController(boutiqueId: boutiqueId);
-    _controller.loadCategories();
 
     if (widget.isEditMode) {
       final cat = widget.existingCategory!;
       _nameController.text = cat.name;
-      _slugController.text = cat.slug;
       _descriptionController.text = cat.description ?? '';
-      _imageUrlController.text = cat.imageUrl ?? '';
-      _sortOrderController.text = cat.sortOrder.toString();
       _isActive = cat.isActive;
-      _slugEditedManually = true;
-    } else {
-      _sortOrderController.text = '0';
     }
 
-    _nameController.addListener(_onNameChanged);
     _nameController.addListener(_markDirty);
-    _slugController.addListener(_markDirty);
     _descriptionController.addListener(_markDirty);
-    _imageUrlController.addListener(_markDirty);
-    _sortOrderController.addListener(_markDirty);
+  }
+
+  @override
+  void dispose() {
+    _nameFocusNode.dispose();
+    _descFocusNode.dispose();
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
   }
 
   void _markDirty() {
     if (!_hasChanges) setState(() => _hasChanges = true);
   }
 
-  void _onNameChanged() {
-    if (!_slugEditedManually) {
-      final generated = _generateSlug(_nameController.text);
-      _slugController.text = generated;
-      _slugController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _slugController.text.length),
-      );
-    }
-  }
-
   String _generateSlug(String name) {
-    return name
+    final slug = name
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
         .trim()
         .replaceAll(RegExp(r'\s+'), '-')
         .replaceAll(RegExp(r'-+'), '-')
         .replaceAll(RegExp(r'^-|-$'), '');
+    return slug.isEmpty ? 'cat-${DateTime.now().millisecondsSinceEpoch}' : slug;
   }
 
   Future<bool> _onWillPop() async {
@@ -98,28 +81,36 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderLg),
-        title: const Text(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(
           'Discard Changes?',
-          style: TextStyle(color: AppColors.textPrimary),
+          style: GoogleFonts.playfairDisplay(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
         ),
-        content: const Text(
+        content: Text(
           'You have unsaved changes. Leaving will discard them.',
-          style: TextStyle(color: AppColors.textMuted),
+          style: GoogleFonts.montserrat(
+            fontSize: 13,
+            color: AppColors.textMuted,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(
+            child: Text(
               'Keep Editing',
-              style: TextStyle(color: AppColors.primary),
+              style: GoogleFonts.montserrat(color: AppColors.textMuted),
             ),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: Text(
               'Discard',
-              style: TextStyle(color: AppColors.error),
+              style: GoogleFonts.montserrat(color: Colors.white),
             ),
           ),
         ],
@@ -128,369 +119,332 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
     return confirmed == true;
   }
 
-  String? _validateSlug(String? value) {
-    if (value == null || value.isEmpty) return 'Slug is required.';
-    final slugRegex = RegExp(r'^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$');
-    if (!slugRegex.hasMatch(value)) {
-      return 'Slug: lowercase letters, numbers, and hyphens only. '
-          'Cannot start or end with a hyphen.';
-    }
-
-    return null;
-  }
-
   Future<void> _save() async {
     if (_isSaving) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
+    if (widget.existingCategory?.isSystem == true) {
+      setState(() => _isSaving = true);
+      await ref
+          .read(categoryMutationProvider.notifier)
+          .setActive(widget.existingCategory!.id, _isActive);
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      AppToast.show(
+        context,
+        '"${widget.existingCategory!.name}" status updated.',
+        type: ToastType.success,
+      );
+      context.popOrGoWithResult(true, AppRoutes.adminCategoryList);
+      return;
+    }
+
     setState(() => _isSaving = true);
-    await Future.delayed(const Duration(milliseconds: 300));
+    await Future.delayed(const Duration(milliseconds: 200));
     if (!mounted) return;
 
-    final boutiqueId =
-        BoutiqueSelectionScope.of(context).selectedBoutique?.id ?? '';
+    const boutiqueId = 'boutique_01';
     final now = DateTime.now();
+    final nameTrimmed = _nameController.text.trim();
+    final descTrimmed = _descriptionController.text.trim();
 
     final CategoryModel category;
     if (widget.isEditMode) {
       category = widget.existingCategory!.copyWith(
-        name: _nameController.text.trim(),
-        slug: _slugController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty
-            ? null
-            : _descriptionController.text.trim(),
-        imageUrl: _imageUrlController.text.trim().isEmpty
-            ? null
-            : _imageUrlController.text.trim(),
-        sortOrder: int.tryParse(_sortOrderController.text) ?? 0,
+        name: nameTrimmed,
+        slug: _generateSlug(nameTrimmed),
+        description: descTrimmed.isEmpty ? null : descTrimmed,
         isActive: _isActive,
         updatedAt: now,
-        clearDescription: _descriptionController.text.trim().isEmpty,
-        clearImageUrl: _imageUrlController.text.trim().isEmpty,
+        clearDescription: descTrimmed.isEmpty,
       );
-      _controller.updateCategory(category);
+      await ref.read(categoryMutationProvider.notifier).update(category);
     } else {
       category = CategoryModel(
         id: 'cat_${now.millisecondsSinceEpoch}',
         boutiqueId: boutiqueId,
-        name: _nameController.text.trim(),
-        slug: _slugController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty
-            ? null
-            : _descriptionController.text.trim(),
-        imageUrl: _imageUrlController.text.trim().isEmpty
-            ? null
-            : _imageUrlController.text.trim(),
-        sortOrder: int.tryParse(_sortOrderController.text) ?? 0,
+        name: nameTrimmed,
+        slug: _generateSlug(nameTrimmed),
+        description: descTrimmed.isEmpty ? null : descTrimmed,
+        sortOrder: 10,
         isActive: _isActive,
         createdAt: now,
         updatedAt: now,
       );
-      _controller.addCategory(category);
+      await ref.read(categoryMutationProvider.notifier).create(category);
     }
 
     if (!mounted) return;
     setState(() => _isSaving = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          widget.isEditMode
-              ? '"${category.name}" updated.'
-              : '"${category.name}" created.',
-        ),
-        backgroundColor: AppColors.surfaceLight,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
+    AppToast.show(
+      context,
+      widget.isEditMode
+          ? '"${category.name}" updated.'
+          : '"${category.name}" created.',
+      type: ToastType.success,
     );
 
-    context.go(AppRoutes.adminCategoryList);
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _slugController.dispose();
-    _descriptionController.dispose();
-    _imageUrlController.dispose();
-    _sortOrderController.dispose();
-    _controller.dispose();
-    super.dispose();
+    if (!mounted) return;
+    context.popOrGoWithResult(true, AppRoutes.adminCategoryList);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isSystem = widget.existingCategory?.isSystem == true;
+
     return PopScope(
-      canPop: !_hasChanges,
+      canPop: !_hasChanges || _allowDiscardPop,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final router = GoRouter.of(context);
         final canLeave = await _onWillPop();
-        if (canLeave) router.go(AppRoutes.adminCategoryList);
+        if (canLeave && context.mounted) {
+          setState(() => _allowDiscardPop = true);
+          context.popOrGo(AppRoutes.adminCategoryList);
+        }
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          scrolledUnderElevation: 0,
           title: Text(
             widget.isEditMode ? 'Edit Category' : 'Add Category',
-            style: const TextStyle(
+            style: GoogleFonts.playfairDisplay(
               color: AppColors.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
             ),
           ),
           leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_rounded,
+            icon: PhosphorIcon(
+              PhosphorIcons.caretLeft(PhosphorIconsStyle.bold),
+              size: 20,
               color: AppColors.textPrimary,
             ),
             onPressed: () async {
-              final router = GoRouter.of(context);
               final canLeave = await _onWillPop();
-              if (canLeave) router.go(AppRoutes.adminCategoryList);
+              if (canLeave && context.mounted) {
+                setState(() => _allowDiscardPop = true);
+                context.popOrGo(AppRoutes.adminCategoryList);
+              }
             },
           ),
         ),
         body: SafeArea(
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Name
-                      _FormField(
-                        label: 'Name *',
-                        child: TextFormField(
-                          controller: _nameController,
-                          style: _fieldTextStyle,
-                          cursorColor: AppColors.primary,
-                          decoration: _inputDecoration('e.g. Bridal Wear'),
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) {
-                              return 'Name is required.';
-                            }
-                            if (v.trim().length < 2) {
-                              return 'Name must be at least 2 characters.';
-                            }
-                            return null;
-                          },
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (isSystem) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2),
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Slug
-                      _FormField(
-                        label: 'Slug *',
-                        child: TextFormField(
-                          controller: _slugController,
-                          style: _fieldTextStyle.copyWith(
-                            fontFamily: 'monospace',
+                      child: Row(
+                        children: [
+                          PhosphorIcon(
+                            PhosphorIcons.lockKey(PhosphorIconsStyle.bold),
+                            color: AppColors.primary,
+                            size: 20,
                           ),
-                          cursorColor: AppColors.primary,
-                          decoration: _inputDecoration('e.g. bridal-wear'),
-                          onChanged: (_) {
-                            _slugEditedManually = true;
-                            _markDirty();
-                          },
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'[a-z0-9-]'),
-                            ),
-                          ],
-                          validator: _validateSlug,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Description
-                      _FormField(
-                        label: 'Description',
-                        child: TextFormField(
-                          controller: _descriptionController,
-                          style: _fieldTextStyle,
-                          cursorColor: AppColors.primary,
-                          decoration: _inputDecoration(
-                            'Optional category description',
-                          ),
-                          maxLines: 3,
-                          minLines: 2,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Image URL
-                      _FormField(
-                        label: 'Image URL',
-                        child: TextFormField(
-                          controller: _imageUrlController,
-                          style: _fieldTextStyle,
-                          cursorColor: AppColors.primary,
-                          decoration: _inputDecoration('https://…'),
-                          keyboardType: TextInputType.url,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Sort Order
-                      _FormField(
-                        label: 'Sort Order *',
-                        child: TextFormField(
-                          controller: _sortOrderController,
-                          style: _fieldTextStyle,
-                          cursorColor: AppColors.primary,
-                          decoration: _inputDecoration('0'),
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          validator: (v) {
-                            final parsed = int.tryParse(v ?? '');
-                            if (parsed == null) return 'Must be a number.';
-                            if (parsed < 0) return 'Must be zero or greater.';
-                            return null;
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Active toggle
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.sm,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: AppRadius.borderMd,
-                          border: Border.all(color: AppColors.surfaceBorder),
-                        ),
-                        child: Row(
-                          children: [
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Active',
-                                    style: TextStyle(
-                                      color: AppColors.textPrimary,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  SizedBox(height: 2),
-                                  Text(
-                                    'Inactive categories are hidden in the customer app.',
-                                    style: TextStyle(
-                                      color: AppColors.textMuted,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'This is a core system category (New Arrivals, Seasonal, Festive) and cannot be edited or deleted.',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 12.5,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                            Switch(
-                              value: _isActive,
-                              onChanged: (v) => setState(() => _isActive = v),
-                              activeThumbColor: AppColors.primary,
-                              inactiveTrackColor: AppColors.surfaceBorder,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  // Category Name
+                  Text(
+                    'CATEGORY NAME',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textMuted,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _nameController,
+                    focusNode: _nameFocusNode,
+                    enabled: !isSystem,
+                    textCapitalization: TextCapitalization.words,
+                    style: GoogleFonts.montserrat(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Designer Sarees, Bridal Wear',
+                      hintStyle: GoogleFonts.montserrat(
+                        fontSize: 14,
+                        color: AppColors.textHint,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.surface,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.surfaceBorder),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.surfaceBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return 'Category name is required.';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Description (Optional)
+                  Text(
+                    'DESCRIPTION (OPTIONAL)',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textMuted,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _descriptionController,
+                    focusNode: _descFocusNode,
+                    enabled: !isSystem,
+                    maxLines: 3,
+                    style: GoogleFonts.montserrat(
+                      fontSize: 14,
+                      color: AppColors.textPrimary,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Brief summary of what this category contains...',
+                      hintStyle: GoogleFonts.montserrat(
+                        fontSize: 13.5,
+                        color: AppColors.textHint,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.surface,
+                      contentPadding: const EdgeInsets.all(16),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.surfaceBorder),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.surfaceBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Active Switch
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.surfaceBorder),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Active Status',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _isActive
+                                  ? 'Visible to customers in KC-App'
+                                  : 'Hidden from customer app views',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 12,
+                                color: AppColors.textMuted,
+                              ),
                             ),
                           ],
                         ),
-                      ),
-
-                      const SizedBox(height: AppSpacing.xl),
-
-                      // Save button
-                      _isSaving
-                          ? const Center(child: AppLoadingIndicator(size: 36))
-                          : AppButton(
-                              text: widget.isEditMode
-                                  ? 'Save Changes'
-                                  : 'Create Category',
-                              onPressed: _save,
-                            ),
-                      const SizedBox(height: AppSpacing.md),
-                    ],
+                        Switch.adaptive(
+                          value: _isActive,
+                          activeTrackColor: AppColors.primary,
+                          onChanged: (val) {
+                            setState(() {
+                              _isActive = val;
+                              _markDirty();
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+
+                  const SizedBox(height: 32),
+
+                  // Submit Action Button
+                  AppButton(
+                    text: widget.isEditMode ? 'Save Category' : 'Create Category',
+                    isLoading: _isSaving,
+                    onPressed: _save,
+                  ),
+                ],
               ),
             ),
           ),
         ),
       ),
-    );
-  }
-
-  static const TextStyle _fieldTextStyle = TextStyle(
-    color: AppColors.textPrimary,
-    fontSize: 14,
-  );
-
-  InputDecoration _inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
-      filled: true,
-      fillColor: AppColors.surface,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.md,
-      ),
-      border: const OutlineInputBorder(
-        borderRadius: AppRadius.borderMd,
-        borderSide: BorderSide(color: AppColors.surfaceBorder),
-      ),
-      enabledBorder: const OutlineInputBorder(
-        borderRadius: AppRadius.borderMd,
-        borderSide: BorderSide(color: AppColors.surfaceBorder),
-      ),
-      focusedBorder: const OutlineInputBorder(
-        borderRadius: AppRadius.borderMd,
-        borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-      ),
-      errorBorder: const OutlineInputBorder(
-        borderRadius: AppRadius.borderMd,
-        borderSide: BorderSide(color: AppColors.error),
-      ),
-      focusedErrorBorder: const OutlineInputBorder(
-        borderRadius: AppRadius.borderMd,
-        borderSide: BorderSide(color: AppColors.error, width: 1.5),
-      ),
-      errorStyle: const TextStyle(color: AppColors.error, fontSize: 12),
-    );
-  }
-}
-
-class _FormField extends StatelessWidget {
-  const _FormField({required this.label, required this.child});
-
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        child,
-      ],
     );
   }
 }

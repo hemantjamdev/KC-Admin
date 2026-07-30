@@ -14,6 +14,7 @@ class CategoryModel {
     required this.isActive,
     required this.createdAt,
     required this.updatedAt,
+    this.isSystem = false,
   });
 
   final String id;
@@ -26,6 +27,7 @@ class CategoryModel {
   final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool isSystem;
 
   CategoryModel copyWith({
     String? id,
@@ -38,6 +40,7 @@ class CategoryModel {
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? isSystem,
     bool clearDescription = false,
     bool clearImageUrl = false,
   }) {
@@ -52,6 +55,7 @@ class CategoryModel {
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      isSystem: isSystem ?? this.isSystem,
     );
   }
 
@@ -68,7 +72,8 @@ class CategoryModel {
         other.sortOrder == sortOrder &&
         other.isActive == isActive &&
         other.createdAt == createdAt &&
-        other.updatedAt == updatedAt;
+        other.updatedAt == updatedAt &&
+        other.isSystem == isSystem;
   }
 
   @override
@@ -83,11 +88,12 @@ class CategoryModel {
     isActive,
     createdAt,
     updatedAt,
+    isSystem,
   );
 
   @override
   String toString() {
     return 'CategoryModel(id: $id, boutiqueId: $boutiqueId, name: $name, '
-        'slug: $slug, sortOrder: $sortOrder, isActive: $isActive)';
+        'slug: $slug, sortOrder: $sortOrder, isActive: $isActive, isSystem: $isSystem)';
   }
 }

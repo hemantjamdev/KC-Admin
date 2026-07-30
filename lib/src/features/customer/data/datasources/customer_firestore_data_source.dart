@@ -109,9 +109,6 @@ class CustomerFirestoreDataSource {
     try {
       Query<Map<String, dynamic>> query = _collection;
 
-      if (boutiqueId != null && boutiqueId.isNotEmpty) {
-        query = query.where('boutiqueIds', arrayContains: boutiqueId);
-      }
       if (isActive != null) {
         query = query.where('isActive', isEqualTo: isActive);
       }
@@ -121,10 +118,79 @@ class CustomerFirestoreDataSource {
 
       final snapshot = await query.get();
       final list = snapshot.docs.map(_fromFirestore).toList();
-      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return list;
+
+      // Deduplicate by email: when the same person has both an admin-created
+      // record (no firebaseUid) and an app-linked record (with firebaseUid),
+      // keep the more complete one (firebaseUid set wins).
+      final seen = <String, CustomerModel>{};
+      for (final customer in list) {
+        final key = customer.email?.trim().toLowerCase() ?? customer.id;
+        final existing = seen[key];
+        if (existing == null) {
+          seen[key] = customer;
+        } else {
+          // Prefer the record that has a firebaseUid (more complete).
+          if (customer.firebaseUid != null && existing.firebaseUid == null) {
+            seen[key] = customer;
+          }
+        }
+      }
+
+      final deduplicated = seen.values.toList();
+      deduplicated.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return deduplicated;
     } catch (e) {
       throw Exception('Failed to fetch customers: $e');
+    }
+  }
+
+  Future<({List<CustomerModel> items, String? lastDocId, bool hasMore})> fetchPaginated({
+    int limit = 20,
+    String? startAfterId,
+  }) async {
+    try {
+      Query<Map<String, dynamic>> query = _collection
+          .orderBy('createdAt', descending: true)
+          .limit(limit + 1);
+
+      if (startAfterId != null && startAfterId.isNotEmpty) {
+        final lastDoc = await _collection.doc(startAfterId).get();
+        if (lastDoc.exists) {
+          query = query.startAfterDocument(lastDoc);
+        }
+      }
+
+      final snapshot = await query.get();
+      final docs = snapshot.docs;
+      final hasMore = docs.length > limit;
+      final resultDocs = hasMore ? docs.take(limit).toList() : docs;
+      final rawItems = resultDocs.map(_fromFirestore).toList();
+
+      // Deduplicate by email: when duplicate records exist with the same email address,
+      // keep the primary record (preferring firebaseUid linked account).
+      final seen = <String, CustomerModel>{};
+      for (final customer in rawItems) {
+        final key = customer.email?.trim().toLowerCase();
+        if (key == null || key.isEmpty) {
+          seen[customer.id] = customer;
+        } else {
+          final existing = seen[key];
+          if (existing == null) {
+            seen[key] = customer;
+          } else {
+            if (customer.firebaseUid != null && existing.firebaseUid == null) {
+              seen[key] = customer;
+            }
+          }
+        }
+      }
+
+      final items = seen.values.toList();
+      final lastDocId = resultDocs.isNotEmpty ? resultDocs.last.id : null;
+
+      return (items: items, lastDocId: lastDocId, hasMore: hasMore);
+    } catch (e) {
+      return (items: <CustomerModel>[], lastDocId: null, hasMore: false);
     }
   }
 

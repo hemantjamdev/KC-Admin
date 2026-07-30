@@ -1,51 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/navigation/navigation_extensions.dart';
 import '../../../../core/widgets/app_button.dart';
-import '../../../boutique/presentation/controllers/boutique_selection_controller.dart';
-import '../../../category/data/repositories/category_firestore_repository.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../domain/models/category_model.dart';
-import '../controllers/category_controller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../application/providers/category_providers.dart';
 
 /// Reorder categories page — drag to rearrange sortOrder.
-class CategoryReorderPage extends StatefulWidget {
+class CategoryReorderPage extends ConsumerStatefulWidget {
   const CategoryReorderPage({super.key});
 
   @override
-  State<CategoryReorderPage> createState() => _CategoryReorderPageState();
+  ConsumerState<CategoryReorderPage> createState() =>
+      _CategoryReorderPageState();
 }
 
-class _CategoryReorderPageState extends State<CategoryReorderPage> {
-  final CategoryFirestoreRepository _repository = CategoryFirestoreRepository();
-  late CategoryController _controller;
+class _CategoryReorderPageState extends ConsumerState<CategoryReorderPage> {
   List<CategoryModel> _orderedCategories = [];
   bool _hasChanges = false;
+  bool _allowDiscardPop = false;
 
   @override
   void initState() {
     super.initState();
-    final boutiqueId =
-        BoutiqueSelectionScope.of(context).selectedBoutique?.id ?? '';
-    _controller = CategoryController(boutiqueId: boutiqueId);
-
+    const boutiqueId = 'boutique_01';
     _initData(boutiqueId);
   }
 
   Future<void> _initData(String boutiqueId) async {
-    final list = await _repository.watchCategories(boutiqueId).first;
+    final list = await ref
+        .read(categoryRepositoryProvider)
+        .watchCategories(boutiqueId)
+        .first;
     if (!mounted) return;
     setState(() {
       _orderedCategories = List.of(list);
     });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 
   Future<bool> _onWillPop() async {
@@ -94,27 +90,26 @@ class _CategoryReorderPageState extends State<CategoryReorderPage> {
   }
 
   void _save() {
-    _controller.reorderCategories(_orderedCategories);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Category order saved (mock session).'),
-        backgroundColor: AppColors.surfaceLight,
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
+    ref.read(categoryMutationProvider.notifier).reorder(_orderedCategories);
+    AppToast.show(
+      context,
+      'Category display order updated.',
+      type: ToastType.success,
     );
-    context.go(AppRoutes.adminCategoryList);
+    context.popOrGoWithResult(true, AppRoutes.adminCategoryList);
   }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: !_hasChanges,
+      canPop: !_hasChanges || _allowDiscardPop,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final router = GoRouter.of(context);
         final canLeave = await _onWillPop();
-        if (canLeave) router.go(AppRoutes.adminCategoryList);
+        if (canLeave && context.mounted) {
+          setState(() => _allowDiscardPop = true);
+          context.popOrGo(AppRoutes.adminCategoryList);
+        }
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -128,14 +123,21 @@ class _CategoryReorderPageState extends State<CategoryReorderPage> {
             ),
           ),
           leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_rounded,
+            icon: PhosphorIcon(
+              PhosphorIcons.caretLeft(PhosphorIconsStyle.bold),
+              size: 20,
               color: AppColors.textPrimary,
             ),
             onPressed: () async {
-              final router = GoRouter.of(context);
+              if (!_hasChanges) {
+                context.popOrGo(AppRoutes.adminCategoryList);
+                return;
+              }
               final canLeave = await _onWillPop();
-              if (canLeave) router.go(AppRoutes.adminCategoryList);
+              if (canLeave && context.mounted) {
+                setState(() => _allowDiscardPop = true);
+                context.popOrGo(AppRoutes.adminCategoryList);
+              }
             },
           ),
         ),

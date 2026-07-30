@@ -26,15 +26,9 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.windows:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for windows - '
@@ -58,5 +52,14 @@ class DefaultFirebaseOptions {
     messagingSenderId: '892894654736',
     projectId: 'kapada-creation-dev',
     storageBucket: 'kapada-creation-dev.firebasestorage.app',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyA3DClDa5pr9dblpAtNXfRvGU9trr7ZtwI',
+    appId: '1:892894654736:ios:117050ca14c6dccbf2f595',
+    messagingSenderId: '892894654736',
+    projectId: 'kapada-creation-dev',
+    storageBucket: 'kapada-creation-dev.firebasestorage.app',
+    iosBundleId: 'com.kapadacreation.admin',
   );
 }

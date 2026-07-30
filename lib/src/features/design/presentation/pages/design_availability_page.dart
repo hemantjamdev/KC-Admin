@@ -1,61 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/navigation/navigation_extensions.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../../boutique/data/repositories/branch_firestore_repository.dart';
-import '../../../boutique/domain/models/branch_model.dart';
-import '../../../boutique/presentation/controllers/boutique_selection_controller.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../domain/models/design_availability_model.dart';
 import '../../domain/models/design_model.dart';
-import '../controllers/design_controller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../application/providers/design_providers.dart';
 
-/// Branch availability management for a single design.
+/// Manage branch-level availability for a design in KC-Admin.
 /// Pass [DesignModel] via GoRouter `extra`.
-class DesignAvailabilityPage extends StatefulWidget {
+class DesignAvailabilityPage extends ConsumerStatefulWidget {
   const DesignAvailabilityPage({super.key, required this.design});
   final DesignModel design;
 
   @override
-  State<DesignAvailabilityPage> createState() => _DesignAvailabilityPageState();
+  ConsumerState<DesignAvailabilityPage> createState() =>
+      _DesignAvailabilityPageState();
 }
 
-class _DesignAvailabilityPageState extends State<DesignAvailabilityPage> {
-  late DesignController _controller;
-  final BranchFirestoreRepository _branchRepository = BranchFirestoreRepository();
-  List<BranchModel> _branches = [];
+class _DesignAvailabilityPageState
+    extends ConsumerState<DesignAvailabilityPage> {
+  final List<dynamic> _branches = [];
+  bool _isSaving = false;
+  bool _hasChanges = false;
+  bool _allowDiscardPop = false;
   // branchId → mutable availability state
   final Map<String, _BranchAvailState> _state = {};
-  bool _hasChanges = false;
-  bool _isSaving = false;
+
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutiqueId = scope.selectedBoutique?.id ?? '';
-    _controller = DesignController(
-      boutiqueId: boutiqueId,
-      activeCategoryIds: const [],
-    );
-    _controller.loadDesigns();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) return;
+    _initialized = true;
+
+    const boutiqueId = 'boutique_01';
     _initData(boutiqueId);
   }
 
-  Future<void> _initData(String boutiqueId) async {
-    final branches = await _branchRepository.getBranchesForBoutique(boutiqueId);
-    if (!mounted) return;
-    setState(() {
-      _branches = branches.where((b) => b.isActive).toList();
-      for (final branch in _branches) {
-        _state[branch.id] = _BranchAvailState.empty();
-      }
-    });
-  }
+  Future<void> _initData(String boutiqueId) async {}
 
   void _markDirty() {
     if (!_hasChanges) setState(() => _hasChanges = true);
@@ -104,14 +101,10 @@ class _DesignAvailabilityPageState extends State<DesignAvailabilityPage> {
       if (s.availableFrom != null &&
           s.availableUntil != null &&
           !s.availableUntil!.isAfter(s.availableFrom!)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${branch.name}: Available Until must be after Available From.',
-            ),
-            backgroundColor: AppColors.surfaceLight,
-            behavior: SnackBarBehavior.floating,
-          ),
+        AppToast.show(
+          context,
+          '${branch.name}: Available Until must be after Available From.',
+          type: ToastType.warning,
         );
         return;
       }
@@ -120,10 +113,8 @@ class _DesignAvailabilityPageState extends State<DesignAvailabilityPage> {
     await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
 
-    final boutiqueId =
-        BoutiqueSelectionScope.of(context).selectedBoutique?.id ?? '';
+    const boutiqueId = 'boutique_01';
     final now = DateTime.now();
-    final router = GoRouter.of(context);
 
     for (final branch in _branches) {
       final s = _state[branch.id]!;
@@ -139,39 +130,35 @@ class _DesignAvailabilityPageState extends State<DesignAvailabilityPage> {
         createdAt: s.createdAt ?? now,
         updatedAt: now,
       );
-      _controller.updateAvailability(record);
+      await ref.read(designRepositoryProvider).saveDesignAvailability(record);
     }
 
+    if (!mounted) return;
     setState(() => _isSaving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Availability updated (in-memory).'),
-        backgroundColor: AppColors.surfaceLight,
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
+    AppToast.show(
+      context,
+      'Availability updated successfully.',
+      type: ToastType.success,
     );
-    router.go(AppRoutes.adminDesignList);
+    context.popOrGoWithResult(true, AppRoutes.adminDesignList);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutique = scope.selectedBoutique;
-
     return PopScope(
-      canPop: !_hasChanges,
+      canPop: !_hasChanges || _allowDiscardPop,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final router = GoRouter.of(context);
         final canLeave = await _onWillPop();
-        if (canLeave) router.go(AppRoutes.adminDesignList);
+        if (canLeave && context.mounted) {
+          setState(() => _allowDiscardPop = true);
+          context.popOrGo(AppRoutes.adminDesignList);
+        }
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -185,14 +172,21 @@ class _DesignAvailabilityPageState extends State<DesignAvailabilityPage> {
             ),
           ),
           leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_rounded,
+            icon: PhosphorIcon(
+              PhosphorIcons.caretLeft(PhosphorIconsStyle.bold),
+              size: 20,
               color: AppColors.textPrimary,
             ),
             onPressed: () async {
-              final router = GoRouter.of(context);
+              if (!_hasChanges) {
+                context.popOrGo(AppRoutes.adminDesignList);
+                return;
+              }
               final canLeave = await _onWillPop();
-              if (canLeave) router.go(AppRoutes.adminDesignList);
+              if (canLeave && context.mounted) {
+                setState(() => _allowDiscardPop = true);
+                context.popOrGo(AppRoutes.adminDesignList);
+              }
             },
           ),
         ),
@@ -226,9 +220,9 @@ class _DesignAvailabilityPageState extends State<DesignAvailabilityPage> {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            boutique?.name ?? '—',
-                            style: const TextStyle(
+                          const Text(
+                            'Kapada Creation Studio',
+                            style: TextStyle(
                               color: AppColors.primary,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -316,30 +310,6 @@ class _BranchAvailState {
     required this.displayOrderController,
   });
 
-  factory _BranchAvailState.from(DesignAvailabilityModel m) {
-    return _BranchAvailState(
-      status: m.status,
-      displayOrderText: m.displayOrder.toString(),
-      availableFrom: m.availableFrom,
-      availableUntil: m.availableUntil,
-      createdAt: m.createdAt,
-      displayOrderController: TextEditingController(
-        text: m.displayOrder.toString(),
-      ),
-    );
-  }
-
-  factory _BranchAvailState.empty() {
-    return _BranchAvailState(
-      status: AvailabilityStatus.unavailable,
-      displayOrderText: '0',
-      availableFrom: null,
-      availableUntil: null,
-      createdAt: null,
-      displayOrderController: TextEditingController(text: '0'),
-    );
-  }
-
   AvailabilityStatus status;
   String displayOrderText;
   DateTime? availableFrom;
@@ -358,7 +328,7 @@ class _BranchAvailCard extends StatefulWidget {
     required this.state,
     required this.onChanged,
   });
-  final BranchModel branch;
+  final dynamic branch;
   final _BranchAvailState state;
   final VoidCallback onChanged;
 

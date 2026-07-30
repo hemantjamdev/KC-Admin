@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/navigation/navigation_extensions.dart';
+import '../../../../core/widgets/admin_app_bar.dart';
+import '../../../../core/widgets/status_chip.dart';
 import '../../domain/models/customer_model.dart';
+import '../../../stitching/application/providers/stitching_providers.dart';
+import '../../../stitching/domain/models/stitching_order_model.dart';
+import '../../../stitching/presentation/pages/admin_stitching_order_details_page.dart';
 
-/// Admin Customer Details Page — shows identity, audit metadata, and status.
-class AdminCustomerDetailsPage extends StatelessWidget {
+/// Admin Customer Details Page — shows identity, contact details, stitching requests, and system metadata.
+class AdminCustomerDetailsPage extends ConsumerWidget {
   const AdminCustomerDetailsPage({super.key, required this.customer});
   final CustomerModel customer;
 
@@ -21,170 +30,321 @@ class AdminCustomerDetailsPage extends StatelessWidget {
         .toUpperCase();
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
-
-  List<String> get _boutiqueNames {
-    return customer.boutiqueIds;
-  }
-
-  List<String> get _branchNames {
-    return customer.branchIds;
-  }
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Customer Profile',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final customerKey = customer.firebaseUid ?? customer.id;
+    final ordersAsync = ref.watch(customerOrderListProvider(customerKey));
+    final allAdminOrders = ref.watch(adminOrderListProvider).valueOrNull ?? [];
+
+    // Combine orders matching customer ID or Firebase UID
+    final customerOrders =
+        ordersAsync.valueOrNull ??
+        allAdminOrders
+            .where(
+              (o) =>
+                  o.customerId == customer.id ||
+                  (customer.firebaseUid != null &&
+                      o.customerId == customer.firebaseUid),
+            )
+            .toList();
+
+    final activeOrdersCount = customerOrders
+        .where((o) => o.status != StitchingOrderStatus.completed)
+        .length;
+
+    return PopScope(
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (context.mounted) context.popOrGo(AppRoutes.adminCustomerList);
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AdminAppBar(
+          title: 'Customer Profile',
+          onBackTap: () => context.popOrGo(AppRoutes.adminCustomerList),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.background,
+          elevation: 4,
+          icon: PhosphorIcon(PhosphorIcons.plus(), size: 20),
+          label: Text(
+            'New Request',
+            style: GoogleFonts.montserrat(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+          onPressed: () => context.push(
+            AppRoutes.adminStitchingOrderAdd,
+            extra: customer,
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_rounded,
-            color: AppColors.textPrimary,
-          ),
-          onPressed: () => context.go(AppRoutes.adminCustomerList),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_rounded, color: AppColors.primary),
-            tooltip: 'Edit Profile',
-            onPressed: () =>
-                context.go(AppRoutes.adminCustomerEdit, extra: customer),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Identity Header Card
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.xl),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: AppRadius.borderXl,
-                      border: Border.all(color: AppColors.surfaceBorder),
-                    ),
-                    child: Column(
-                      children: [
-                        CircleAvatar(
-                          radius: 36,
-                          backgroundColor: AppColors.surfaceLight,
-                          backgroundImage: customer.photoUrl != null
-                              ? NetworkImage(customer.photoUrl!)
-                              : null,
-                          child: customer.photoUrl == null
-                              ? Text(
-                                  _initials,
-                                  style: const TextStyle(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 24,
-                                  ),
-                                )
-                              : null,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Text(
-                          customer.displayName,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Identity Header Card
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: AppRadius.borderLg,
+                        border: Border.all(color: AppColors.surfaceBorder),
+                      ),
+                      child: Column(
+                        children: [
+                          CircleAvatar(
+                            radius: 32,
+                            backgroundColor: AppColors.surfaceLight,
+                            backgroundImage: customer.photoUrl != null
+                                ? NetworkImage(customer.photoUrl!)
+                                : null,
+                            child: customer.photoUrl == null
+                                ? Text(
+                                    _initials,
+                                    style: GoogleFonts.montserrat(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 20,
+                                    ),
+                                  )
+                                : null,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _Badge(
-                              label: customer.source.label,
-                              color: customer.source == CustomerSource.google
-                                  ? AppColors.primary
-                                  : AppColors.warning,
+                          const SizedBox(height: 8),
+                          Text(
+                            customer.displayName,
+                            style: GoogleFonts.playfairDisplay(
+                              color: AppColors.textPrimary,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
                             ),
-                            const SizedBox(width: AppSpacing.xs),
-                            _Badge(
-                              label: customer.isActive ? 'Active' : 'Inactive',
-                              color: customer.isActive
-                                  ? AppColors.success
-                                  : AppColors.error,
-                            ),
-                            if (customer.isFirebaseLinked) ...[
-                              const SizedBox(width: AppSpacing.xs),
-                              const _Badge(
-                                label: 'Firebase Linked',
-                                color: AppColors.success,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Contact Details Section
+                    _infoCard('Contact Details', [
+                      _infoRow(
+                        'Email Address',
+                        customer.email ?? 'Not provided',
+                      ),
+                      _infoRow(
+                        'Phone Number',
+                        customer.phone ?? 'Not provided',
+                      ),
+                    ]),
+
+                    const SizedBox(height: 12),
+
+                    // ── STITCHING REQUESTS SECTION ─────────────────────
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: AppRadius.borderLg,
+                        border: Border.all(color: AppColors.surfaceBorder),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              PhosphorIcon(
+                                PhosphorIcons.scissors(),
+                                size: 18,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Stitching Requests (${customerOrders.length})',
+                                style: GoogleFonts.montserrat(
+                                  color: AppColors.primary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
                             ],
-                          ],
-                        ),
-                      ],
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Quick Summary Stats Row
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceLight,
+                              borderRadius: AppRadius.borderMd,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _statItem(
+                                  'Total Orders',
+                                  '${customerOrders.length}',
+                                  AppColors.primary,
+                                ),
+                                _statItem(
+                                  'In Progress',
+                                  '$activeOrdersCount',
+                                  AppColors.warning,
+                                ),
+                                _statItem(
+                                  'Completed',
+                                  '${customerOrders.where((o) => o.status == StitchingOrderStatus.completed).length}',
+                                  AppColors.success,
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          // Orders List
+                          if (customerOrders.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Center(
+                                child: Column(
+                                  children: [
+                                    PhosphorIcon(
+                                      PhosphorIcons.tShirt(),
+                                      size: 28,
+                                      color: AppColors.textMuted,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'No stitching requests for this customer yet.',
+                                      style: GoogleFonts.montserrat(
+                                        color: AppColors.textMuted,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          else
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: customerOrders.length,
+                              separatorBuilder: (_, _) => const Divider(
+                                color: AppColors.surfaceBorder,
+                                height: 12,
+                              ),
+                              itemBuilder: (context, index) {
+                                final order = customerOrders[index];
+                                return InkWell(
+                                  onTap: () =>
+                                      AdminStitchingOrderDetailsPage.showAsBottomSheet(
+                                    context,
+                                    order: order,
+                                  ),
+                                  borderRadius: AppRadius.borderMd,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 4,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      order.displayRequestName,
+                                                      style: GoogleFonts.montserrat(
+                                                        color: AppColors.textPrimary,
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 14,
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  StitchingStatusChip(
+                                                    label: order.status.adminLabel,
+                                                    color: stitchingStatusColor(
+                                                      order.status.name,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                order.orderNumber,
+                                                style: GoogleFonts.montserrat(
+                                                  color: AppColors.textMuted,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        PhosphorIcon(
+                                          PhosphorIcons.caretRight(),
+                                          color: AppColors.textMuted,
+                                          size: 16,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Contact Details Section
-                  _infoCard('Contact Details', [
-                    _infoRow('Email Address', customer.email ?? 'Not provided'),
-                    _infoRow('Phone Number', customer.phone ?? 'Not provided'),
-                  ]),
-
-                  const SizedBox(height: AppSpacing.md),
-
-                  // Assignments Section
-                  _infoCard('Boutique & Branch Assignments', [
-                    _infoRow(
-                      'Boutiques',
-                      _boutiqueNames.isEmpty
-                          ? 'None'
-                          : _boutiqueNames.join(', '),
-                    ),
-                    _infoRow(
-                      'Branches',
-                      _branchNames.isEmpty ? 'None' : _branchNames.join('\n'),
-                    ),
-                  ]),
-
-                  const SizedBox(height: AppSpacing.md),
-
-                  // System Metadata & Audit
-                  _infoCard('System Metadata', [
-                    _infoRow('Customer Document ID', customer.id),
-                    _infoRow(
-                      'Firebase Auth UID',
-                      customer.firebaseUid ?? 'Not linked',
-                    ),
-                    _infoRow('Created At', _formatDate(customer.createdAt)),
-                    _infoRow('Updated At', _formatDate(customer.updatedAt)),
-                    _infoRow('Created By', customer.createdBy ?? 'System'),
-                    _infoRow('Updated By', customer.updatedBy ?? 'System'),
-                  ]),
-
-                  const SizedBox(height: AppSpacing.xl),
-                ],
+                    const SizedBox(height: 80),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _statItem(String label, String count, Color color) {
+    return Column(
+      children: [
+        Text(
+          count,
+          style: TextStyle(
+            color: color,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+        ),
+      ],
     );
   }
 
@@ -242,23 +402,4 @@ class AdminCustomerDetailsPage extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge({required this.label, required this.color});
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.15),
-      borderRadius: AppRadius.borderPill,
-    ),
-    child: Text(
-      label,
-      style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
-    ),
-  );
 }

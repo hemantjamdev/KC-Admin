@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Montserrat:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<title>Admin Profile | Boutique Atelier</title>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#f4fbf4",
+                        "secondary-fixed": "#e6e2dc",
+                        "on-primary-container": "#8ac4a5",
+                        "background": "#f4fbf4",
+                        "primary-fixed-dim": "#99d3b4",
+                        "outline-variant": "#c0c9c1",
+                        "surface-tint": "#31694f",
+                        "on-tertiary": "#ffffff",
+                        "inverse-primary": "#99d3b4",
+                        "surface": "#f4fbf4",
+                        "primary-container": "#18523a",
+                        "on-tertiary-fixed-variant": "#005235",
+                        "on-primary-fixed-variant": "#165038",
+                        "inverse-surface": "#2b322e",
+                        "tertiary-fixed-dim": "#84d7ab",
+                        "on-tertiary-container": "#75c99d",
+                        "inverse-on-surface": "#ebf3ec",
+                        "tertiary-fixed": "#9ff4c6",
+                        "on-background": "#161d19",
+                        "tertiary": "#003b25",
+                        "on-tertiary-fixed": "#002113",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#d4dcd5",
+                        "secondary-container": "#e6e2dc",
+                        "outline": "#707973",
+                        "secondary-fixed-dim": "#c9c6c1",
+                        "on-secondary-fixed-variant": "#484743",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#e8f0e9",
+                        "on-primary-fixed": "#002113",
+                        "on-surface": "#161d19",
+                        "on-secondary-container": "#666460",
+                        "error-container": "#ffdad6",
+                        "primary-fixed": "#b4f0cf",
+                        "surface-container-high": "#e3eae3",
+                        "surface-container-low": "#eef5ef",
+                        "error": "#ba1a1a",
+                        "primary": "#003a26",
+                        "on-primary": "#ffffff",
+                        "on-surface-variant": "#404943",
+                        "secondary": "#605e5a",
+                        "tertiary-container": "#005436",
+                        "on-secondary-fixed": "#1c1c18",
+                        "surface-variant": "#dde4de",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#dde4de",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "section-gap": "120px",
+                        "container-max": "1280px",
+                        "margin-mobile": "20px",
+                        "margin-desktop": "64px",
+                        "gutter": "24px",
+                        "base": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Playfair Display"],
+                        "headline-lg-mobile": ["Playfair Display"],
+                        "label-md": ["Montserrat"],
+                        "body-lg": ["Montserrat"],
+                        "display-lg": ["Playfair Display"],
+                        "headline-md": ["Playfair Display"],
+                        "display-lg-mobile": ["Playfair Display"],
+                        "label-sm": ["Montserrat"],
+                        "body-md": ["Montserrat"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["40px", {"lineHeight": "48px", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "display-lg": ["64px", {"lineHeight": "72px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "display-lg-mobile": ["40px", {"lineHeight": "48px", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .stitch-border {
+            border: 2px dashed #003a26;
+            background-image: linear-gradient(to right, #003a26 50%, transparent 50%), linear-gradient(to right, #003a26 50%, transparent 50%), linear-gradient(to bottom, #003a26 50%, transparent 50%), linear-gradient(to bottom, #003a26 50%, transparent 50%);
+            background-position: left top, left bottom, left top, right top;
+            background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+            background-size: 8px 1.5px, 8px 1.5px, 1.5px 8px, 1.5px 8px;
+            border: none;
+        }
+        .boutique-shadow {
+            box-shadow: 0px 4px 20px rgba(29, 36, 32, 0.04);
+        }
+        .text-italic-link {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f4fbf4;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c0c9c1;
+            border-radius: 10px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen font-body-md">
+<!-- Top AppBar -->
+<header class="bg-background/80 dark:bg-background/80 w-full sticky top-0 backdrop-blur-md border-b border-outline-variant/30 z-40 transition-opacity">
+<div class="flex justify-between items-center px-margin-mobile py-4 w-full md:px-margin-desktop max-w-screen-2xl mx-auto">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-primary/20">
+<img class="w-full h-full object-cover" data-alt="A professional and elegant headshot of a female boutique owner named Elara, featuring soft studio lighting against a warm ivory background. She is wearing a high-end tailored dark emerald green blazer, representing the brand's sophisticated and artisanal aesthetic. The overall mood is trustworthy, welcoming, and high-fashion editorial." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUU6EObqqiFHR73-KyNW_uot3DXLnWKp1NCqgV-M7K1tkMzxraXqKlRYNjH0dZNchmTTY7Y8NeD_XvpMykBoivNhwJ6ZK-erTLrIClg6tCkw2qPm2RCzHydI4wJQS5UolzVPxxyWge3owReK-3HSbkLUIHBQu-wRDzG139XecgvbI979A_0CIG7J29rVkAt_ZHJcBtwr5OBzi8tW7vMWPrIfqoYYF5fyowewQWdt1QGzmS1ejUuoSKWnzNmrceDO1WTCx3RQtM8DLN"/>
+</div>
+<h1 class="font-headline-md text-headline-md-mobile md:text-headline-md text-on-background tracking-tight">Welcome back, Elara</h1>
+</div>
+<button class="text-primary hover:opacity-80 transition-opacity active:scale-95 transition-transform p-2">
+<span class="material-symbols-outlined text-2xl">notifications</span>
+</button>
+</div>
+</header>
+<main class="max-w-4xl mx-auto px-margin-mobile py-8 pb-32 md:px-gutter">
+<!-- Owner Area -->
+<section class="mb-10 animate-in fade-in duration-700">
+<div class="bg-surface-container-lowest p-6 rounded-xl boutique-shadow flex flex-col md:flex-row md:items-center justify-between gap-6 border border-outline-variant/20">
+<div class="flex items-center gap-5">
+<div class="relative">
+<div class="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden stitch-border p-1">
+<img class="w-full h-full rounded-full object-cover" data-alt="A close-up professional profile image of a fashion entrepreneur, Elara. The lighting is soft and warm, highlighting the fine texture of her emerald silk blouse. The background is a minimalist, ivory-toned atelier with rolls of luxury fabrics visible but softly blurred. Elegant and artisanal atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAV47tPJrWqgzf7oCFo4JLPtNwRe_eUEN_bFDNHXTBSsfo_KYu4pZyTk8lg4RbY4akQdpLqwvrEhvWkSejisHqCCEi8-76ho7cTY5lONx6lxcKbpaY_F3QKJnJF4K8Y1TBCnTV1tdOe8bgJGVGTJlVgmxtFmzdv0iPq4eiaAUAy-SYN-tVd8lHBN510N8u3TcR24EgKRopCtBCUTHs5E1mWNut9cVoK_NBaaEmd3tV5GsoiqcfK1d7a0QMmKFw4J-cSUhwVgdDC-ft7"/>
+</div>
+<div class="absolute bottom-0 right-0 bg-primary text-on-primary rounded-full p-1.5 border-2 border-surface-container-lowest">
+<span class="material-symbols-outlined text-sm">verified</span>
+</div>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-background">Elara Vane</h2>
+<div class="flex items-center gap-1.5 text-on-surface-variant mt-1">
+<span class="material-symbols-outlined text-base">mail</span>
+<p class="font-body-md text-sm opacity-80">elara.vane@gmail.com</p>
+</div>
+</div>
+</div>
+<button class="border-[1.5px] border-primary text-primary px-6 py-2 rounded-lg font-label-md hover:bg-primary/5 transition-colors active:scale-95 text-center">
+                    Edit Profile
+                </button>
+</div>
+</section>
+<!-- Shop Profile (Editable) -->
+<section class="mb-10">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-headline-md text-headline-md">Shop Profile</h3>
+<span class="text-italic-link text-primary cursor-pointer hover:underline">Update details</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl boutique-shadow overflow-hidden border border-outline-variant/20">
+<!-- Shop Header/Logo -->
+<div class="h-32 bg-secondary-container relative">
+<div class="absolute -bottom-8 left-6 w-20 h-20 bg-surface-container-lowest rounded-lg boutique-shadow p-2 border border-outline-variant/20">
+<img class="w-full h-full object-contain" data-alt="A sophisticated boutique logo design for 'Vane Atelier'. The logo is a minimalist monogram 'V' intertwined with a delicate needle and thread motif. The color is deep emerald green against a cream background. High-end fashion branding, elegant and timeless." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCN7lmDSLNknfZ82e02Xh2suKFPaD57FmiWDyjhuBd7AmANkMp_azVE-nEwKioKPAkJbE1PcWQixN0DxTAsWbggZDzixcF3VRLoG8SEQ9M7CPy0KwSGP8wDdtfSMfVnh_ylM3gjr4VVOU2BarRRibEVKnX5I74GnjHENamynhrVLXuCjTU6-2j2aXcNY2naCZjBkZchak_VuEYNGomznnJUIU6fZtLCCzJ1bRGocqE4j_rCv5wVfN2SQ1K_3nYB3vxZTCsfLC0mJhMG"/>
+</div>
+</div>
+<div class="pt-12 p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Shop Name -->
+<div class="space-y-1">
+<label class="font-label-sm text-outline uppercase tracking-widest text-[10px]">Business Name</label>
+<div class="flex items-center gap-3 py-2 border-b-[1.5px] border-outline-variant/30 hover:border-primary transition-colors cursor-text">
+<span class="material-symbols-outlined text-primary text-xl">storefront</span>
+<span class="font-body-lg text-on-background">Vane Atelier &amp; Bespoke</span>
+</div>
+</div>
+<!-- Phone -->
+<div class="space-y-1">
+<label class="font-label-sm text-outline uppercase tracking-widest text-[10px]">Contact Number</label>
+<div class="flex items-center gap-3 py-2 border-b-[1.5px] border-outline-variant/30 hover:border-primary transition-colors cursor-text">
+<span class="material-symbols-outlined text-primary text-xl">call</span>
+<span class="font-body-lg text-on-background">+1 (555) 012-3456</span>
+</div>
+</div>
+<!-- Address -->
+<div class="space-y-1 md:col-span-2">
+<label class="font-label-sm text-outline uppercase tracking-widest text-[10px]">Studio Address</label>
+<div class="flex items-center gap-3 py-2 border-b-[1.5px] border-outline-variant/30 hover:border-primary transition-colors cursor-text">
+<span class="material-symbols-outlined text-primary text-xl">location_on</span>
+<span class="font-body-lg text-on-background">822 Artisan Way, Suite 400, Fashion District, NY</span>
+</div>
+</div>
+<!-- Business Info -->
+<div class="space-y-1 md:col-span-2">
+<label class="font-label-sm text-outline uppercase tracking-widest text-[10px]">Business Description</label>
+<div class="py-2 px-4 bg-surface-bright rounded-lg border border-outline-variant/10 text-on-surface-variant italic font-body-md leading-relaxed">
+                            "Specializing in custom evening wear and artisanal stitching. We pride ourselves on the meticulous precision of every seam and the exclusive quality of our hand-selected fabrics."
+                        </div>
+</div>
+</div>
+</div>
+</section>
+<!-- Settings & Actions -->
+<section class="mb-12">
+<h3 class="font-headline-md text-headline-md mb-4">Account Settings</h3>
+<div class="space-y-3">
+<!-- Notifications -->
+<button class="w-full bg-surface-container-lowest p-4 rounded-xl flex items-center justify-between boutique-shadow hover:bg-surface-container transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">notifications_active</span>
+</div>
+<div class="text-left">
+<p class="font-label-md text-on-background">Notifications</p>
+<p class="text-label-sm text-outline">Manage alerts and messages</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:translate-x-1 transition-transform">chevron_right</span>
+</button>
+<!-- App Info -->
+<button class="w-full bg-surface-container-lowest p-4 rounded-xl flex items-center justify-between boutique-shadow hover:bg-surface-container transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">info</span>
+</div>
+<div class="text-left">
+<p class="font-label-md text-on-background">App Information</p>
+<p class="text-label-sm text-outline">Version 2.4.0 (Build 102)</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:translate-x-1 transition-transform">chevron_right</span>
+</button>
+<!-- Privacy -->
+<button class="w-full bg-surface-container-lowest p-4 rounded-xl flex items-center justify-between boutique-shadow hover:bg-surface-container transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">security</span>
+</div>
+<div class="text-left">
+<p class="font-label-md text-on-background">Privacy &amp; Security</p>
+<p class="text-label-sm text-outline">Data usage and permissions</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:translate-x-1 transition-transform">chevron_right</span>
+</button>
+<!-- Logout -->
+<button class="w-full mt-4 bg-error-container/20 p-4 rounded-xl flex items-center justify-center gap-2 hover:bg-error-container/40 transition-colors border border-error/10">
+<span class="material-symbols-outlined text-error">logout</span>
+<span class="font-label-md text-error">Logout from Admin</span>
+</button>
+</div>
+</section>
+<!-- Custom Separator -->
+<div class="flex items-center justify-center gap-4 opacity-30 my-8">
+<div class="h-[1px] w-full bg-primary"></div>
+<span class="material-symbols-outlined text-primary">texture</span>
+<div class="h-[1px] w-full bg-primary"></div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-end pb-4 pt-2 px-2 bg-surface-container/95 backdrop-blur-lg border-t border-outline-variant/20 shadow-lg z-50 rounded-t-xl md:px-margin-desktop">
+<!-- Home -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-secondary-container/50 transition-all" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm mt-1">Home</span>
+</a>
+<!-- Products -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-secondary-container/50 transition-all" href="#">
+<span class="material-symbols-outlined">styler</span>
+<span class="font-label-sm text-label-sm mt-1">Products</span>
+</a>
+<!-- Add (Center Pill) -->
+<div class="relative -top-6">
+<button class="flex items-center justify-center bg-primary text-on-primary rounded-full w-14 h-14 shadow-xl active:scale-110 transition-all duration-300 ease-out">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+<span class="absolute -bottom-6 left-1/2 -translate-x-1/2 font-label-sm text-label-sm text-primary">Add</span>
+</div>
+<!-- Insights -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-secondary-container/50 transition-all" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-sm text-label-sm mt-1">Insights</span>
+</a>
+<!-- Profile (Active) -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full p-3 shadow-inner active:scale-110 transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+<script>
+        // Simple micro-interaction for buttons
+        document.querySelectorAll('button, a').forEach(elem => {
+            elem.addEventListener('click', function(e) {
+                // Potential for haptic feedback or local state changes
+            });
+        });
+
+        // Sticky header opacity on scroll
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('header');
+            if (window.scrollY > 20) {
+                header.classList.add('shadow-sm');
+            } else {
+                header.classList.remove('shadow-sm');
+            }
+        });
+    </script>
+</body></html>

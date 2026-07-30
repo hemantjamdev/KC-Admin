@@ -59,9 +59,18 @@ class AppTextField extends StatelessWidget {
           obscureText: obscureText,
           validator: validator,
           keyboardType: keyboardType,
-          textInputAction: textInputAction,
+          textInputAction: textInputAction ?? TextInputAction.next,
           onChanged: onChanged,
-          onFieldSubmitted: onFieldSubmitted,
+          onFieldSubmitted:
+              onFieldSubmitted ??
+              (value) {
+                final action = textInputAction ?? TextInputAction.next;
+                if (action == TextInputAction.next) {
+                  FocusScope.of(context).nextFocus();
+                } else if (action == TextInputAction.done) {
+                  FocusScope.of(context).unfocus();
+                }
+              },
           enabled: enabled,
           style: const TextStyle(color: AppColors.textPrimary, fontSize: 15.0),
           cursorColor: AppColors.primary,

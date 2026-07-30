@@ -1,144 +1,146 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_radius.dart';
-import '../../../../core/constants/app_spacing.dart';
-import '../../../../core/theme/app_typography.dart';
-import '../../../../core/widgets/app_button.dart';
-import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../../boutique/presentation/controllers/boutique_selection_controller.dart';
-import '../../../category/data/repositories/category_firestore_repository.dart';
+import '../../../../core/widgets/app_toast.dart';
+import '../../../category/application/providers/category_providers.dart';
 import '../../../category/domain/models/category_model.dart';
+import '../../application/providers/design_providers.dart';
 import '../../domain/models/design_model.dart';
-import '../controllers/design_controller.dart';
 import '../widgets/design_image_picker_widget.dart';
 
 /// Add / Edit Design form page.
 /// Pass a [DesignModel] via GoRouter `extra` for edit mode.
-class DesignFormPage extends StatefulWidget {
+class DesignFormPage extends ConsumerStatefulWidget {
   const DesignFormPage({super.key, this.existingDesign});
+
   final DesignModel? existingDesign;
+
   bool get isEditMode => existingDesign != null;
 
   @override
-  State<DesignFormPage> createState() => _DesignFormPageState();
+  ConsumerState<DesignFormPage> createState() => _DesignFormPageState();
 }
 
-class _DesignFormPageState extends State<DesignFormPage> {
-  final _categoryRepository = CategoryFirestoreRepository();
+class _DesignFormPageState extends ConsumerState<DesignFormPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _slugController = TextEditingController();
-  final _shortDescController = TextEditingController();
-  final _descController = TextEditingController();
-  final _thumbnailController = TextEditingController();
-  final _sortOrderController = TextEditingController(text: '0');
-  final _tagInputController = TextEditingController();
-  final _keywordInputController = TextEditingController();
-  final _galleryUrlController = TextEditingController();
 
-  bool _isActive = true;
-  bool _isSaving = false;
-  bool _hasChanges = false;
-  bool _slugEditedManually = false;
+  late TextEditingController _nameController;
+  late TextEditingController _priceController;
+  late TextEditingController _descController;
+  late TextEditingController _thumbnailController;
 
-  List<CategoryModel> _categories = [];
+  late FocusNode _nameFocusNode;
+  late FocusNode _priceFocusNode;
+  late FocusNode _descFocusNode;
+
   String? _selectedCategoryId;
   List<String> _imageUrls = [];
-  List<String> _tags = [];
-  List<String> _keywords = [];
+  List<String> _selectedColors = [];
+  List<String> _selectedSizes = [];
 
-  late DesignController _controller;
+  bool _isSaving = false;
+  bool _hasChanges = false;
+
+  final List<String> _standardSizes = [
+    'XS',
+    'S',
+    'M',
+    'L',
+    'XL',
+    'XXL',
+    'Free Size',
+    'Custom',
+  ];
 
   @override
   void initState() {
     super.initState();
-    final boutiqueId =
-        BoutiqueSelectionScope.of(context).selectedBoutique?.id ?? '';
-    
-    _controller = DesignController(
-      boutiqueId: boutiqueId,
-      activeCategoryIds: const [],
+
+    final d = widget.existingDesign;
+
+    _nameController = TextEditingController(text: d?.name ?? '');
+    _priceController = TextEditingController(
+      text: d?.price != null ? d!.price.toStringAsFixed(0) : '',
     );
-    _controller.loadDesigns();
-    
-    _loadCategories(boutiqueId);
+    _descController = TextEditingController(text: d?.description ?? '');
+    _thumbnailController = TextEditingController(text: d?.thumbnailUrl ?? '');
 
-    if (widget.isEditMode) {
-      final d = widget.existingDesign!;
-      _nameController.text = d.name;
-      _slugController.text = d.slug;
-      _shortDescController.text = d.shortDescription ?? '';
-      _descController.text = d.description ?? '';
-      _thumbnailController.text = d.thumbnailUrl ?? '';
-      _sortOrderController.text = d.sortOrder.toString();
-      _isActive = d.isActive;
+    _nameFocusNode = FocusNode();
+    _priceFocusNode = FocusNode();
+    _descFocusNode = FocusNode();
+
+    if (d != null) {
       _selectedCategoryId = d.categoryId;
-      _imageUrls = List.of(d.imageUrls);
-      _tags = List.of(d.tags);
-      _keywords = List.of(d.searchKeywords);
-      _slugEditedManually = true;
-    } else {
-      _sortOrderController.text = '0';
-    }
-
-    _nameController.addListener(_onNameChanged);
-    _nameController.addListener(_markDirty);
-    _slugController.addListener(_markDirty);
-    _shortDescController.addListener(_markDirty);
-    _descController.addListener(_markDirty);
-    _thumbnailController.addListener(_markDirty);
-    _sortOrderController.addListener(_markDirty);
-  }
-
-  void _markDirty() {
-    if (!_hasChanges) setState(() => _hasChanges = true);
-  }
-
-  void _onNameChanged() {
-    if (!_slugEditedManually) {
-      _slugController.text = _generateSlug(_nameController.text);
+      _imageUrls = List.from(d.imageUrls);
+      if (d.thumbnailUrl != null &&
+          d.thumbnailUrl!.isNotEmpty &&
+          !_imageUrls.contains(d.thumbnailUrl)) {
+        _imageUrls.insert(0, d.thumbnailUrl!);
+      }
+      _selectedColors = List.from(d.colors);
+      _selectedSizes = List.from(d.sizes);
     }
   }
 
-  String _generateSlug(String name) => name
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
-      .trim()
-      .replaceAll(RegExp(r'\s+'), '-')
-      .replaceAll(RegExp(r'-+'), '-')
-      .replaceAll(RegExp(r'^-|-$'), '');
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _priceController.dispose();
+    _descController.dispose();
+    _thumbnailController.dispose();
+
+    _nameFocusNode.dispose();
+    _priceFocusNode.dispose();
+    _descFocusNode.dispose();
+
+    super.dispose();
+  }
+
 
   Future<bool> _onWillPop() async {
     if (!_hasChanges) return true;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderLg),
-        title: const Text(
-          'Discard Changes?',
-          style: TextStyle(color: AppColors.textPrimary),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(
+          'Discard Unsaved Product?',
+          style: GoogleFonts.playfairDisplay(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
         ),
-        content: const Text(
-          'Unsaved changes will be lost.',
-          style: TextStyle(color: AppColors.textMuted),
+        content: Text(
+          'Unsaved product details will be discarded.',
+          style: GoogleFonts.montserrat(
+            fontSize: 13,
+            color: AppColors.textMuted,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(
+            child: Text(
               'Keep Editing',
-              style: TextStyle(color: AppColors.primary),
+              style: GoogleFonts.montserrat(color: AppColors.textMuted),
             ),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: Text(
               'Discard',
-              style: TextStyle(color: AppColors.error),
+              style: GoogleFonts.montserrat(color: Colors.white),
             ),
           ),
         ],
@@ -147,722 +149,871 @@ class _DesignFormPageState extends State<DesignFormPage> {
     return confirmed == true;
   }
 
-  Future<void> _loadCategories(String boutiqueId) async {
-    final categories = await _categoryRepository.watchCategories(boutiqueId).first;
-    if (!mounted) return;
-    setState(() {
-      _categories = categories.where((c) => c.isActive).toList();
-    });
-  }
+  void _showColorPickerDialog() {
+    Color pickerColor = const Color(0xFFD4AF37);
 
-  String? _validateSlug(String? value) {
-    if (value == null || value.isEmpty) return 'Slug is required.';
-    final ok = RegExp(r'^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$');
-    if (!ok.hasMatch(value)) {
-      return 'Lowercase letters, numbers, hyphens only. Cannot start/end with hyphen.';
-    }
-    final existing = _controller.allDesigns;
-    final conflict = existing.any(
-      (d) =>
-          d.slug == value &&
-          (widget.isEditMode ? d.id != widget.existingDesign!.id : true),
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'Pick a Color',
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: ColorPicker(
+              pickerColor: pickerColor,
+              onColorChanged: (Color color) {
+                pickerColor = color;
+              },
+              colorPickerWidth: 300.0,
+              pickerAreaHeightPercent: 0.7,
+              enableAlpha: false,
+              displayThumbColor: true,
+              labelTypes: const [],
+              paletteType: PaletteType.hsv,
+              pickerAreaBorderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(2.0),
+                topRight: Radius.circular(2.0),
+              ),
+              hexInputBar: true,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(
+                'CANCEL',
+                style: GoogleFonts.montserrat(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final hex =
+                    '#${pickerColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+                if (!_selectedColors.contains(hex)) {
+                  setState(() {
+                    _selectedColors.add(hex);
+                    _hasChanges = true;
+                  });
+                }
+                Navigator.of(ctx).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
+              child: const Text('ADD'),
+            ),
+          ],
+        );
+      },
     );
-    if (conflict) return 'A design with this slug already exists.';
-    return null;
   }
 
-  void _addTag(String value) {
-    final tag = value.trim();
-    if (tag.isEmpty || _tags.contains(tag)) return;
-    setState(() {
-      _tags.add(tag);
-      _hasChanges = true;
-    });
-    _tagInputController.clear();
-  }
-
-  void _removeTag(String tag) {
-    setState(() {
-      _tags.remove(tag);
-      _hasChanges = true;
-    });
-  }
-
-  void _addKeyword(String value) {
-    final kw = value.trim().toLowerCase();
-    if (kw.isEmpty || _keywords.contains(kw)) return;
-    setState(() {
-      _keywords.add(kw);
-      _hasChanges = true;
-    });
-    _keywordInputController.clear();
-  }
-
-  void _removeKeyword(String kw) {
-    setState(() {
-      _keywords.remove(kw);
-      _hasChanges = true;
-    });
-  }
-
-  void _addGalleryUrl(String value) {
-    final url = value.trim();
-    if (url.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('URL cannot be blank.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.surfaceLight,
-        ),
-      );
-      return;
+  Future<void> _navigateToCreateCategoryPage() async {
+    final result = await context.push<dynamic>(AppRoutes.adminCategoryAdd);
+    if (mounted) {
+      ref.invalidate(categoryListProvider);
+      if (result is String) {
+        setState(() {
+          _selectedCategoryId = result;
+          _hasChanges = true;
+        });
+      }
     }
-    if (_imageUrls.contains(url)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('This URL is already in the gallery.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.surfaceLight,
-        ),
-      );
-      return;
-    }
-    setState(() {
-      _imageUrls.add(url);
-      _hasChanges = true;
-    });
-    _galleryUrlController.clear();
+  }
+
+  void _showCategoryPicker(List<CategoryModel> categories) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.45,
+          minChildSize: 0.3,
+          maxChildSize: 0.7,
+          builder: (_, scrollController) {
+            return SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  // Handle bar
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12, bottom: 8),
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceBorder,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Select Category',
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${categories.length} categories available',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 12,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: AppColors.surfaceBorder),
+                  // List
+                  Expanded(
+                    child: categories.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    PhosphorIcons.folderOpen(
+                                      PhosphorIconsStyle.regular,
+                                    ),
+                                    size: 40,
+                                    color: AppColors.textMuted,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'No active categories',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textMuted,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  OutlinedButton.icon(
+                                    onPressed: () {
+                                      Navigator.of(ctx).pop();
+                                      _navigateToCreateCategoryPage();
+                                    },
+                                    icon: Icon(
+                                      PhosphorIcons.plus(
+                                        PhosphorIconsStyle.bold,
+                                      ),
+                                      size: 16,
+                                    ),
+                                    label: const Text('Add Category'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : ListView.separated(
+                            controller: scrollController,
+                            itemCount: categories.length + 1,
+                            separatorBuilder: (_, __) => const Divider(
+                              height: 1,
+                              indent: 20,
+                              endIndent: 20,
+                              color: AppColors.surfaceBorder,
+                            ),
+                            itemBuilder: (context, index) {
+                              if (index == categories.length) {
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor:
+                                        AppColors.primary.withValues(alpha: 0.1),
+                                    child: Icon(
+                                      PhosphorIcons.plus(
+                                        PhosphorIconsStyle.bold,
+                                      ),
+                                      size: 18,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  title: Text(
+                                    'Create New Category',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  onTap: () {
+                                    Navigator.of(ctx).pop();
+                                    _navigateToCreateCategoryPage();
+                                  },
+                                );
+                              }
+
+                              final cat = categories[index];
+                              final isSelected = cat.id == _selectedCategoryId;
+
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: isSelected
+                                      ? AppColors.primary
+                                      : AppColors.surfaceBorder,
+                                  child: Icon(
+                                    PhosphorIcons.tag(
+                                      isSelected
+                                          ? PhosphorIconsStyle.fill
+                                          : PhosphorIconsStyle.regular,
+                                    ),
+                                    size: 18,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : AppColors.textMuted,
+                                  ),
+                                ),
+                                title: Text(
+                                  cat.name,
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 14,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : AppColors.textPrimary,
+                                  ),
+                                ),
+                                trailing: isSelected
+                                    ? Icon(
+                                        PhosphorIcons.checkCircle(
+                                          PhosphorIconsStyle.fill,
+                                        ),
+                                        color: AppColors.primary,
+                                        size: 22,
+                                      )
+                                    : null,
+                                onTap: () {
+                                  setState(() {
+                                    _selectedCategoryId = cat.id;
+                                    _hasChanges = true;
+                                  });
+                                  Navigator.of(ctx).pop();
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _save() async {
     if (_isSaving) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    if (_selectedCategoryId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a category.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.surfaceLight,
-        ),
-      );
-      return;
-    }
-    setState(() => _isSaving = true);
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (!mounted) return;
 
-    final boutiqueId =
-        BoutiqueSelectionScope.of(context).selectedBoutique?.id ?? '';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(
+          widget.isEditMode ? 'Save Product Changes?' : 'Add New Product?',
+          style: GoogleFonts.playfairDisplay(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: Text(
+          widget.isEditMode
+              ? 'Are you sure you want to save changes to "${_nameController.text.trim()}"?'
+              : 'Are you sure you want to add "${_nameController.text.trim()}" to your product catalogue?',
+          style: GoogleFonts.montserrat(
+            fontSize: 13,
+            color: AppColors.textMuted,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'CANCEL',
+              style: GoogleFonts.montserrat(
+                color: AppColors.textMuted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+            ),
+            child: Text(
+              widget.isEditMode ? 'SAVE' : 'ADD PRODUCT',
+              style: GoogleFonts.montserrat(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    const boutiqueId = 'boutique_01';
+
+    setState(() => _isSaving = true);
     final now = DateTime.now();
-    final router = GoRouter.of(context);
+    final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
+
+    final name = _nameController.text.trim();
+    final slug = name
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
+        .replaceAll(RegExp(r'\s+'), '-');
 
     final DesignModel design;
     if (widget.isEditMode) {
       design = widget.existingDesign!.copyWith(
-        name: _nameController.text.trim(),
-        slug: _slugController.text.trim(),
-        categoryId: _selectedCategoryId!,
-        shortDescription: _shortDescController.text.trim().isEmpty
-            ? null
-            : _shortDescController.text.trim(),
+        name: name,
+        slug: widget.existingDesign!.slug.isNotEmpty
+            ? widget.existingDesign!.slug
+            : slug,
+        categoryId: _selectedCategoryId ?? widget.existingDesign!.categoryId,
         description: _descController.text.trim().isEmpty
             ? null
             : _descController.text.trim(),
+        price: price,
         thumbnailUrl: _thumbnailController.text.trim().isEmpty
             ? null
             : _thumbnailController.text.trim(),
         imageUrls: _imageUrls,
-        tags: _tags,
-        searchKeywords: _keywords,
-        sortOrder: int.tryParse(_sortOrderController.text) ?? 0,
-        isActive: _isActive,
+        colors: _selectedColors,
+        sizes: _selectedSizes,
         updatedAt: now,
-        clearShortDescription: _shortDescController.text.trim().isEmpty,
-        clearDescription: _descController.text.trim().isEmpty,
-        clearThumbnailUrl: _thumbnailController.text.trim().isEmpty,
       );
-      _controller.updateDesign(design);
+      await ref.read(designMutationProvider.notifier).update(design);
     } else {
       design = DesignModel(
         id: 'design_${now.millisecondsSinceEpoch}',
         boutiqueId: boutiqueId,
-        categoryId: _selectedCategoryId!,
-        name: _nameController.text.trim(),
-        slug: _slugController.text.trim(),
-        shortDescription: _shortDescController.text.trim().isEmpty
-            ? null
-            : _shortDescController.text.trim(),
+        categoryId: _selectedCategoryId ?? 'uncategorized',
+        name: name,
+        slug: slug,
         description: _descController.text.trim().isEmpty
             ? null
             : _descController.text.trim(),
+        price: price,
         thumbnailUrl: _thumbnailController.text.trim().isEmpty
             ? null
             : _thumbnailController.text.trim(),
         imageUrls: _imageUrls,
-        tags: _tags,
-        searchKeywords: _keywords,
-        sortOrder: int.tryParse(_sortOrderController.text) ?? 0,
-        isActive: _isActive,
+        tags: const [],
+        searchKeywords: const [],
+        sortOrder: 0,
+        isActive: true,
+        colors: _selectedColors,
+        sizes: _selectedSizes,
         createdAt: now,
         updatedAt: now,
       );
-      _controller.addDesign(design);
+      await ref.read(designMutationProvider.notifier).create(design);
     }
 
-    if (!mounted) return;
-    setState(() => _isSaving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          widget.isEditMode
-              ? '"${design.name}" updated.'
-              : '"${design.name}" created.',
-        ),
-        backgroundColor: AppColors.surfaceLight,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-    router.go(AppRoutes.adminDesignList);
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _slugController.dispose();
-    _shortDescController.dispose();
-    _descController.dispose();
-    _thumbnailController.dispose();
-    _sortOrderController.dispose();
-    _tagInputController.dispose();
-    _keywordInputController.dispose();
-    _galleryUrlController.dispose();
-    _controller.dispose();
-    super.dispose();
+    if (mounted) {
+      setState(() => _isSaving = false);
+      AppToast.show(
+        context,
+        widget.isEditMode ? 'Product updated' : 'Product created',
+      );
+      context.pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final categoriesAsync = ref.watch(categoryListProvider);
+    final categories = categoriesAsync.valueOrNull ?? [];
+
+    final selectedCategory = categories.cast<CategoryModel?>().firstWhere(
+          (c) => c?.id == _selectedCategoryId,
+          orElse: () => null,
+        );
+
     return PopScope(
       canPop: !_hasChanges,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final router = GoRouter.of(context);
-        final canLeave = await _onWillPop();
-        if (canLeave) router.go(AppRoutes.adminDesignList);
+        final shouldPop = await _onWillPop();
+        if (shouldPop && context.mounted) {
+          context.pop();
+        }
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
-          title: Text(
-            widget.isEditMode ? 'Edit Design' : 'Add Design',
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          backgroundColor: AppColors.surface,
+          elevation: 0,
           leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_rounded,
+            icon: PhosphorIcon(
+              PhosphorIcons.caretLeft(PhosphorIconsStyle.bold),
+              size: 20,
               color: AppColors.textPrimary,
             ),
             onPressed: () async {
-              final router = GoRouter.of(context);
-              final canLeave = await _onWillPop();
-              if (canLeave) router.go(AppRoutes.adminDesignList);
+              if (await _onWillPop()) {
+                if (context.mounted) context.pop();
+              }
             },
           ),
+          title: Text(
+            widget.isEditMode ? 'Edit Product' : 'Add New Product',
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
         ),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 560),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _field(
-                        'Name *',
-                        TextFormField(
-                          controller: _nameController,
-                          style: _fieldStyle,
-                          cursorColor: AppColors.primary,
-                          decoration: _dec('e.g. Royal Crimson Bridal Lehenga'),
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) {
-                              return 'Name is required.';
-                            }
-                            if (v.trim().length < 2) {
-                              return 'Name must be at least 2 characters.';
-                            }
-                            return null;
-                          },
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── 1. Image Picker Gallery Section ────────────────────────
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'GARMENT IMAGERY',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textMuted,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'First uploaded image will be the main thumbnail displayed in the product list.',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                DesignImagePickerWidget(
+                  boutiqueId: 'boutique_01',
+                  designId: widget.existingDesign?.id ??
+                      'temp_${DateTime.now().millisecondsSinceEpoch}',
+                  thumbnailUrl: _thumbnailController.text.isNotEmpty
+                      ? _thumbnailController.text
+                      : null,
+                  imageUrls: _imageUrls,
+                  onThumbnailChanged: (thumb) {
+                    setState(() {
+                      _thumbnailController.text = thumb ?? '';
+                      _hasChanges = true;
+                    });
+                  },
+                  onImageUrlsChanged: (urls) {
+                    setState(() {
+                      _imageUrls = urls;
+                      _hasChanges = true;
+                    });
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // ── 2. Basic Information Form Fields ────────────────────────
+                Text(
+                  'PRODUCT DETAILS',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textMuted,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Product Title
+                TextFormField(
+                  controller: _nameController,
+                  focusNode: _nameFocusNode,
+                  textInputAction: TextInputAction.next,
+                  onFieldSubmitted: (_) =>
+                      FocusScope.of(context).requestFocus(_priceFocusNode),
+                  style: GoogleFonts.montserrat(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Product Name *',
+                    hintText: 'e.g., Royal Silk Anarkali Suit',
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Product name is required';
+                    }
+                    return null;
+                  },
+                  onChanged: (_) => setState(() => _hasChanges = true),
+                ),
+                const SizedBox(height: 14),
+
+                // Price Field
+                TextFormField(
+                  controller: _priceController,
+                  focusNode: _priceFocusNode,
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.next,
+                  onFieldSubmitted: (_) =>
+                      FocusScope.of(context).requestFocus(_descFocusNode),
+                  style: GoogleFonts.montserrat(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Price (₹) (Optional)',
+                    hintText: 'e.g., 2499',
+                  ),
+                  validator: (v) {
+                    if (v != null && v.trim().isNotEmpty) {
+                      if (double.tryParse(v.trim()) == null) {
+                        return 'Enter valid price';
+                      }
+                    }
+                    return null;
+                  },
+                  onChanged: (_) => setState(() => _hasChanges = true),
+                ),
+                const SizedBox(height: 14),
+
+                // Category Selection Button
+                GestureDetector(
+                  onTap: () => _showCategoryPicker(categories),
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Category *',
+                      suffixIcon: Icon(
+                        PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
+                        size: 16,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                    child: Text(
+                      selectedCategory?.name ?? 'Select Category',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 14,
+                        color: selectedCategory != null
+                            ? AppColors.textPrimary
+                            : AppColors.textMuted,
+                        fontWeight: selectedCategory != null
+                            ? FontWeight.w500
+                            : FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Full Description
+                TextFormField(
+                  controller: _descController,
+                  focusNode: _descFocusNode,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
+                  style: GoogleFonts.montserrat(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 4,
+                  maxLength: 1000,
+                  textAlignVertical: TextAlignVertical.top,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    hintText:
+                        'Detailed description including fabric, occasion, care, embellishments, and lining.',
+                    alignLabelWithHint: true,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // ── 3. Color Selection Palette ─────────────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'COLOR PALETTE (OPTIONAL)',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textMuted,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: _showColorPickerDialog,
+                      icon: Icon(
+                        PhosphorIcons.palette(PhosphorIconsStyle.bold),
+                        size: 16,
+                      ),
+                      label: Text(
+                        '+ Add Color',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.md),
-                      _field(
-                        'Slug *',
-                        TextFormField(
-                          controller: _slugController,
-                          style: _fieldStyle.copyWith(fontFamily: 'monospace'),
-                          cursorColor: AppColors.primary,
-                          decoration: _dec('e.g. royal-crimson-bridal-lehenga'),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'[a-z0-9-]'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (_selectedColors.isEmpty)
+                  Text(
+                    'No colors selected yet. Tap "+ Add Color" to select swatches.',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: _selectedColors.map((hex) {
+                      Color c = const Color(0xFFD4AF37);
+                      try {
+                        c = Color(
+                          int.parse(
+                            hex.replaceFirst('#', 'FF'),
+                            radix: 16,
+                          ),
+                        );
+                      } catch (_) {}
+
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: c,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: AppColors.surfaceBorder,
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.08),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                          ],
-                          onChanged: (_) {
-                            _slugEditedManually = true;
-                            _markDirty();
-                          },
-                          validator: _validateSlug,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      // Category dropdown
-                      _field('Category *', _buildCategoryDropdown()),
-                      const SizedBox(height: AppSpacing.md),
-                      _field(
-                        'Short Description',
-                        TextFormField(
-                          controller: _shortDescController,
-                          style: _fieldStyle,
-                          cursorColor: AppColors.primary,
-                          decoration: _dec('Brief one-line description'),
-                          maxLength: 140,
-                          maxLines: 2,
-                          minLines: 1,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      _field(
-                        'Full Description',
-                        TextFormField(
-                          controller: _descController,
-                          style: _fieldStyle,
-                          cursorColor: AppColors.primary,
-                          decoration: _dec('Detailed product description'),
-                          maxLength: 1000,
-                          maxLines: 5,
-                          minLines: 3,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      _field(
-                        'Thumbnail URL',
-                        TextFormField(
-                          controller: _thumbnailController,
-                          style: _fieldStyle,
-                          cursorColor: AppColors.primary,
-                          decoration: _dec('https://…'),
-                          keyboardType: TextInputType.url,
-                        ),
-                      ),
-                      if (_thumbnailController.text.trim().isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: AppSpacing.sm),
-                          child: ClipRRect(
-                            borderRadius: AppRadius.borderMd,
-                            child: Image.network(
-                              _thumbnailController.text.trim(),
-                              height: 120,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Container(
-                                height: 80,
-                                color: AppColors.surfaceLight,
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.broken_image_rounded,
-                                    color: AppColors.textMuted,
+                          ),
+                          Positioned(
+                            top: -6,
+                            right: -6,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedColors.remove(hex);
+                                  _hasChanges = true;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.textPrimary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.surface,
+                                    width: 1.5,
                                   ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.15),
+                                      blurRadius: 3,
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  PhosphorIcons.x(PhosphorIconsStyle.bold),
+                                  size: 10,
+                                  color: AppColors.surface,
                                 ),
                               ),
                             ),
                           ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+
+                const SizedBox(height: 24),
+
+                // ── 4. Proper Size Options ─────────────────────────────
+                Text(
+                  'AVAILABLE SIZES',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textMuted,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: _standardSizes.map((size) {
+                    final isSelected = _selectedSizes.contains(size);
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            _selectedSizes.remove(size);
+                          } else {
+                            _selectedSizes.add(size);
+                          }
+                          _hasChanges = true;
+                        });
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
                         ),
-                      const SizedBox(height: AppSpacing.md),
-                      // Gallery URLs
-                      _gallerySection(),
-                      const SizedBox(height: AppSpacing.md),
-                      // Tags
-                      _tagsSection(),
-                      const SizedBox(height: AppSpacing.md),
-                      // Search keywords
-                      _keywordsSection(),
-                      const SizedBox(height: AppSpacing.md),
-                      _field(
-                        'Sort Order *',
-                        TextFormField(
-                          controller: _sortOrderController,
-                          style: _fieldStyle,
-                          cursorColor: AppColors.primary,
-                          decoration: _dec('0'),
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          validator: (v) {
-                            final n = int.tryParse(v ?? '');
-                            if (n == null) return 'Must be a number.';
-                            if (n < 0) return 'Must be 0 or greater.';
-                            return null;
-                          },
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.surfaceBorder,
+                            width: isSelected ? 1.5 : 1,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.primary.withValues(alpha: 0.25),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ]
+                              : [],
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      // Active toggle
-                      _activeToggle(),
-                      const SizedBox(height: AppSpacing.xl),
-                      _isSaving
-                          ? const Center(child: AppLoadingIndicator(size: 36))
-                          : AppButton(
-                              text: widget.isEditMode
-                                  ? 'Save Changes'
-                                  : 'Create Design',
-                              onPressed: _save,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isSelected) ...[
+                              Icon(
+                                PhosphorIcons.check(PhosphorIconsStyle.bold),
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Text(
+                              size,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 13,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.textPrimary,
+                              ),
                             ),
-                      const SizedBox(height: AppSpacing.md),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryDropdown() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.borderMd,
-        border: Border.all(color: AppColors.surfaceBorder),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedCategoryId,
-          hint: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            child: Text(
-              'Select category',
-              style: TextStyle(color: AppColors.textHint, fontSize: 14),
-            ),
-          ),
-          dropdownColor: AppColors.surfaceLight,
-          borderRadius: AppRadius.borderMd,
-          isExpanded: true,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          icon: const Icon(
-            Icons.expand_more_rounded,
-            color: AppColors.textMuted,
-          ),
-          items: _categories
-              .map(
-                (c) => DropdownMenuItem(
-                  value: c.id,
-                  child: Text(
-                    c.name,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-          onChanged: (v) => setState(() {
-            _selectedCategoryId = v;
-            _hasChanges = true;
-          }),
-        ),
-      ),
-    );
-  }
-
-  Widget _gallerySection() {
-    final boutiqueId = BoutiqueSelectionScope.of(context).selectedBoutique?.id ?? 'default';
-    final designId = widget.existingDesign?.id ?? 'new_design';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        DesignImagePickerWidget(
-          boutiqueId: boutiqueId,
-          designId: designId,
-          thumbnailUrl: _thumbnailController.text.isNotEmpty ? _thumbnailController.text : null,
-          imageUrls: _imageUrls,
-          onThumbnailChanged: (newThumb) {
-            setState(() {
-              _thumbnailController.text = newThumb ?? '';
-              _hasChanges = true;
-            });
-          },
-          onImageUrlsChanged: (newUrls) {
-            setState(() {
-              _imageUrls = newUrls;
-              _hasChanges = true;
-            });
-          },
-        ),
-        const SizedBox(height: AppSpacing.md),
-        const Text(
-          'Or enter Image URL manually (development fallback):',
-          style: AppTypography.caption,
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _galleryUrlController,
-                style: _fieldStyle,
-                cursorColor: AppColors.primary,
-                decoration: _dec(
-                  'https://… image URL',
-                ).copyWith(hintText: 'Add image URL'),
-                keyboardType: TextInputType.url,
-                onSubmitted: _addGalleryUrl,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            IconButton(
-              icon: const Icon(
-                Icons.add_circle_rounded,
-                color: AppColors.primary,
-                size: 28,
-              ),
-              onPressed: () => _addGalleryUrl(_galleryUrlController.text),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _tagsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Tags',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        if (_tags.isNotEmpty)
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.xs,
-            children: _tags
-                .map(
-                  (t) => Chip(
-                    label: Text(
-                      t,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 12,
+                          ],
+                        ),
                       ),
-                    ),
-                    backgroundColor: AppColors.surfaceLight,
-                    deleteIconColor: AppColors.textMuted,
-                    onDeleted: () => _removeTag(t),
-                    side: const BorderSide(color: AppColors.surfaceBorder),
-                  ),
-                )
-                .toList(),
-          ),
-        const SizedBox(height: AppSpacing.sm),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _tagInputController,
-                style: _fieldStyle,
-                cursorColor: AppColors.primary,
-                decoration: _dec('Add tag (e.g. bridal)'),
-                onSubmitted: _addTag,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            IconButton(
-              icon: const Icon(
-                Icons.add_circle_rounded,
-                color: AppColors.primary,
-                size: 28,
-              ),
-              onPressed: () => _addTag(_tagInputController.text),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _keywordsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Search Keywords',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        if (_keywords.isNotEmpty)
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.xs,
-            children: _keywords
-                .map(
-                  (kw) => Chip(
-                    label: Text(
-                      kw,
-                      style: const TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 12,
-                      ),
-                    ),
-                    backgroundColor: AppColors.surface,
-                    deleteIconColor: AppColors.textMuted,
-                    onDeleted: () => _removeKeyword(kw),
-                    side: const BorderSide(color: AppColors.surfaceBorder),
-                  ),
-                )
-                .toList(),
-          ),
-        const SizedBox(height: AppSpacing.sm),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _keywordInputController,
-                style: _fieldStyle,
-                cursorColor: AppColors.primary,
-                decoration: _dec('Add keyword (e.g. bridal lehenga)'),
-                onSubmitted: _addKeyword,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            IconButton(
-              icon: const Icon(
-                Icons.add_circle_rounded,
-                color: AppColors.primary,
-                size: 28,
-              ),
-              onPressed: () => _addKeyword(_keywordInputController.text),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _activeToggle() => Container(
-    padding: const EdgeInsets.symmetric(
-      horizontal: AppSpacing.md,
-      vertical: AppSpacing.sm,
-    ),
-    decoration: BoxDecoration(
-      color: AppColors.surface,
-      borderRadius: AppRadius.borderMd,
-      border: Border.all(color: AppColors.surfaceBorder),
-    ),
-    child: Row(
-      children: [
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Active',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                    );
+                  }).toList(),
                 ),
-              ),
-              SizedBox(height: 2),
-              Text(
-                'Inactive designs are hidden in KC-App.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-        Switch(
-          value: _isActive,
-          onChanged: (v) => setState(() => _isActive = v),
-          activeThumbColor: AppColors.primary,
-          inactiveTrackColor: AppColors.surfaceBorder,
-        ),
-      ],
-    ),
-  );
 
-  Widget _field(String label, Widget child) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        label,
-        style: const TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
+                const SizedBox(height: 32),
+
+                // ── 5. Action Button ──────────────────────────────────────
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _isSaving ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            widget.isEditMode ? 'Save Changes' : 'Create Product',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
         ),
       ),
-      const SizedBox(height: AppSpacing.xs),
-      child,
-    ],
-  );
-
-  static const TextStyle _fieldStyle = TextStyle(
-    color: AppColors.textPrimary,
-    fontSize: 14,
-  );
-
-  InputDecoration _dec(String hint) => InputDecoration(
-    hintText: hint,
-    hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
-    filled: true,
-    fillColor: AppColors.surface,
-    contentPadding: const EdgeInsets.symmetric(
-      horizontal: AppSpacing.md,
-      vertical: AppSpacing.md,
-    ),
-    border: const OutlineInputBorder(
-      borderRadius: AppRadius.borderMd,
-      borderSide: BorderSide(color: AppColors.surfaceBorder),
-    ),
-    enabledBorder: const OutlineInputBorder(
-      borderRadius: AppRadius.borderMd,
-      borderSide: BorderSide(color: AppColors.surfaceBorder),
-    ),
-    focusedBorder: const OutlineInputBorder(
-      borderRadius: AppRadius.borderMd,
-      borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-    ),
-    errorBorder: const OutlineInputBorder(
-      borderRadius: AppRadius.borderMd,
-      borderSide: BorderSide(color: AppColors.error),
-    ),
-    focusedErrorBorder: const OutlineInputBorder(
-      borderRadius: AppRadius.borderMd,
-      borderSide: BorderSide(color: AppColors.error, width: 1.5),
-    ),
-    errorStyle: const TextStyle(color: AppColors.error, fontSize: 12),
-  );
+    );
+  }
 }

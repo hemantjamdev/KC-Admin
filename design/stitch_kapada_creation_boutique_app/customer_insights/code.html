@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Atelier Insights | Premium Boutique Dashboard</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Montserrat:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-bright": "#f4fbf4",
+                    "secondary-fixed": "#e6e2dc",
+                    "on-primary-container": "#8ac4a5",
+                    "background": "#f4fbf4",
+                    "primary-fixed-dim": "#99d3b4",
+                    "outline-variant": "#c0c9c1",
+                    "surface-tint": "#31694f",
+                    "on-tertiary": "#ffffff",
+                    "inverse-primary": "#99d3b4",
+                    "surface": "#f4fbf4",
+                    "primary-container": "#18523a",
+                    "on-tertiary-fixed-variant": "#005235",
+                    "on-primary-fixed-variant": "#165038",
+                    "inverse-surface": "#2b322e",
+                    "tertiary-fixed-dim": "#84d7ab",
+                    "on-tertiary-container": "#75c99d",
+                    "inverse-on-surface": "#ebf3ec",
+                    "tertiary-fixed": "#9ff4c6",
+                    "on-background": "#161d19",
+                    "tertiary": "#003b25",
+                    "on-tertiary-fixed": "#002113",
+                    "on-error": "#ffffff",
+                    "surface-dim": "#d4dcd5",
+                    "secondary-container": "#e6e2dc",
+                    "outline": "#707973",
+                    "secondary-fixed-dim": "#c9c6c1",
+                    "on-secondary-fixed-variant": "#484743",
+                    "on-secondary": "#ffffff",
+                    "surface-container": "#e8f0e9",
+                    "on-primary-fixed": "#002113",
+                    "on-surface": "#161d19",
+                    "on-secondary-container": "#666460",
+                    "error-container": "#ffdad6",
+                    "primary-fixed": "#b4f0cf",
+                    "surface-container-high": "#e3eae3",
+                    "surface-container-low": "#eef5ef",
+                    "error": "#ba1a1a",
+                    "primary": "#003a26",
+                    "on-primary": "#ffffff",
+                    "on-surface-variant": "#404943",
+                    "secondary": "#605e5a",
+                    "tertiary-container": "#005436",
+                    "on-secondary-fixed": "#1c1c18",
+                    "surface-variant": "#dde4de",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-highest": "#dde4de",
+                    "on-error-container": "#93000a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "section-gap": "120px",
+                    "container-max": "1280px",
+                    "margin-mobile": "20px",
+                    "margin-desktop": "64px",
+                    "gutter": "24px",
+                    "base": "8px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Playfair Display"],
+                    "headline-lg-mobile": ["Playfair Display"],
+                    "label-md": ["Montserrat"],
+                    "body-lg": ["Montserrat"],
+                    "display-lg": ["Playfair Display"],
+                    "headline-md": ["Playfair Display"],
+                    "display-lg-mobile": ["Playfair Display"],
+                    "label-sm": ["Montserrat"],
+                    "body-md": ["Montserrat"]
+            },
+            "fontSize": {
+                    "headline-lg": ["40px", {"lineHeight": "48px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "display-lg": ["64px", {"lineHeight": "72px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "display-lg-mobile": ["40px", {"lineHeight": "48px", "fontWeight": "700"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .stitch-border {
+            border: 1.5px dashed #18523A;
+        }
+        .editorial-shadow {
+            box-shadow: 0px 4px 20px rgba(29, 36, 32, 0.04);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .active-tab-indicator {
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background-color: #18523A;
+            border-radius: 50%;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md selection:bg-primary-fixed selection:text-primary">
+<!-- Top App Bar -->
+<header class="w-full sticky top-0 backdrop-blur-md bg-background/80 z-[60] border-b border-outline-variant/30 flex justify-between items-center px-margin-mobile md:px-margin-desktop py-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container overflow-hidden border border-outline-variant/30">
+<img class="w-full h-full object-cover" data-alt="A sophisticated editorial portrait of a professional woman with minimalist styling, set against a soft ivory studio background. She has a serene expression, reflecting the elegance of a high-end fashion boutique owner. The lighting is soft and directional, highlighting the tactile texture of her silk blouse in deep emerald green." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKmCXOFo-M8GFYsR0NJEf02p34j7pDDymGW4tDnalBLRd6IyY4u0BFfF1TGTFBq5akG1DWDIfkDIfjLqGSuUyC2XhhGm0LzqjrtVT9zcnCMNsZu6NI_woRQk8U37hGdiSlZ0V8kd55LndIn-rb-Cd6QnCGdkR_m6BfnvQBVEkzc1yXQ4hXWOEnIOz1qbP5tRcqEOZSS8pCP87RfZg-doulRos9PXiRQ3r5A0etOJ5LlqPS6vUvgsO126hlNrm8HIPrlEmx-TeI1sgc"/>
+</div>
+<h1 class="font-headline-md text-headline-md-mobile md:text-headline-md text-on-background">Welcome back, Elara</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center text-primary hover:opacity-80 transition-opacity active:scale-95">
+<span class="material-symbols-outlined text-2xl" data-icon="notifications">notifications</span>
+</button>
+</header>
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pb-32 pt-8">
+<!-- Time Filter & Header -->
+<section class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+<div>
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg mb-2">Performance Insights</h2>
+<p class="text-on-surface-variant font-body-md italic font-headline-md italic">Curating your boutique's narrative through data.</p>
+</div>
+<div class="flex bg-surface-container rounded-lg p-1 w-fit border border-outline-variant/20">
+<button class="px-6 py-2 rounded-lg text-label-md font-label-md bg-surface-container-lowest text-primary editorial-shadow transition-all">7 Days</button>
+<button class="px-6 py-2 rounded-lg text-label-md font-label-md text-on-surface-variant hover:text-primary transition-all">30 Days</button>
+<button class="px-6 py-2 rounded-lg text-label-md font-label-md text-on-surface-variant hover:text-primary transition-all">90 Days</button>
+</div>
+</section>
+<!-- Summary Bento Grid -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-section-gap">
+<!-- Total Views -->
+<div class="bg-surface-container-lowest p-8 rounded-xl editorial-shadow border border-outline-variant/10 flex flex-col justify-between min-h-[200px]">
+<div class="flex justify-between items-start">
+<span class="text-label-sm font-label-sm uppercase tracking-widest text-on-surface-variant">Total Engagement</span>
+<span class="material-symbols-outlined text-primary" data-icon="visibility">visibility</span>
+</div>
+<div>
+<div class="text-display-lg-mobile md:text-display-lg font-display-lg text-primary">12,482</div>
+<div class="flex items-center gap-1 text-primary-container font-label-sm mt-1">
+<span class="material-symbols-outlined text-sm" data-icon="trending_up">trending_up</span>
+<span>+14.2% from last week</span>
+</div>
+</div>
+</div>
+<!-- Total Favorites -->
+<div class="bg-surface-container-lowest p-8 rounded-xl editorial-shadow border border-outline-variant/10 flex flex-col justify-between min-h-[200px]">
+<div class="flex justify-between items-start">
+<span class="text-label-sm font-label-sm uppercase tracking-widest text-on-surface-variant">Client Loves</span>
+<span class="material-symbols-outlined text-error" data-icon="favorite" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</div>
+<div>
+<div class="text-display-lg-mobile md:text-display-lg font-display-lg text-primary">3,904</div>
+<div class="flex items-center gap-1 text-primary-container font-label-sm mt-1">
+<span class="material-symbols-outlined text-sm" data-icon="trending_up">trending_up</span>
+<span>+8.5% from last week</span>
+</div>
+</div>
+</div>
+<!-- Most Favorited Highlight -->
+<div class="bg-primary-container p-8 rounded-xl editorial-shadow relative overflow-hidden group">
+<div class="relative z-10 h-full flex flex-col justify-between">
+<div>
+<span class="text-label-sm font-label-sm uppercase tracking-widest text-on-primary-container opacity-80">Season Peak</span>
+<h3 class="font-headline-md text-headline-md text-surface-container-lowest mt-4">'Festival' is the most favorited section</h3>
+</div>
+<div class="mt-6">
+<a class="text-on-primary-container font-headline-md italic flex items-center gap-2 hover:translate-x-2 transition-transform" href="#">
+                            View Collection <span class="material-symbols-outlined" data-icon="arrow_right_alt">arrow_right_alt</span>
+</a>
+</div>
+</div>
+<!-- Subtle Texture/Pattern -->
+<div class="absolute top-0 right-0 w-32 h-32 opacity-10 pointer-events-none">
+<span class="material-symbols-outlined text-[120px] -rotate-12 translate-x-10 -translate-y-10" data-icon="auto_awesome">auto_awesome</span>
+</div>
+</div>
+</section>
+<!-- Product Performance Section -->
+<section class="mb-section-gap">
+<div class="flex items-center gap-4 mb-8">
+<h3 class="font-headline-md text-headline-md">Curated Item Performance</h3>
+<div class="h-px flex-1 bg-outline-variant/30"></div>
+</div>
+<div class="space-y-4">
+<!-- Row Item 1 -->
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl hover:bg-surface-bright transition-colors border border-transparent hover:border-outline-variant/30 group">
+<div class="flex items-center gap-6">
+<div class="w-16 h-20 bg-surface-container rounded-lg overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Close-up of a premium silk emerald green gown featuring intricate hand-stitched details along the collar. The fabric has a soft sheen under editorial studio lighting, set against a warm ivory background. The composition is clean and magazine-style, focusing on the high-end craftsmanship and luxurious texture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdRcVgzTj2J_z6T7z9qtbzt2KFdXVNEfSzXOCzSOUW69yWXlbXylgnq9rgPaSYQhTl75INjjziPgQ0u4j3XSvPLYh-byg82LBeIpE5decmEQ_9v73TCn_EJJsDc3dPu4wB610thafwgCCt8dKlAGJjXNLc7SgehJIjcpioJze4KQnAOk7nyWmm3_cUBa8JCfZaet4aZlvaX-inq2mFRRPnDtYPFdhkKq36i0eI6_fgg72AXJoRbu0w6tNlcbbmYn00o_Gbn6MvF8EN"/>
+</div>
+<div>
+<p class="font-headline-md text-body-lg text-on-background">Emerald Silk Gala Gown</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant uppercase tracking-tighter">Bespoke Stitching • 4.8k Views</p>
+</div>
+</div>
+<div class="text-right flex items-center gap-12">
+<div class="hidden md:block">
+<p class="text-label-sm font-label-sm text-on-surface-variant uppercase">Engagement</p>
+<div class="w-32 h-1 bg-surface-container mt-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full" style="width: 85%;"></div>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="material-symbols-outlined text-primary mb-1" data-icon="bar_chart">bar_chart</span>
+<span class="text-label-md font-label-md text-primary">+22% Interest</span>
+</div>
+</div>
+</div>
+<!-- Row Item 2 (Out of Stock interest) -->
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl hover:bg-surface-bright transition-colors border border-transparent hover:border-outline-variant/30 group">
+<div class="flex items-center gap-6">
+<div class="w-16 h-20 bg-surface-container rounded-lg overflow-hidden flex-shrink-0 relative">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-60" data-alt="A delicate cream lace blouse draped elegantly on a minimalist mannequin. The lighting is warm and soft, emphasizing the fine needlework and artisanal lace patterns. The background is a clean, off-white boutique wall, creating an airy and exclusive atmosphere suitable for a premium fashion brand." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCoidgqlygiB7eVBoR__4I-wYzYPJQyq-6nmjRUaKpPaG84QJeAgn5xd_qce06CddosVWhkl9s6RWf1DKb6NGAiTXnrk9Pfh3PzS3fpodTG2CcNFo-2HBoUfmEIUwv7hK8H9WPaR2tJTQOhDaXz8rxm9aPmD7FqUnyUyoS0Gr14-af7Wm3ITxR7wNYEn1Tq04IKSZ0n49bBbqlZCpFbaAqtpffldwMKjO22gSRdZ-XNdliXHJi_Ts0MRlgIn4TiCL30AHMNieNdwXkE"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="bg-surface-container-lowest/90 px-2 py-0.5 text-[8px] font-label-sm uppercase tracking-widest border border-outline-variant">Restocking</span>
+</div>
+</div>
+<div>
+<p class="font-headline-md text-body-lg text-on-background">Pearl Lace Heirloom Blouse</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant uppercase tracking-tighter">Ready-to-wear • High Demand (Out of Stock)</p>
+</div>
+</div>
+<div class="text-right flex items-center gap-12">
+<div class="hidden md:block">
+<p class="text-label-sm font-label-sm text-on-surface-variant uppercase">Interest Spike</p>
+<div class="w-32 h-1 bg-surface-container mt-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full" style="width: 95%;"></div>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="material-symbols-outlined text-primary mb-1" data-icon="notifications_active">notifications_active</span>
+<span class="text-label-md font-label-md text-primary">312 Waitlisted</span>
+</div>
+</div>
+</div>
+<!-- Row Item 3 -->
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl hover:bg-surface-bright transition-colors border border-transparent hover:border-outline-variant/30 group">
+<div class="flex items-center gap-6">
+<div class="w-16 h-20 bg-surface-container rounded-lg overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Luxurious golden hand-embroidered evening wrap made from pure pashmina. The focus is on the intricate metallic threads and the soft drape of the fabric. The image captures a sense of timeless elegance and craftsmanship, with a sophisticated palette of gold, ivory, and soft grey." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAc00LPg1vtlPC_lhH2i_TMqIjjL23fYuXZeETyUjBbCgvPjxKdbCVYPSOalWLPO0l8cLvbERy8ckXuxuw9YnHWwP6NmMgvsorW0ZOHig5JkMqgbAr3pHJMOHSjyBgcuwQbWY-K50G8I8S3742V9kuyJpJpFbocZdwqPcTCYFYYFhnknMbmq6GPSjm8K_MOvEZXXhLm5uqA6xJu1cH6Y4vmESWyOx0-7Vf5WFcmxEKLIfWOavMPhJavFd-q5-Rf83hFG_Tzb-1PlxcH"/>
+</div>
+<div>
+<p class="font-headline-md text-body-lg text-on-background">Gold Thread Pashmina Wrap</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant uppercase tracking-tighter">Accessories • 3.2k Views</p>
+</div>
+</div>
+<div class="text-right flex items-center gap-12">
+<div class="hidden md:block">
+<p class="text-label-sm font-label-sm text-on-surface-variant uppercase">Engagement</p>
+<div class="w-32 h-1 bg-surface-container mt-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full" style="width: 62%;"></div>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="material-symbols-outlined text-primary mb-1" data-icon="bar_chart">bar_chart</span>
+<span class="text-label-md font-label-md text-primary">+12% Stability</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Preferences & Engagement Lists -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+<!-- Popular Styles & Colors -->
+<div class="space-y-8">
+<div>
+<h3 class="font-headline-md text-headline-md mb-6">Popular Palettes &amp; Fit</h3>
+<div class="bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/20">
+<!-- Colors -->
+<div class="mb-8">
+<span class="text-label-sm font-label-sm uppercase tracking-widest text-on-surface-variant mb-4 block">Trending Colors</span>
+<div class="flex flex-wrap gap-4">
+<div class="flex items-center gap-3 bg-background rounded-full pl-1 pr-4 py-1 border border-outline-variant/20">
+<div class="w-6 h-6 rounded-full bg-primary shadow-sm"></div>
+<span class="text-label-md font-label-md">Emerald Green</span>
+</div>
+<div class="flex items-center gap-3 bg-background rounded-full pl-1 pr-4 py-1 border border-outline-variant/20">
+<div class="w-6 h-6 rounded-full bg-[#F7F1E7] border border-outline-variant/30 shadow-sm"></div>
+<span class="text-label-md font-label-md">Ivory Cream</span>
+</div>
+<div class="flex items-center gap-3 bg-background rounded-full pl-1 pr-4 py-1 border border-outline-variant/20">
+<div class="w-6 h-6 rounded-full bg-[#1C1C18] shadow-sm"></div>
+<span class="text-label-md font-label-md">Onyx Black</span>
+</div>
+</div>
+</div>
+<!-- Sizes -->
+<div>
+<span class="text-label-sm font-label-sm uppercase tracking-widest text-on-surface-variant mb-4 block">Most Requested Sizes</span>
+<div class="flex gap-3">
+<div class="w-12 h-12 flex items-center justify-center rounded-lg border-2 border-primary bg-primary-fixed text-primary font-bold">M</div>
+<div class="w-12 h-12 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant font-bold">L</div>
+<div class="w-12 h-12 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant font-bold">S</div>
+<div class="w-12 h-12 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant font-bold">XL</div>
+</div>
+<p class="text-label-sm font-label-sm mt-4 text-on-surface-variant italic">Medium and Large sizes account for 68% of search volume.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Section Engagement Chart (Simple Bars) -->
+<div>
+<h3 class="font-headline-md text-headline-md mb-6">Section Engagement</h3>
+<div class="bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/20 space-y-6">
+<div class="space-y-2">
+<div class="flex justify-between items-end">
+<span class="text-body-md font-body-md">Festival Collection</span>
+<span class="text-label-md font-label-md text-primary">88%</span>
+</div>
+<div class="w-full h-3 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full transition-all duration-1000 ease-out" style="width: 88%;"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-end">
+<span class="text-body-md font-body-md">Artisanal Stitching</span>
+<span class="text-label-md font-label-md text-primary">72%</span>
+</div>
+<div class="w-full h-3 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full transition-all duration-1000 ease-out" style="width: 72%;"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-end">
+<span class="text-body-md font-body-md">Ready to Wear</span>
+<span class="text-label-md font-label-md text-primary">45%</span>
+</div>
+<div class="w-full h-3 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-primary/40 h-full rounded-full transition-all duration-1000 ease-out" style="width: 45%;"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-end">
+<span class="text-body-md font-body-md">Heirloom Edit</span>
+<span class="text-label-md font-label-md text-primary">31%</span>
+</div>
+<div class="w-full h-3 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-primary/40 h-full rounded-full transition-all duration-1000 ease-out" style="width: 31%;"></div>
+</div>
+</div>
+<div class="pt-4 mt-6 border-t border-outline-variant/20">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-lg" data-icon="lightbulb">lightbulb</span>
+<p class="text-label-md font-label-md">Recommendation: Restock Festival accessories.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Stitch Accent Divider -->
+<div class="my-section-gap flex justify-center items-center">
+<div class="h-px w-full max-w-[200px] bg-outline-variant/40"></div>
+<div class="mx-6 stitch-border p-2 rounded-full">
+<span class="material-symbols-outlined text-primary scale-75" data-icon="colorize">colorize</span>
+</div>
+<div class="h-px w-full max-w-[200px] bg-outline-variant/40"></div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-surface-container/95 backdrop-blur-lg border-t border-outline-variant/20 pb-4 pt-2 px-2 flex justify-around items-end">
+<!-- Home -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-secondary-container/50 transition-all duration-300" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<!-- Products -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-secondary-container/50 transition-all duration-300" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="styler">styler</span>
+<span class="font-label-sm text-label-sm">Products</span>
+</a>
+<!-- Add (FAB Style center) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-secondary-container/50 transition-all duration-300 relative -top-2">
+<div class="bg-primary-container text-on-primary-container p-4 rounded-full shadow-lg active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-3xl" data-icon="add_circle">add_circle</span>
+</div>
+<span class="font-label-sm text-label-sm mt-1">Add</span>
+</button>
+<!-- Insights (Active) -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full p-3 shadow-md scale-110 transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" data-icon="analytics" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-label-sm text-label-sm">Insights</span>
+</a>
+<!-- Profile -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-secondary-container/50 transition-all duration-300" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+<script>
+        // Micro-interaction: Animated bars on scroll
+        document.addEventListener('DOMContentLoaded', () => {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const bars = entry.target.querySelectorAll('.transition-all.duration-1000');
+                        bars.forEach(bar => {
+                            const targetWidth = bar.style.width;
+                            bar.style.width = '0';
+                            setTimeout(() => {
+                                bar.style.width = targetWidth;
+                            }, 100);
+                        });
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            const chartSection = document.querySelector('.lg\\:grid-cols-2');
+            if(chartSection) observer.observe(chartSection);
+        });
+
+        // Toggle Time Filters
+        const filterButtons = document.querySelectorAll('.flex.bg-surface-container button');
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterButtons.forEach(b => {
+                    b.classList.remove('bg-surface-container-lowest', 'text-primary', 'editorial-shadow');
+                    b.classList.add('text-on-surface-variant');
+                });
+                btn.classList.add('bg-surface-container-lowest', 'text-primary', 'editorial-shadow');
+                btn.classList.remove('text-on-surface-variant');
+                
+                // Mimic data refresh effect
+                const summaryValues = document.querySelectorAll('.font-display-lg');
+                summaryValues.forEach(val => {
+                    val.style.opacity = '0';
+                    setTimeout(() => {
+                        val.style.opacity = '1';
+                        // Random number shuffle feel
+                        const original = val.innerText;
+                        val.innerText = Math.floor(Math.random() * 15000);
+                    }, 200);
+                });
+            });
+        });
+    </script>
+</body></html>

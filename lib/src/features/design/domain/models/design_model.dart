@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-/// Immutable domain model representing a Design in the boutique catalogue.
+/// Immutable domain model representing a Design (Product) in the boutique catalogue.
 @immutable
 class DesignModel {
   const DesignModel({
@@ -19,6 +19,11 @@ class DesignModel {
     required this.isActive,
     required this.createdAt,
     required this.updatedAt,
+    this.price = 0.0,
+    this.colors = const [],
+    this.sizes = const [],
+    this.likeCount = 0,
+    this.favoriteCount = 0,
   });
 
   final String id;
@@ -37,6 +42,21 @@ class DesignModel {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  /// Price in INR. Defaults to 0.0 for existing documents without the field.
+  final double price;
+
+  /// Selected color options (e.g. "Sage Green", "Ivory", "Navy").
+  final List<String> colors;
+
+  /// Available sizes (e.g. "XS", "S", "M", "L", "XL").
+  final List<String> sizes;
+
+  /// Likes count for customer engagement.
+  final int likeCount;
+
+  /// Favorite count for customer engagement.
+  final int favoriteCount;
+
   DesignModel copyWith({
     String? id,
     String? boutiqueId,
@@ -53,6 +73,11 @@ class DesignModel {
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
+    double? price,
+    List<String>? colors,
+    List<String>? sizes,
+    int? likeCount,
+    int? favoriteCount,
     bool clearShortDescription = false,
     bool clearDescription = false,
     bool clearThumbnailUrl = false,
@@ -77,6 +102,11 @@ class DesignModel {
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      price: price ?? this.price,
+      colors: colors ?? this.colors,
+      sizes: sizes ?? this.sizes,
+      likeCount: likeCount ?? this.likeCount,
+      favoriteCount: favoriteCount ?? this.favoriteCount,
     );
   }
 
@@ -98,7 +128,12 @@ class DesignModel {
         other.sortOrder == sortOrder &&
         other.isActive == isActive &&
         other.createdAt == createdAt &&
-        other.updatedAt == updatedAt;
+        other.updatedAt == updatedAt &&
+        other.price == price &&
+        _listEquals(other.colors, colors) &&
+        _listEquals(other.sizes, sizes) &&
+        other.likeCount == likeCount &&
+        other.favoriteCount == favoriteCount;
   }
 
   @override
@@ -118,12 +153,18 @@ class DesignModel {
     isActive,
     createdAt,
     updatedAt,
+    price,
+    Object.hashAll(colors),
+    Object.hashAll(sizes),
+    likeCount,
+    favoriteCount,
   );
 
   @override
   String toString() =>
       'DesignModel(id: $id, boutiqueId: $boutiqueId, categoryId: $categoryId, '
-      'name: $name, slug: $slug, sortOrder: $sortOrder, isActive: $isActive)';
+      'name: $name, slug: $slug, sortOrder: $sortOrder, isActive: $isActive, '
+      'price: $price, colors: $colors, sizes: $sizes)';
 
   static bool _listEquals<T>(List<T> a, List<T> b) {
     if (a.length != b.length) return false;

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kapada Creation | Admin Workspace</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Montserrat:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#c9c6c1",
+                        "on-tertiary-container": "#75c99d",
+                        "on-primary-container": "#8ac4a5",
+                        "on-primary-fixed-variant": "#165038",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed-dim": "#84d7ab",
+                        "primary-fixed": "#b4f0cf",
+                        "surface-container-highest": "#dde4de",
+                        "surface": "#FFFBF5",
+                        "inverse-surface": "#2b322e",
+                        "tertiary": "#003b25",
+                        "inverse-primary": "#99d3b4",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed": "#9ff4c6",
+                        "on-tertiary-fixed": "#002113",
+                        "on-primary-fixed": "#002113",
+                        "on-background": "#161d19",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#ebf3ec",
+                        "surface-dim": "#d4dcd5",
+                        "error-container": "#ffdad6",
+                        "on-surface": "#161d19",
+                        "secondary-fixed": "#e6e2dc",
+                        "surface-variant": "#dde4de",
+                        "on-surface-variant": "#404943",
+                        "surface-bright": "#f4fbf4",
+                        "outline": "#707973",
+                        "primary": "#18523A",
+                        "on-secondary-fixed-variant": "#484743",
+                        "on-secondary-fixed": "#1c1c18",
+                        "secondary-container": "#e6e2dc",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#31694f",
+                        "primary-container": "#18523a",
+                        "primary-fixed-dim": "#99d3b4",
+                        "on-secondary-container": "#666460",
+                        "tertiary-container": "#005436",
+                        "background": "#FFFBF5",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-container-low": "#F7F1E7",
+                        "outline-variant": "#DCE4DF",
+                        "on-tertiary-fixed-variant": "#005235",
+                        "secondary": "#605e5a",
+                        "surface-container": "#e8f0e9",
+                        "surface-container-high": "#e3eae3",
+                        "dark-green": "#123D2B"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-max": "1280px",
+                        "section-gap": "120px",
+                        "margin-mobile": "20px",
+                        "gutter": "24px",
+                        "margin-desktop": "64px",
+                        "base": "8px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Playfair Display"],
+                        "label-md": ["Montserrat"],
+                        "body-md": ["Montserrat"],
+                        "headline-md": ["Playfair Display"],
+                        "display-lg-mobile": ["Playfair Display"],
+                        "label-sm": ["Montserrat"],
+                        "body-lg": ["Montserrat"],
+                        "headline-lg-mobile": ["Playfair Display"],
+                        "headline-lg": ["Playfair Display"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["64px", {"lineHeight": "72px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "display-lg-mobile": ["40px", {"lineHeight": "48px", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                        "headline-lg": ["40px", {"lineHeight": "48px", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #FFFBF5;
+            color: #161d19;
+            -webkit-font-smoothing: antialiased;
+        }
+        .stitched-border {
+            border: 2px dashed #18523A;
+        }
+        .stitched-line {
+            background-image: linear-gradient(to right, #18523A 50%, rgba(255,255,255,0) 0%);
+            background-position: bottom;
+            background-size: 8px 1px;
+            background-repeat: repeat-x;
+            height: 1px;
+        }
+        .fade-in-up {
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+        .stagger-4 { animation-delay: 0.4s; }
+        
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md overflow-x-hidden pb-24">
+<!-- Header Section -->
+<header class="px-margin-mobile md:px-margin-desktop py-8 md:py-12 flex justify-between items-start fade-in-up">
+<div class="space-y-1">
+<h1 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary">Good morning, Priya</h1>
+<p class="font-body-md text-on-surface-variant opacity-70">Here’s what needs your attention today.</p>
+</div>
+<div class="flex items-center gap-4">
+<button class="relative p-2 hover:bg-surface-container-low rounded-full transition-colors">
+<span class="material-symbols-outlined text-primary text-2xl">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-surface"></span>
+</button>
+<div class="w-12 h-12 rounded-full overflow-hidden border border-outline-variant p-0.5">
+<img class="w-full h-full object-cover rounded-full" data-alt="A professional and elegant portrait of a woman boutique owner in a minimalist workspace. She is wearing a high-end tailored dark green silk blouse. The lighting is soft and natural, coming from a large window. The background is a clean, ivory-colored atelier with fabric rolls visible in the distance. The overall aesthetic is editorial and premium." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_lM2MZ3ck9rkjXobiirfFx8FN1WrkNuxDwMjJEMrThnDH-8kobug1wsZQoC46zQ0gSIYtolj2B0P61kP0DBMdmjBgG6D6WKFr9nF5oYYNkliEZaD_g00jcAgLqYBDfD3ofhKm0DitOK_FJ0ORf8eiI07gHj4VL3l80N9IT4NU2GKTZcccXefj_3FFKUp_d1Lv0eLp8iuYX6NYksGxJLnQr-5HaTTdWAeby9vxvgDHJZ-EQCq-9nbgWZySkjyeg6oQLP8aE1tOLl52"/>
+</div>
+</div>
+</header>
+<!-- Daily Focus Composition -->
+<section class="px-margin-mobile md:px-margin-desktop mb-section-gap fade-in-up stagger-1">
+<div class="relative grid grid-cols-12 gap-0">
+<!-- Sculpted Dark Green Surface -->
+<div class="col-span-12 md:col-span-11 bg-dark-green text-white p-8 md:p-16 rounded-xl md:rounded-3xl shadow-2xl overflow-hidden relative">
+<div class="absolute top-0 right-0 w-64 h-64 opacity-10 pointer-events-none">
+<span class="material-symbols-outlined text-[200px] rotate-12">architecture</span>
+</div>
+<div class="max-w-2xl relative z-10">
+<span class="font-label-sm uppercase tracking-widest text-on-primary-container mb-4 block">Current Priority</span>
+<h2 class="font-display-lg text-display-lg-mobile md:text-[56px] leading-tight mb-6 italic">5 stitching requests need attention</h2>
+<div class="flex flex-wrap gap-8 items-center">
+<div class="space-y-1">
+<p class="font-display-lg text-3xl font-light">2</p>
+<p class="font-label-sm opacity-60">Ready for pickup</p>
+</div>
+<div class="w-px h-12 bg-white/20"></div>
+<div class="space-y-1">
+<p class="font-display-lg text-3xl font-light">3</p>
+<p class="font-label-sm opacity-60">New requests today</p>
+</div>
+</div>
+<div class="mt-10">
+<button class="bg-surface text-primary px-10 py-4 font-label-md rounded-lg hover:bg-surface-container-low transition-all active:scale-95 shadow-lg">
+                            Review Requests
+                        </button>
+</div>
+</div>
+</div>
+<!-- Overlapping Ivory Accent with Stitched Detail -->
+<div class="hidden md:block absolute -bottom-10 -right-4 w-1/3 bg-surface-container-low p-8 rounded-xl shadow-xl border border-outline-variant/30 fade-in-up stagger-2">
+<div class="stitched-border absolute inset-1 pointer-events-none opacity-40"></div>
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-primary">straighten</span>
+<span class="font-label-md text-primary">Tailoring Pulse</span>
+</div>
+<p class="font-body-md text-on-surface italic mb-4">"The craftsmanship of the ivory organza saree requires final quality check before boxing."</p>
+<a class="font-display-lg italic text-primary text-lg hover:underline decoration-1" href="#">Update Status</a>
+</div>
+</div>
+</section>
+<!-- Stitching Request Rail -->
+<section class="px-margin-mobile md:px-margin-desktop mb-section-gap fade-in-up stagger-2">
+<h3 class="font-label-md uppercase tracking-widest text-on-surface-variant mb-8 px-2">Workflow Timeline</h3>
+<div class="relative flex justify-between items-center w-full overflow-x-auto pb-6 no-scrollbar gap-8 md:gap-0">
+<!-- Timeline Line -->
+<div class="absolute top-1/2 left-0 w-full h-[2px] bg-outline-variant/30 -translate-y-1/2 z-0"></div>
+<!-- Nodes -->
+<div class="relative z-10 flex flex-col items-center group cursor-pointer min-w-[100px]">
+<div class="w-10 h-10 bg-surface border border-outline-variant flex items-center justify-center rounded-full mb-3 group-hover:border-primary transition-colors">
+<span class="text-label-md font-bold text-on-surface-variant group-hover:text-primary">12</span>
+</div>
+<span class="font-label-sm text-on-surface-variant">Requested</span>
+</div>
+<div class="relative z-10 flex flex-col items-center group cursor-pointer min-w-[100px]">
+<div class="w-10 h-10 bg-surface border border-outline-variant flex items-center justify-center rounded-full mb-3 group-hover:border-primary transition-colors">
+<span class="text-label-md font-bold text-on-surface-variant group-hover:text-primary">4</span>
+</div>
+<span class="font-label-sm text-on-surface-variant">Accepted</span>
+</div>
+<div class="relative z-10 flex flex-col items-center group cursor-pointer min-w-[100px]">
+<div class="w-10 h-10 bg-surface border border-outline-variant flex items-center justify-center rounded-full mb-3 group-hover:border-primary transition-colors">
+<span class="text-label-md font-bold text-on-surface-variant group-hover:text-primary">8</span>
+</div>
+<span class="font-label-sm text-on-surface-variant">In Progress</span>
+</div>
+<div class="relative z-10 flex flex-col items-center group cursor-pointer min-w-[100px]">
+<div class="w-14 h-14 bg-primary text-white flex items-center justify-center rounded-full mb-2 shadow-xl ring-4 ring-surface">
+<span class="text-headline-md font-bold">2</span>
+</div>
+<span class="font-label-md text-primary font-bold">Ready</span>
+</div>
+<div class="relative z-10 flex flex-col items-center group cursor-pointer min-w-[100px]">
+<div class="w-10 h-10 bg-surface border border-outline-variant flex items-center justify-center rounded-full mb-3 group-hover:border-primary transition-colors">
+<span class="text-label-md font-bold text-on-surface-variant group-hover:text-primary">15</span>
+</div>
+<span class="font-label-sm text-on-surface-variant">Completed</span>
+</div>
+</div>
+</section>
+<!-- Product Pulse Editorial Section -->
+<section class="px-margin-mobile md:px-margin-desktop mb-section-gap fade-in-up stagger-3">
+<div class="flex justify-between items-end mb-8">
+<h3 class="font-headline-md text-primary italic">Product Pulse</h3>
+<a class="font-display-lg italic text-primary hover:opacity-70 transition-opacity" href="#">View Products</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Most Loved -->
+<div class="group bg-surface-container-low rounded-xl p-6 flex gap-6 items-center border border-outline-variant/20 hover:shadow-md transition-all">
+<div class="w-24 h-32 md:w-32 md:h-40 rounded-lg overflow-hidden shrink-0">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" data-alt="Close-up photograph of a stunning emerald green Anarkali dress with intricate gold zardosi embroidery. The fabric is premium silk, catching the light with a subtle sheen. The background is a soft, warm cream tone, emphasizing the luxury and craftsmanship of the garment. High-fashion editorial photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuANOsaLfPixS6QXdLBTnvd9tJkRIPX2j9kMtI8UGITQQZQIC8P3U3MME92ZsNL3wOYoMsb8SDI08PLQIV48B_hVZx5Nq4ZZPj1d3jWbPKc2HS-H2Lro3HP_puF8R2M-WvTPFiwaOPsC3kJMl0siKb91a6VeD8EwsALCOPxdiLgUkBjJD0liJlrC2--4J6BuZ3dD7hFJBbjBCHqyo0vJWSx7A5kgZKCg_mgajsB6b-NU_uJODpyOrm62Yc_plMEHUI5UGtmwD6h3pEHa"/>
+</div>
+<div class="space-y-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-sm text-primary uppercase">Most loved now</span>
+</div>
+<h4 class="font-headline-md text-lg">Mehreen Anarkali Set</h4>
+<p class="font-body-md text-on-surface-variant">24 favorites this week</p>
+<span class="inline-block px-3 py-1 bg-primary/10 text-primary font-label-sm rounded-full">Trending</span>
+</div>
+</div>
+<!-- Needs Attention -->
+<div class="group bg-surface-container-low rounded-xl p-6 flex gap-6 items-center border border-outline-variant/20 hover:shadow-md transition-all">
+<div class="w-24 h-32 md:w-32 md:h-40 rounded-lg overflow-hidden shrink-0 grayscale opacity-70">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" data-alt="A delicate lavender-colored Pakistani suit laid out on a white linen surface. The suit features fine thread work and pearl embellishments. The lighting is soft and airy, creating a dreamy, high-end boutique feel. The image is clean and minimalist, highlighting the texture of the fabric." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBXtKc5VY8vYRn7KKLfJSA506WPe29FyAeFm2AL9FICOJ5oj__LlOHBwYYmFB0qEt6oOnwEULCGFoxmrayza421vVJadzsSaclzlKYMB1TDOoUXjzUdH2XyqWu5MtDYUhzsvGh6EqJPV4vJ436W_aFuwEj5ab5-_cYr3dQpbYMnjIPnc97jj6JjiBdlymeGfxqoL09bpDFLFccNdq5zQDy2PxwHC4BkWF8BzSDl5Kb8CiTJOaDwFuqSJ38trQDpSQBbp9EVUUPQRJ6"/>
+</div>
+<div class="space-y-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-error text-sm">warning</span>
+<span class="font-label-sm text-error uppercase">Needs attention</span>
+</div>
+<h4 class="font-headline-md text-lg">Lavender Dreams Suit</h4>
+<p class="font-body-md text-on-surface-variant">Waitlist: 12 clients</p>
+<span class="inline-block px-3 py-1 bg-error/10 text-error font-label-sm rounded-full">Out of Stock</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Recent Activity Section -->
+<section class="px-margin-mobile md:px-margin-desktop mb-12 fade-in-up stagger-4">
+<h3 class="font-label-md uppercase tracking-widest text-on-surface-variant mb-6 px-2">Recent Activity</h3>
+<div class="bg-surface rounded-xl border border-outline-variant/30 overflow-hidden">
+<div class="divide-y divide-outline-variant/30">
+<div class="p-5 flex items-center justify-between hover:bg-surface-container-low transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-xl">person_add</span>
+</div>
+<div>
+<p class="font-body-md text-on-surface"><span class="font-bold">Ananya R.</span> submitted a Blouse stitching request</p>
+<p class="font-label-sm text-on-surface-variant opacity-60">2 hours ago</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</div>
+<div class="p-5 flex items-center justify-between hover:bg-surface-container-low transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</div>
+<div>
+<p class="font-body-md text-on-surface"><span class="font-bold">Mehreen Anarkali Set</span> received 5 new favorites</p>
+<p class="font-label-sm text-on-surface-variant opacity-60">5 hours ago</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</div>
+<div class="p-5 flex items-center justify-between hover:bg-surface-container-low transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-error/5 flex items-center justify-center">
+<span class="material-symbols-outlined text-error text-xl">inventory_2</span>
+</div>
+<div>
+<p class="font-body-md text-on-surface"><span class="font-bold">Lavender Dreams Suit</span> marked Out of Stock</p>
+<p class="font-label-sm text-on-surface-variant opacity-60">Yesterday</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</div>
+</div>
+<div class="p-4 bg-surface-container-low/50 text-center">
+<a class="font-label-md text-primary uppercase tracking-widest hover:underline decoration-1" href="#">View all activity</a>
+</div>
+</div>
+</section>
+<!-- Navigation Shell -->
+<!-- Mobile Bottom NavBar -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-surface/90 backdrop-blur-md z-50 border-t border-outline-variant/30 flex justify-around items-center h-20 px-4 rounded-t-2xl shadow-[0px_-4px_20px_rgba(29,36,32,0.06)]">
+<button class="flex flex-col items-center justify-center text-primary font-bold space-y-1">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="text-[10px] font-label-sm uppercase">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-secondary space-y-1">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="text-[10px] font-label-sm uppercase">Products</span>
+</button>
+<!-- Refined Add Action -->
+<button class="relative -mt-10 bg-primary text-white p-3 rounded-xl shadow-xl flex flex-col items-center justify-center group active:scale-95 transition-transform">
+<div class="stitched-border absolute -inset-1 rounded-2xl pointer-events-none opacity-40"></div>
+<span class="material-symbols-outlined text-2xl">add</span>
+<span class="text-[10px] font-label-sm uppercase">Add</span>
+</button>
+<button class="flex flex-col items-center justify-center text-secondary space-y-1">
+<span class="material-symbols-outlined">insights</span>
+<span class="text-[10px] font-label-sm uppercase">Insights</span>
+</button>
+<button class="flex flex-col items-center justify-center text-secondary space-y-1">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-label-sm uppercase">Profile</span>
+</button>
+</nav>
+<!-- Desktop Sidebar/Nav Mockup (Visual Integrity) -->
+<div class="hidden md:flex fixed top-0 left-0 h-full w-20 flex-col items-center py-8 bg-surface border-r border-outline-variant/20 z-50 shadow-sm">
+<div class="mb-12">
+<span class="material-symbols-outlined text-primary text-3xl italic">spa</span>
+</div>
+<div class="flex-1 flex flex-col gap-10">
+<span class="material-symbols-outlined text-primary cursor-pointer hover:scale-110 transition-transform" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">inventory_2</span>
+<div class="relative group cursor-pointer">
+<div class="stitched-border absolute -inset-2 rounded-lg opacity-40"></div>
+<span class="material-symbols-outlined text-primary">add</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">insights</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">person</span>
+</div>
+<div class="mt-auto">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer">settings</span>
+</div>
+</div>
+<script>
+        // Micro-interactions for activity rows
+        document.querySelectorAll('.Activity-row').forEach(row => {
+            row.addEventListener('click', function() {
+                this.classList.add('bg-primary/5');
+                setTimeout(() => this.classList.remove('bg-primary/5'), 200);
+            });
+        });
+
+        // Subtle parallax or scroll reveal logic could go here
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('header');
+            if (window.scrollY > 20) {
+                header.classList.add('bg-surface/80', 'backdrop-blur-sm');
+            } else {
+                header.classList.remove('bg-surface/80', 'backdrop-blur-sm');
+            }
+        });
+    </script>
+</body></html>

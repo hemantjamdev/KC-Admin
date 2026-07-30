@@ -12,7 +12,6 @@ class SectionFirestoreRepository {
   Stream<List<SectionModel>> watchSections(String boutiqueId) {
     return _firestore
         .collection(FirestorePaths.sections)
-        .where('boutiqueId', isEqualTo: boutiqueId)
         .snapshots()
         .map((snapshot) {
           final list = snapshot.docs.map(_fromFirestore).toList();
@@ -34,6 +33,34 @@ class SectionFirestoreRepository {
         .collection(FirestorePaths.sections)
         .doc(section.id)
         .update(_toFirestore(section, isCreate: false));
+  }
+
+  Future<void> deleteSection(String sectionId) async {
+    await _firestore
+        .collection(FirestorePaths.sections)
+        .doc(sectionId)
+        .delete();
+  }
+
+  Future<void> saveSectionItems(
+    String sectionId,
+    List<String> orderedDesignIds,
+  ) async {
+    final batch = _firestore.batch();
+    final colRef = _firestore
+        .collection(FirestorePaths.sections)
+        .doc(sectionId)
+        .collection('items');
+    // Overwrite with the ordered list
+    for (var i = 0; i < orderedDesignIds.length; i++) {
+      final docRef = colRef.doc(orderedDesignIds[i]);
+      batch.set(docRef, {
+        'designId': orderedDesignIds[i],
+        'sortOrder': i,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+    await batch.commit();
   }
 
   SectionModel _fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {

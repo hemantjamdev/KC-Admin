@@ -16,11 +16,9 @@ class ImageUploadResult {
 
 /// Service handling image selection, validation, and upload to Firebase Storage.
 class ImageUploadService {
-  ImageUploadService({
-    FirebaseStorage? storage,
-    ImagePicker? picker,
-  })  : _storage = storage ?? FirebaseStorage.instance,
-        _picker = picker ?? ImagePicker();
+  ImageUploadService({FirebaseStorage? storage, ImagePicker? picker})
+    : _storage = storage ?? FirebaseStorage.instance,
+      _picker = picker ?? ImagePicker();
 
   final FirebaseStorage _storage;
   final ImagePicker _picker;
@@ -66,7 +64,9 @@ class ImageUploadService {
 
     final ref = _storage.ref().child(storagePath);
     final ext = file.path.split('.').last.toLowerCase();
-    final contentType = ext == 'png' ? 'image/png' : (ext == 'webp' ? 'image/webp' : 'image/jpeg');
+    final contentType = ext == 'png'
+        ? 'image/png'
+        : (ext == 'webp' ? 'image/webp' : 'image/jpeg');
 
     final uploadTask = ref.putFile(
       file,

@@ -1,46 +1,41 @@
 import 'package:flutter/foundation.dart';
 
 enum StitchingOrderStatus {
-  received,
-  measurements,
-  cutting,
-  stitching,
-  qualityCheck,
-  ready,
+  requested,
+  accepted,
   completed;
+
+  static StitchingOrderStatus parse(String? raw) {
+    if (raw == null || raw.isEmpty) return StitchingOrderStatus.requested;
+    final normalized = raw.toLowerCase().trim();
+    return switch (normalized) {
+      'requested' || 'received' || 'measurements' => StitchingOrderStatus.requested,
+      'accepted' || 'cutting' || 'stitching' || 'qualitycheck' => StitchingOrderStatus.accepted,
+      'completed' || 'ready' => StitchingOrderStatus.completed,
+      _ => StitchingOrderStatus.requested,
+    };
+  }
 
   String get adminLabel {
     return switch (this) {
-      StitchingOrderStatus.received => 'Received',
-      StitchingOrderStatus.measurements => 'Measurements',
-      StitchingOrderStatus.cutting => 'Cutting',
-      StitchingOrderStatus.stitching => 'Stitching',
-      StitchingOrderStatus.qualityCheck => 'Quality Check',
-      StitchingOrderStatus.ready => 'Ready',
+      StitchingOrderStatus.requested => 'Requested',
+      StitchingOrderStatus.accepted => 'Accepted',
       StitchingOrderStatus.completed => 'Completed',
     };
   }
 
   String get customerLabel {
     return switch (this) {
-      StitchingOrderStatus.received => 'Order Received',
-      StitchingOrderStatus.measurements => 'Measurements Recorded',
-      StitchingOrderStatus.cutting => 'Fabric Cutting',
-      StitchingOrderStatus.stitching => 'Stitching in Progress',
-      StitchingOrderStatus.qualityCheck => 'Quality Check',
-      StitchingOrderStatus.ready => 'Ready for Collection',
+      StitchingOrderStatus.requested => 'Request Submitted',
+      StitchingOrderStatus.accepted => 'Accepted by Admin',
       StitchingOrderStatus.completed => 'Completed',
     };
   }
 
   double get progressFraction {
     return switch (this) {
-      StitchingOrderStatus.received => 0.14,
-      StitchingOrderStatus.measurements => 0.28,
-      StitchingOrderStatus.cutting => 0.42,
-      StitchingOrderStatus.stitching => 0.57,
-      StitchingOrderStatus.qualityCheck => 0.71,
-      StitchingOrderStatus.ready => 0.85,
+      StitchingOrderStatus.requested => 0.33,
+      StitchingOrderStatus.accepted => 0.66,
       StitchingOrderStatus.completed => 1.0,
     };
   }
@@ -296,11 +291,16 @@ class StitchingOrderModel {
     required this.customerId,
     required this.orderNumber,
     required this.status,
+    this.requestName,
+    this.categoryName,
     required this.designReferences,
     this.measurementSummary,
     this.notes,
     this.expectedReadyAt,
     this.completedAt,
+    this.customerName,
+    this.customerPhone,
+    this.customerEmail,
     required this.createdAt,
     required this.updatedAt,
     this.createdBy,
@@ -311,8 +311,13 @@ class StitchingOrderModel {
   final String boutiqueId;
   final String branchId;
   final String customerId;
+  final String? customerName;
+  final String? customerPhone;
+  final String? customerEmail;
   final String orderNumber;
   final StitchingOrderStatus status;
+  final String? requestName;
+  final String? categoryName;
   final List<DesignReferenceModel> designReferences;
   final MeasurementSummaryModel? measurementSummary;
   final String? notes;
@@ -323,6 +328,26 @@ class StitchingOrderModel {
   final String? createdBy;
   final String? updatedBy;
 
+  /// Alias for expectedReadyAt
+  DateTime? get pickupDate => expectedReadyAt;
+
+  String get displayRequestName {
+    if (requestName != null && requestName!.trim().isNotEmpty) {
+      return requestName!.trim();
+    }
+    if (designReferences.isNotEmpty) {
+      return designReferences.map((d) => d.designName).join(', ');
+    }
+    return 'Custom Tailoring Request';
+  }
+
+  String get displayCategoryName {
+    if (categoryName != null && categoryName!.trim().isNotEmpty) {
+      return categoryName!.trim();
+    }
+    return 'General';
+  }
+
   StitchingOrderModel copyWith({
     String? id,
     String? boutiqueId,
@@ -330,6 +355,8 @@ class StitchingOrderModel {
     String? customerId,
     String? orderNumber,
     StitchingOrderStatus? status,
+    String? requestName,
+    String? categoryName,
     List<DesignReferenceModel>? designReferences,
     MeasurementSummaryModel? measurementSummary,
     String? notes,
@@ -353,6 +380,8 @@ class StitchingOrderModel {
       customerId: customerId ?? this.customerId,
       orderNumber: orderNumber ?? this.orderNumber,
       status: status ?? this.status,
+      requestName: requestName ?? this.requestName,
+      categoryName: categoryName ?? this.categoryName,
       designReferences: designReferences ?? this.designReferences,
       measurementSummary: clearMeasurementSummary
           ? null

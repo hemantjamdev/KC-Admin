@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../domain/models/stitching_order_model.dart';
 
-/// Reusable timeline widget showing status progression history.
+/// Reusable timeline widget showing status progression history with clean vertical connectors.
 class StitchingOrderTimeline extends StatelessWidget {
   const StitchingOrderTimeline({
     super.key,
@@ -27,11 +28,14 @@ class StitchingOrderTimeline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (history.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(AppSpacing.md),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         child: Text(
           'No timeline history recorded yet.',
-          style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+          style: GoogleFonts.montserrat(
+            color: AppColors.textMuted,
+            fontSize: 13,
+          ),
         ),
       );
     }
@@ -47,88 +51,93 @@ class StitchingOrderTimeline extends StatelessWidget {
             ? item.status.customerLabel
             : item.status.adminLabel;
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Indicator column
-            Column(
-              children: [
-                Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isLast ? AppColors.primary : AppColors.surfaceLight,
-                    border: Border.all(
-                      color: isLast
-                          ? AppColors.primary
-                          : AppColors.surfaceBorder,
-                      width: 2,
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Indicator Column with auto-expanding line
+              SizedBox(
+                width: 28,
+                child: Column(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isLast ? AppColors.primary : AppColors.primary.withValues(alpha: 0.15),
+                        border: Border.all(
+                          color: AppColors.primary,
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: isLast
+                            ? PhosphorIcon(
+                                PhosphorIcons.check(PhosphorIconsStyle.bold),
+                                size: 13,
+                                color: Colors.white,
+                              )
+                            : Container(
+                                width: 7,
+                                height: 7,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                      ),
                     ),
-                  ),
-                  child: Icon(
-                    isLast ? Icons.check_rounded : Icons.circle_rounded,
-                    size: isLast ? 14 : 8,
-                    color: isLast ? AppColors.background : AppColors.textMuted,
-                  ),
+                    if (!isLast)
+                      Expanded(
+                        child: Container(
+                          width: 2,
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                        ),
+                      ),
+                  ],
                 ),
-                if (index < history.length - 1)
-                  Container(
-                    width: 2,
-                    height: 40,
-                    color: AppColors.surfaceBorder,
-                  ),
-              ],
-            ),
-            const SizedBox(width: AppSpacing.md),
-            // Details
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                child: Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: AppRadius.borderMd,
-                    border: Border.all(
-                      color: isLast
-                          ? AppColors.primary.withValues(alpha: 0.4)
-                          : AppColors.surfaceBorder,
-                    ),
-                  ),
+              ),
+              const SizedBox(width: 12),
+
+              // Content (Clean - No container)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(
-                            child: Text(
-                              statusLabel,
-                              style: TextStyle(
-                                color: isLast
-                                    ? AppColors.primary
-                                    : AppColors.textPrimary,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          Text(
+                            statusLabel,
+                            style: GoogleFonts.montserrat(
+                              color: isLast
+                                  ? AppColors.primary
+                                  : AppColors.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           Text(
                             _formatDateTime(item.changedAt),
-                            style: const TextStyle(
+                            style: GoogleFonts.montserrat(
                               color: AppColors.textMuted,
                               fontSize: 11,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
                       if (item.note != null && item.note!.isNotEmpty) ...[
-                        const SizedBox(height: AppSpacing.xs),
+                        const SizedBox(height: 4),
                         Text(
                           item.note!,
-                          style: const TextStyle(
+                          style: GoogleFonts.montserrat(
                             color: AppColors.textSecondary,
-                            fontSize: 13,
+                            fontSize: 12.5,
+                            height: 1.3,
                           ),
                         ),
                       ],
@@ -136,9 +145,10 @@ class StitchingOrderTimeline extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           'Updated by: ${item.changedBy}',
-                          style: const TextStyle(
+                          style: GoogleFonts.montserrat(
                             color: AppColors.textHint,
                             fontSize: 11,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -146,8 +156,8 @@ class StitchingOrderTimeline extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );

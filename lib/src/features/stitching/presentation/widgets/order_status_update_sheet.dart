@@ -1,32 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../application/providers/stitching_providers.dart';
 import '../../domain/models/stitching_order_model.dart';
-import '../controllers/stitching_order_controller.dart';
+import '../../domain/models/stitching_status_mutation_state.dart';
 
 /// Modal bottom sheet allowing status update with optional note and progression warnings.
-class OrderStatusUpdateSheet extends StatefulWidget {
+class OrderStatusUpdateSheet extends ConsumerStatefulWidget {
   const OrderStatusUpdateSheet({
     super.key,
     required this.order,
-    required this.controller,
     required this.updatedBy,
   });
 
   final StitchingOrderModel order;
-  final StitchingOrderController controller;
   final String updatedBy;
 
+  static Future<bool?> show(
+    BuildContext context, {
+    required StitchingOrderModel order,
+    required String updatedBy,
+  }) {
+    return showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) =>
+          OrderStatusUpdateSheet(order: order, updatedBy: updatedBy),
+    );
+  }
+
   @override
-  State<OrderStatusUpdateSheet> createState() => _OrderStatusUpdateSheetState();
+  ConsumerState<OrderStatusUpdateSheet> createState() =>
+      _OrderStatusUpdateSheetState();
 }
 
-class _OrderStatusUpdateSheetState extends State<OrderStatusUpdateSheet> {
+class _OrderStatusUpdateSheetState
+    extends ConsumerState<OrderStatusUpdateSheet> {
   final _noteController = TextEditingController();
   late StitchingOrderStatus _selectedStatus;
-  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -56,22 +74,30 @@ class _OrderStatusUpdateSheetState extends State<OrderStatusUpdateSheet> {
   Future<void> _submit() async {
     if (_selectedStatus == widget.order.status) return;
 
-    setState(() => _isSubmitting = true);
+    final success = await ref
+        .read(stitchingStatusMutationProvider.notifier)
+        .updateStatus(
+          order: widget.order,
+          newStatus: _selectedStatus,
+          updatedBy: widget.updatedBy,
+          note: _noteController.text.trim().isNotEmpty
+              ? _noteController.text.trim()
+              : null,
+        );
 
-    await widget.controller.updateOrderStatus(
-      orderId: widget.order.id,
-      newStatus: _selectedStatus,
-      note: _noteController.text,
-      updatedBy: widget.updatedBy,
-    );
-
-    if (!mounted) return;
-    Navigator.of(context).pop(true);
+    if (success && mounted) {
+      Navigator.of(context).pop(true);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final warning = _progressionWarning;
+    final rowState = ref
+        .watch(stitchingStatusMutationProvider)
+        .requests[widget.order.id];
+    final isSubmitting = rowState?.status == MutationStatus.loading;
+    final errorMessage = rowState?.errorMessage;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -91,12 +117,15 @@ class _OrderStatusUpdateSheetState extends State<OrderStatusUpdateSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Update Status — ${widget.order.orderNumber}',
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      'Update Status — ${widget.order.orderNumber}',
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   IconButton(
@@ -109,6 +138,28 @@ class _OrderStatusUpdateSheetState extends State<OrderStatusUpdateSheet> {
                 ],
               ),
               const SizedBox(height: AppSpacing.md),
+
+              if (errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.15),
+                    borderRadius: AppRadius.borderMd,
+                    border: Border.all(
+                      color: AppColors.error.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Text(
+                    errorMessage,
+                    style: const TextStyle(
+                      color: AppColors.error,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+              ],
+
               const Text(
                 'Select New Status',
                 style: TextStyle(
@@ -122,29 +173,34 @@ class _OrderStatusUpdateSheetState extends State<OrderStatusUpdateSheet> {
                 spacing: AppSpacing.xs,
                 runSpacing: AppSpacing.xs,
                 children: StitchingOrderStatus.values.map((status) {
-                  final isCurrent = status == widget.order.status;
-                  final isSelected = status == _selectedStatus;
+                  final isSelected = _selectedStatus == status;
+                  final chipColor = switch (status) {
+                    StitchingOrderStatus.requested => const Color(0xFFE65100),
+                    StitchingOrderStatus.accepted => const Color(0xFF1565C0),
+                    StitchingOrderStatus.completed => const Color(0xFF2E7D32),
+                  };
+
                   return ChoiceChip(
                     label: Text(status.adminLabel),
                     selected: isSelected,
-                    selectedColor: AppColors.primary,
+                    selectedColor: chipColor,
                     backgroundColor: AppColors.surfaceLight,
                     labelStyle: TextStyle(
                       color: isSelected
                           ? AppColors.background
-                          : (isCurrent
-                                ? AppColors.primary
-                                : AppColors.textMuted),
+                          : AppColors.textMuted,
                       fontWeight: isSelected
                           ? FontWeight.bold
                           : FontWeight.normal,
                       fontSize: 12,
                     ),
-                    onSelected: (val) {
-                      if (val) {
-                        setState(() => _selectedStatus = status);
-                      }
-                    },
+                    onSelected: isSubmitting
+                        ? null
+                        : (selected) {
+                            if (selected) {
+                              setState(() => _selectedStatus = status);
+                            }
+                          },
                   );
                 }).toList(),
               ),
@@ -192,6 +248,7 @@ class _OrderStatusUpdateSheetState extends State<OrderStatusUpdateSheet> {
               const SizedBox(height: AppSpacing.xs),
               TextField(
                 controller: _noteController,
+                enabled: !isSubmitting,
                 style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 14,
@@ -223,9 +280,9 @@ class _OrderStatusUpdateSheetState extends State<OrderStatusUpdateSheet> {
               const SizedBox(height: AppSpacing.lg),
               AppButton(
                 text: 'Confirm Status Change',
-                isLoading: _isSubmitting,
+                isLoading: isSubmitting,
                 onPressed:
-                    _selectedStatus == widget.order.status || _isSubmitting
+                    _selectedStatus == widget.order.status || isSubmitting
                     ? null
                     : _submit,
               ),

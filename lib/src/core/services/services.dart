@@ -1,1 +1,1 @@
-export 'connectivity_service.dart';
+export 'network_connectivity_service.dart';

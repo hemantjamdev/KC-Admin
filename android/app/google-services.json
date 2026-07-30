@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "892894654736-af4cir9bn60buccavtgvfjd2fg2gd70l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kc.kcadmin.app",
+            "certificate_hash": "c30daba1ef4e79eace1b9a9df4be248e056f3266"
+          }
+        },
+        {
           "client_id": "892894654736-jbgj5dqgpck3saohr28jrh8jjeg780so.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -49,6 +57,14 @@
         }
       },
       "oauth_client": [
+        {
+          "client_id": "892894654736-24kik6r4o9o1lsbpippmtseksli3tnnl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kc.kcapp.app",
+            "certificate_hash": "c30daba1ef4e79eace1b9a9df4be248e056f3266"
+          }
+        },
         {
           "client_id": "892894654736-jbgj5dqgpck3saohr28jrh8jjeg780so.apps.googleusercontent.com",
           "client_type": 3

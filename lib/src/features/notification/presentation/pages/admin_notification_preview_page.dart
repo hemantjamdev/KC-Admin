@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/navigation/navigation_extensions.dart';
 import '../../domain/models/notification_model.dart';
 
 /// Admin Notification Preview Page — renders in-app notification card as seen by customer in KC-App.
@@ -12,91 +15,99 @@ class AdminNotificationPreviewPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Customer In-App Preview',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+    return PopScope(
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (context.mounted) context.popOrGo(AppRoutes.adminNotificationList);
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text(
+            'Customer In-App Preview',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          leading: IconButton(
+            icon: PhosphorIcon(
+              PhosphorIcons.caretLeft(PhosphorIconsStyle.bold),
+              size: 20,
+              color: AppColors.textPrimary,
+            ),
+            onPressed: () => context.popOrGo(AppRoutes.adminNotificationList),
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_rounded,
-            color: AppColors.textPrimary,
-          ),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
-                      borderRadius: AppRadius.borderMd,
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline_rounded,
-                          color: AppColors.primary,
-                          size: 18,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceLight,
+                        borderRadius: AppRadius.borderMd,
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.3),
                         ),
-                        SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: Text(
-                            'This shows how the in-app notification card will look inside KC-App for eligible customers.',
-                            style: TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          PhosphorIcon(
+                            PhosphorIcons.info(),
+                            color: AppColors.primary,
+                            size: 18,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          const Expanded(
+                            child: Text(
+                              'This shows how the in-app notification card will look inside KC-App for eligible customers.',
+                              style: TextStyle(
+                                color: AppColors.textMuted,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
+                    const SizedBox(height: AppSpacing.xl),
 
-                  const Text(
-                    'UNREAD CARD STATE',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
+                    const Text(
+                      'UNREAD CARD STATE',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  _buildPreviewCard(isRead: false),
+                    const SizedBox(height: AppSpacing.xs),
+                    _buildPreviewCard(isRead: false),
 
-                  const SizedBox(height: AppSpacing.xl),
+                    const SizedBox(height: AppSpacing.xl),
 
-                  const Text(
-                    'READ CARD STATE',
-                    style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
+                    const Text(
+                      'READ CARD STATE',
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  _buildPreviewCard(isRead: true),
-                ],
+                    const SizedBox(height: AppSpacing.xs),
+                    _buildPreviewCard(isRead: true),
+                  ],
+                ),
               ),
             ),
           ),
@@ -107,10 +118,10 @@ class AdminNotificationPreviewPage extends StatelessWidget {
 
   Widget _buildPreviewCard({required bool isRead}) {
     final icon = switch (notification.type) {
-      NotificationType.general => Icons.notifications_none_rounded,
-      NotificationType.stitchingUpdate => Icons.content_cut_rounded,
-      NotificationType.designUpdate => Icons.style_rounded,
-      NotificationType.boutiqueAnnouncement => Icons.campaign_rounded,
+      NotificationType.general => PhosphorIcons.bell(),
+      NotificationType.stitchingUpdate => PhosphorIcons.scissors(),
+      NotificationType.designUpdate => PhosphorIcons.tShirt(),
+      NotificationType.boutiqueAnnouncement => PhosphorIcons.megaphone(),
     };
 
     return Container(
@@ -145,7 +156,7 @@ class AdminNotificationPreviewPage extends StatelessWidget {
                   : AppColors.primary.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(
+            child: PhosphorIcon(
               icon,
               size: 20,
               color: isRead ? AppColors.textMuted : AppColors.primary,

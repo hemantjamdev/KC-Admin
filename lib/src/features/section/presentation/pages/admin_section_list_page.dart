@@ -1,100 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_spacing.dart';
-import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../../boutique/presentation/controllers/boutique_selection_controller.dart';
-import '../../../design/presentation/controllers/design_controller.dart';
+import '../../../../core/navigation/navigation_extensions.dart';
+import '../../../../core/widgets/app_state_views.dart';
+import '../../../../core/widgets/app_toast.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/section_model.dart';
-import '../controllers/section_controller.dart';
+import '../../../design/domain/models/design_model.dart';
+import '../../application/providers/section_providers.dart';
 
 /// Admin Section List page — list, search, filter, and manage curated sections.
-class AdminSectionListPage extends StatefulWidget {
+class AdminSectionListPage extends ConsumerStatefulWidget {
   const AdminSectionListPage({super.key});
 
   @override
-  State<AdminSectionListPage> createState() => _AdminSectionListPageState();
+  ConsumerState<AdminSectionListPage> createState() =>
+      _AdminSectionListPageState();
 }
 
-class _AdminSectionListPageState extends State<AdminSectionListPage> {
-  late SectionController _sectionController;
-  late DesignController _designController;
+class _AdminSectionListPageState extends ConsumerState<AdminSectionListPage> {
   final TextEditingController _searchController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutiqueId = scope.selectedBoutique?.id ?? '';
-    final branchId = scope.selectedBranch?.id ?? '';
-
-    _designController = DesignController(
-      boutiqueId: boutiqueId,
-      activeCategoryIds: const [],
-    );
-    _designController.loadDesigns();
-
-    _sectionController = SectionController(
-      boutiqueId: boutiqueId,
-      branchId: branchId,
-      designController: _designController,
-    );
-    _sectionController.addListener(_onUpdate);
-    _sectionController.loadSections();
-  }
-
-  void _onUpdate() {
-    if (mounted) setState(() {});
-  }
-
-  @override
   void dispose() {
-    _sectionController.removeListener(_onUpdate);
-    _sectionController.dispose();
-    _designController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
   Future<void> _confirmToggleStatus(SectionModel section) async {
-    if (!section.isActive) {
-      _sectionController.toggleSectionStatus(section.id);
-      return;
-    }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderLg),
-        title: const Text(
-          'Deactivate Section?',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          '"${section.title}" will be hidden from KC-App customers.',
-          style: const TextStyle(color: AppColors.textMuted),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: AppColors.textMuted),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Deactivate',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
+    final updated = section.copyWith(
+      isActive: !section.isActive,
+      updatedAt: DateTime.now(),
     );
-    if (confirmed == true) _sectionController.toggleSectionStatus(section.id);
+    await ref.read(sectionMutationProvider.notifier).update(updated);
   }
 
   Future<void> _confirmDelete(SectionModel section) async {
@@ -130,21 +72,18 @@ class _AdminSectionListPageState extends State<AdminSectionListPage> {
       ),
     );
     if (confirmed == true && mounted) {
-      _sectionController.deleteSection(section.id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('"${section.title}" deleted.'),
-          backgroundColor: AppColors.surfaceLight,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-        ),
+      await ref.read(sectionMutationProvider.notifier).delete(section.id);
+      if (!mounted) return;
+      AppToast.show(
+        context,
+        '"${section.title}" deleted.',
+        type: ToastType.success,
       );
     }
   }
 
   void _showAutomaticPreview(SectionModel section) {
-    final branchId = BoutiqueSelectionScope.of(context).selectedBranch?.id;
-    final resolved = _sectionController.getDesignsForSection(section, branchId);
+    final resolved = <DesignModel>[];
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -185,13 +124,13 @@ class _AdminSectionListPageState extends State<AdminSectionListPage> {
               )
             else
               SizedBox(
-                height: 180,
+                height: 100,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: resolved.length,
                   separatorBuilder: (_, _) =>
                       const SizedBox(width: AppSpacing.sm),
-                  itemBuilder: (_, i) {
+                  itemBuilder: (ctx, i) {
                     final d = resolved[i];
                     return Container(
                       width: 120,
@@ -275,253 +214,254 @@ class _AdminSectionListPageState extends State<AdminSectionListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutique = scope.selectedBoutique;
-    final branch = scope.selectedBranch;
-    final visible = _sectionController.visibleSections;
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Sections',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+    final visible = ref.watch(filteredSectionListProvider);
+    final totalSections =
+        ref.watch(sectionListProvider).valueOrNull?.length ?? 0;
+    return PopScope(
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (context.mounted) context.popOrGo(AppRoutes.adminHome);
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text(
+            'Homepage Sections',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_rounded,
-            color: AppColors.textPrimary,
+          leading: IconButton(
+            icon: PhosphorIcon(
+              PhosphorIcons.caretLeft(PhosphorIconsStyle.bold),
+              size: 20,
+              color: AppColors.textPrimary,
+            ),
+            onPressed: () => context.popOrGo(AppRoutes.adminHome),
           ),
-          onPressed: () => context.go(AppRoutes.adminHome),
+          actions: [
+            IconButton(
+              icon: PhosphorIcon(PhosphorIcons.sortAscending(), color: AppColors.primary),
+              tooltip: 'Reorder',
+              onPressed: () => context.push(AppRoutes.adminSectionReorder),
+            ),
+          ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.sort_rounded, color: AppColors.primary),
-            tooltip: 'Reorder',
-            onPressed: () => context.go(AppRoutes.adminSectionReorder),
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.background,
+          icon: PhosphorIcon(PhosphorIcons.plus()),
+          label: const Text(
+            'Add Section',
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.background,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text(
-          'Add Section',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          onPressed: () => context.push(AppRoutes.adminSectionAdd),
         ),
-        onPressed: () => context.go(AppRoutes.adminSectionAdd),
-      ),
-      body: SafeArea(
-        child: _sectionController.isLoading
-            ? const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+        body: SafeArea(
+          child: ref.watch(sectionListProvider).isLoading
+              ? const AppLoadingState(type: AppLoadingType.list)
+              : ref.watch(sectionListProvider).hasError
+              ? AppErrorState(
+                  message: 'Failed to load sections list.',
+                  onRetry: () => ref.invalidate(sectionListProvider),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    AppLoadingIndicator(size: 32),
-                    SizedBox(height: AppSpacing.md),
-                    Text(
-                      'Loading sections...',
-                      style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 14,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg,
+                        AppSpacing.md,
+                        AppSpacing.lg,
+                        0,
                       ),
-                    ),
-                  ],
-                ),
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.lg,
-                      AppSpacing.md,
-                      AppSpacing.lg,
-                      0,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                boutique?.name ?? '—',
-                                style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Expanded(
+                                child: Text(
+                                  'Kapada Creation Studio',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            if (branch != null)
+                              const SizedBox(width: AppSpacing.md),
                               Text(
-                                branch.name,
+                                '$totalSections sections',
                                 style: const TextStyle(
                                   color: AppColors.textMuted,
                                   fontSize: 12,
                                 ),
                               ),
-                            const SizedBox(width: AppSpacing.md),
-                            Text(
-                              '${_sectionController.allSections.length} sections',
-                              style: const TextStyle(
-                                color: AppColors.textMuted,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        // Search Field
-                        TextField(
-                          controller: _searchController,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 14,
-                          ),
-                          cursorColor: AppColors.primary,
-                          decoration: InputDecoration(
-                            hintText: 'Search sections…',
-                            hintStyle: const TextStyle(
-                              color: AppColors.textHint,
-                              fontSize: 14,
-                            ),
-                            prefixIcon: const Icon(
-                              Icons.search_rounded,
-                              color: AppColors.textMuted,
-                              size: 20,
-                            ),
-                            suffixIcon: _searchController.text.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(
-                                      Icons.clear_rounded,
-                                      color: AppColors.textMuted,
-                                      size: 20,
-                                    ),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      _sectionController.searchSections('');
-                                    },
-                                  )
-                                : null,
-                            filled: true,
-                            fillColor: AppColors.surface,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.md,
-                              vertical: AppSpacing.sm,
-                            ),
-                            border: const OutlineInputBorder(
-                              borderRadius: AppRadius.borderMd,
-                              borderSide: BorderSide(
-                                color: AppColors.surfaceBorder,
-                              ),
-                            ),
-                            enabledBorder: const OutlineInputBorder(
-                              borderRadius: AppRadius.borderMd,
-                              borderSide: BorderSide(
-                                color: AppColors.surfaceBorder,
-                              ),
-                            ),
-                            focusedBorder: const OutlineInputBorder(
-                              borderRadius: AppRadius.borderMd,
-                              borderSide: BorderSide(
-                                color: AppColors.primary,
-                                width: 1.5,
-                              ),
-                            ),
-                          ),
-                          onChanged: (v) {
-                            _sectionController.searchSections(v);
-                            setState(() {});
-                          },
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        // Filter Chips
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _filterChip<SectionType?>(
-                                null,
-                                _sectionController.selectedTypeFilter,
-                                'All Types',
-                                (v) => _sectionController.filterByType(v),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              _filterChip<SectionType?>(
-                                SectionType.manual,
-                                _sectionController.selectedTypeFilter,
-                                'Manual',
-                                (v) => _sectionController.filterByType(v),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              _filterChip<SectionType?>(
-                                SectionType.newArrivals,
-                                _sectionController.selectedTypeFilter,
-                                'New Arrivals',
-                                (v) => _sectionController.filterByType(v),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              _filterChip<SectionType?>(
-                                SectionType.recommended,
-                                _sectionController.selectedTypeFilter,
-                                'Recommended',
-                                (v) => _sectionController.filterByType(v),
-                              ),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: visible.isEmpty
-                        ? _emptyState()
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(
-                              AppSpacing.lg,
-                              AppSpacing.sm,
-                              AppSpacing.lg,
-                              AppSpacing.xxl + AppSpacing.xl,
+                          const SizedBox(height: AppSpacing.md),
+                          // Search Field
+                          TextField(
+                            controller: _searchController,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 14,
                             ),
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: visible.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: AppSpacing.sm),
-                            itemBuilder: (context, i) {
-                              final section = visible[i];
-                              final resolvedCount = _sectionController
-                                  .getDesignsForSection(section, branch?.id)
-                                  .length;
-                              return _SectionRow(
-                                section: section,
-                                itemCount: resolvedCount,
-                                onEdit: () => context.go(
-                                  AppRoutes.adminSectionEdit,
-                                  extra: section,
+                            cursorColor: AppColors.primary,
+                            decoration: InputDecoration(
+                              hintText: 'Search sections…',
+                              hintStyle: const TextStyle(
+                                color: AppColors.textHint,
+                                fontSize: 14,
+                              ),
+                              prefixIcon: PhosphorIcon(
+                                PhosphorIcons.magnifyingGlass(),
+                                color: AppColors.textMuted,
+                                size: 18,
+                              ),
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: PhosphorIcon(
+                                        PhosphorIcons.x(),
+                                        color: AppColors.textMuted,
+                                        size: 16,
+                                      ),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        ref
+                                            .read(
+                                              sectionFilterProvider.notifier,
+                                            )
+                                            .search('');
+                                      },
+                                    )
+                                  : null,
+                              filled: true,
+                              fillColor: AppColors.surface,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
+                                vertical: AppSpacing.sm,
+                              ),
+                              border: const OutlineInputBorder(
+                                borderRadius: AppRadius.borderMd,
+                                borderSide: BorderSide(
+                                  color: AppColors.surfaceBorder,
                                 ),
-                                onManageItems: () => context.go(
-                                  AppRoutes.adminSectionItemManagement,
-                                  extra: section,
+                              ),
+                              enabledBorder: const OutlineInputBorder(
+                                borderRadius: AppRadius.borderMd,
+                                borderSide: BorderSide(
+                                  color: AppColors.surfaceBorder,
                                 ),
-                                onPreview: () => _showAutomaticPreview(section),
-                                onToggleStatus: () =>
-                                    _confirmToggleStatus(section),
-                                onDelete: () => _confirmDelete(section),
-                              );
+                              ),
+                              focusedBorder: const OutlineInputBorder(
+                                borderRadius: AppRadius.borderMd,
+                                borderSide: BorderSide(
+                                  color: AppColors.primary,
+                                  width: 1.5,
+                                ),
+                              ),
+                            ),
+                            onChanged: (v) {
+                              ref
+                                  .read(sectionFilterProvider.notifier)
+                                  .search(v);
+                              setState(() {});
                             },
                           ),
-                  ),
-                ],
-              ),
+                          const SizedBox(height: AppSpacing.md),
+                          // Filter Chips
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                _filterChip<SectionType?>(
+                                  null,
+                                  ref.watch(sectionFilterProvider).typeFilter,
+                                  'All Types',
+                                  (v) => ref
+                                      .read(sectionFilterProvider.notifier)
+                                      .filterByType(v),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                _filterChip<SectionType?>(
+                                  SectionType.manual,
+                                  ref.watch(sectionFilterProvider).typeFilter,
+                                  'Manual',
+                                  (v) => ref
+                                      .read(sectionFilterProvider.notifier)
+                                      .filterByType(v),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                _filterChip<SectionType?>(
+                                  SectionType.newArrivals,
+                                  ref.watch(sectionFilterProvider).typeFilter,
+                                  'New Arrivals',
+                                  (v) => ref
+                                      .read(sectionFilterProvider.notifier)
+                                      .filterByType(v),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                _filterChip<SectionType?>(
+                                  SectionType.recommended,
+                                  ref.watch(sectionFilterProvider).typeFilter,
+                                  'Recommended',
+                                  (v) => ref
+                                      .read(sectionFilterProvider.notifier)
+                                      .filterByType(v),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: visible.isEmpty
+                          ? _emptyState()
+                          : ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(
+                                AppSpacing.lg,
+                                AppSpacing.sm,
+                                AppSpacing.lg,
+                                AppSpacing.xxl + AppSpacing.xl,
+                              ),
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: visible.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: AppSpacing.sm),
+                              itemBuilder: (context, i) {
+                                final section = visible[i];
+                                final resolvedCount = 0;
+                                return _SectionRow(
+                                  section: section,
+                                  itemCount: resolvedCount,
+                                  onEdit: () => context.push(
+                                    AppRoutes.adminSectionEdit,
+                                    extra: section,
+                                  ),
+                                  onManageItems: () => context.push(
+                                    AppRoutes.adminSectionItemManagement,
+                                    extra: section,
+                                  ),
+                                  onPreview: () =>
+                                      _showAutomaticPreview(section),
+                                  onToggleStatus: () =>
+                                      _confirmToggleStatus(section),
+                                  onDelete: () => _confirmDelete(section),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -529,34 +469,13 @@ class _AdminSectionListPageState extends State<AdminSectionListPage> {
   Widget _emptyState() {
     final hasFilter =
         _searchController.text.isNotEmpty ||
-        _sectionController.selectedTypeFilter != null ||
-        _sectionController.statusFilter != SectionStatusFilter.all;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              hasFilter ? Icons.search_off_rounded : Icons.view_day_outlined,
-              color: AppColors.textMuted,
-              size: 48,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              hasFilter
-                  ? 'No sections match the selected filters.'
-                  : 'No sections have been created for this boutique.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
+        ref.watch(sectionFilterProvider).typeFilter != null;
+    return AppEmptyState(
+      icon: hasFilter ? PhosphorIcons.magnifyingGlass() : PhosphorIcons.squaresFour(),
+      title: hasFilter ? 'No Matching Sections' : 'No Sections Found',
+      message: hasFilter
+          ? 'No sections match the selected search or filters.'
+          : 'No home sections have been configured for this boutique yet.',
     );
   }
 }
@@ -619,23 +538,23 @@ class _SectionRow extends StatelessWidget {
                   shape: const RoundedRectangleBorder(
                     borderRadius: AppRadius.borderLg,
                   ),
-                  icon: const Icon(
-                    Icons.more_vert_rounded,
+                  icon: PhosphorIcon(
+                    PhosphorIcons.dotsThreeVertical(),
                     color: AppColors.textMuted,
                     size: 20,
                   ),
                   itemBuilder: (_) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.edit_rounded,
+                          PhosphorIcon(
+                            PhosphorIcons.pencilSimple(),
                             color: AppColors.primary,
                             size: 18,
                           ),
-                          SizedBox(width: AppSpacing.sm),
-                          Text(
+                          const SizedBox(width: AppSpacing.sm),
+                          const Text(
                             'Edit Section',
                             style: TextStyle(color: AppColors.textPrimary),
                           ),
@@ -643,17 +562,17 @@ class _SectionRow extends StatelessWidget {
                       ),
                     ),
                     if (section.type == SectionType.manual)
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'items',
                         child: Row(
                           children: [
-                            Icon(
-                              Icons.playlist_add_check_rounded,
+                            PhosphorIcon(
+                              PhosphorIcons.listChecks(),
                               color: AppColors.primary,
                               size: 18,
                             ),
-                            SizedBox(width: AppSpacing.sm),
-                            Text(
+                            const SizedBox(width: AppSpacing.sm),
+                            const Text(
                               'Manage Items',
                               style: TextStyle(color: AppColors.textPrimary),
                             ),
@@ -661,17 +580,17 @@ class _SectionRow extends StatelessWidget {
                         ),
                       )
                     else
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'preview',
                         child: Row(
                           children: [
-                            Icon(
-                              Icons.visibility_rounded,
+                            PhosphorIcon(
+                              PhosphorIcons.eye(),
                               color: AppColors.primary,
                               size: 18,
                             ),
-                            SizedBox(width: AppSpacing.sm),
-                            Text(
+                            const SizedBox(width: AppSpacing.sm),
+                            const Text(
                               'Preview Designs',
                               style: TextStyle(color: AppColors.textPrimary),
                             ),
@@ -682,10 +601,10 @@ class _SectionRow extends StatelessWidget {
                       value: 'toggle',
                       child: Row(
                         children: [
-                          Icon(
+                          PhosphorIcon(
                             section.isActive
-                                ? Icons.visibility_off_rounded
-                                : Icons.visibility_rounded,
+                                ? PhosphorIcons.eyeSlash()
+                                : PhosphorIcons.eye(),
                             color: section.isActive
                                 ? AppColors.warning
                                 : AppColors.success,
@@ -701,12 +620,12 @@ class _SectionRow extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.delete_outline_rounded,
+                          PhosphorIcon(
+                            PhosphorIcons.trash(),
                             color: AppColors.error,
                             size: 18,
                           ),

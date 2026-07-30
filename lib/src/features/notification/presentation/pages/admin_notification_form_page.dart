@@ -1,70 +1,67 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/navigation/navigation_extensions.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_toast.dart';
+import '../../../../core/widgets/admin_app_bar.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../../boutique/data/repositories/branch_firestore_repository.dart';
-import '../../../boutique/domain/models/branch_model.dart';
-import '../../../boutique/presentation/controllers/boutique_selection_controller.dart';
-import '../../../customer/data/repositories/customer_repository_impl.dart';
+import '../../../customer/application/providers/customer_providers.dart';
 import '../../../customer/domain/models/customer_model.dart';
-import '../../../design/data/repositories/design_firestore_repository.dart';
+import '../../../design/application/providers/design_providers.dart';
 import '../../../design/domain/models/design_model.dart';
-import '../../../section/data/repositories/section_firestore_repository.dart';
+import '../../../section/application/providers/section_providers.dart';
 import '../../../section/domain/models/section_model.dart';
-import '../../../stitching/data/repositories/stitching_order_firestore_repository.dart';
+import '../../../stitching/application/providers/stitching_providers.dart';
 import '../../../stitching/domain/models/stitching_order_model.dart';
 import '../../domain/models/notification_model.dart';
-import '../controllers/notification_controller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../application/providers/notification_providers.dart';
 
 enum DeliveryMode { publishNow, schedule, saveDraft }
 
 /// Add / Edit Notification Form Page for KC-Admin.
-class AdminNotificationFormPage extends StatefulWidget {
+class AdminNotificationFormPage extends ConsumerStatefulWidget {
   const AdminNotificationFormPage({super.key, this.existingNotification});
   final NotificationModel? existingNotification;
   bool get isEditMode => existingNotification != null;
 
   @override
-  State<AdminNotificationFormPage> createState() =>
+  ConsumerState<AdminNotificationFormPage> createState() =>
       _AdminNotificationFormPageState();
 }
 
-class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
+class _AdminNotificationFormPageState
+    extends ConsumerState<AdminNotificationFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
+  final _titleFocusNode = FocusNode();
+  final _bodyFocusNode = FocusNode();
 
   NotificationType _type = NotificationType.general;
   NotificationAudienceType _audienceType =
       NotificationAudienceType.allBoutiqueCustomers;
-  String? _selectedBranchId;
   final List<String> _selectedCustomerIds = [];
 
   NotificationDestinationType _destinationType =
       NotificationDestinationType.none;
   String? _selectedEntityId;
 
-  DeliveryMode _deliveryMode = DeliveryMode.saveDraft;
+  DeliveryMode _deliveryMode = DeliveryMode.publishNow;
   DateTime? _scheduledAt;
   DateTime? _expiresAt;
 
   bool _isSaving = false;
   bool _hasChanges = false;
-
-  late NotificationController _controller;
-  final CustomerRepositoryImpl _customerRepo = CustomerRepositoryImpl();
-  final BranchFirestoreRepository _branchRepo = BranchFirestoreRepository();
-  final DesignFirestoreRepository _designRepo = DesignFirestoreRepository();
-  final SectionFirestoreRepository _sectionRepo = SectionFirestoreRepository();
-  final StitchingOrderFirestoreRepository _orderRepo = StitchingOrderFirestoreRepository();
+  bool _allowDiscardPop = false;
 
   List<CustomerModel> _availableCustomers = [];
-  List<BranchModel> _availableBranches = [];
   List<DesignModel> _availableDesigns = [];
   List<SectionModel> _availableSections = [];
   List<StitchingOrderModel> _availableOrders = [];
@@ -80,7 +77,6 @@ class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
       _bodyController.text = n.body;
       _type = n.type;
       _audienceType = n.audienceType;
-      _selectedBranchId = n.branchId;
       _selectedCustomerIds.addAll(n.customerIds);
       _destinationType =
           n.relatedEntityType ?? NotificationDestinationType.none;
@@ -101,13 +97,23 @@ class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
     _bodyController.addListener(_markDirty);
   }
 
+  @override
+  void dispose() {
+    _titleFocusNode.dispose();
+    _bodyFocusNode.dispose();
+    _titleController.dispose();
+    _bodyController.dispose();
+    super.dispose();
+  }
+
   void _markDirty() {
     if (!_hasChanges) setState(() => _hasChanges = true);
   }
 
   Future<void> _loadCustomers() async {
     try {
-      final list = await _customerRepo.getCustomersForAdmin();
+      final repo = ref.read(customerRepositoryProvider);
+      final list = await repo.getCustomersForAdmin();
       if (!mounted) return;
       setState(() => _availableCustomers = list);
     } catch (_) {}
@@ -116,24 +122,17 @@ class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutiqueId = scope.selectedBoutique?.id ?? 'boutique_01';
-    _controller = NotificationController(
-      boutiqueId: boutiqueId,
-      branchId: scope.selectedBranch?.id,
-    );
+    const boutiqueId = 'boutique_01';
     _loadMetadata(boutiqueId);
   }
 
   Future<void> _loadMetadata(String boutiqueId) async {
     try {
-      final branches = await _branchRepo.getBranchesForBoutique(boutiqueId);
-      final designs = await _designRepo.watchDesigns(boutiqueId).first;
-      final sections = await _sectionRepo.watchSections(boutiqueId).first;
-      final orders = await _orderRepo.watchAdminOrders(boutiqueId, null).first;
+      final designs = await ref.read(designRepositoryProvider).watchDesigns(boutiqueId).first;
+      final sections = await ref.read(sectionRepositoryProvider).watchSections(boutiqueId).first;
+      final orders = await ref.read(stitchingRepositoryProvider).watchAdminOrders(boutiqueId, null).first;
       if (!mounted) return;
       setState(() {
-        _availableBranches = branches;
         _availableDesigns = designs;
         _availableSections = sections;
         _availableOrders = orders;
@@ -182,47 +181,28 @@ class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     // Audience validation
-    if (_audienceType == NotificationAudienceType.branchCustomers &&
-        _selectedBranchId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a branch for this audience.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.surfaceLight,
-        ),
-      );
-      return;
-    }
 
     if (_audienceType == NotificationAudienceType.selectedCustomers &&
         _selectedCustomerIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Please select at least one customer for this audience.',
-          ),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.surfaceLight,
-        ),
+      AppToast.show(
+        context,
+        'Please select at least one customer for this audience.',
+        type: ToastType.warning,
       );
       return;
     }
 
     // Schedule validation
     if (_deliveryMode == DeliveryMode.schedule && _scheduledAt == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please set a future date/time for scheduling.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.surfaceLight,
-        ),
+      AppToast.show(
+        context,
+        'Please set a future date/time for scheduling.',
+        type: ToastType.warning,
       );
       return;
     }
 
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutiqueId = scope.selectedBoutique?.id ?? 'boutique_01';
-    final router = GoRouter.of(context);
+    const boutiqueId = 'boutique_01';
 
     // Publish confirmation dialog
     if (_deliveryMode == DeliveryMode.publishNow) {
@@ -281,7 +261,6 @@ class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
           body: _bodyController.text.trim(),
           type: _type,
           audienceType: _audienceType,
-          branchId: _selectedBranchId,
           customerIds: _selectedCustomerIds,
           relatedEntityType: _destinationType,
           relatedEntityId: _selectedEntityId,
@@ -292,12 +271,13 @@ class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
           updatedAt: now,
           updatedBy: 'admin',
         );
-        await _controller.updateNotification(updated);
+        await ref
+            .read(adminNotificationMutationProvider.notifier)
+            .update(updated);
       } else {
         final newNotif = NotificationModel(
           id: const Uuid().v4(),
           boutiqueId: boutiqueId,
-          branchId: _selectedBranchId,
           title: _titleController.text.trim(),
           body: _bodyController.text.trim(),
           type: _type,
@@ -314,76 +294,59 @@ class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
           createdBy: 'admin',
           updatedBy: 'admin',
         );
-        await _controller.createNotification(newNotif);
+        await ref
+            .read(adminNotificationMutationProvider.notifier)
+            .create(newNotif);
       }
 
       if (!mounted) return;
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.isEditMode
-                ? 'Notification updated.'
-                : 'Notification created.',
-          ),
-          backgroundColor: AppColors.surfaceLight,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-        ),
+      AppToast.show(
+        context,
+        widget.isEditMode ? 'Notification updated.' : 'Notification created.',
+        type: ToastType.success,
       );
-      router.go(AppRoutes.adminNotificationList);
+      context.popOrGoWithResult(true, AppRoutes.adminNotificationList);
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to save notification. Please try again.'),
-          backgroundColor: AppColors.surfaceLight,
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppToast.show(
+        context,
+        'Failed to save notification. Please try again.',
+        type: ToastType.error,
       );
     }
   }
 
   @override
-  void dispose() {
-    _titleController.dispose();
-    _bodyController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: !_hasChanges,
+      canPop: !_hasChanges || _allowDiscardPop,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final router = GoRouter.of(context);
         final canLeave = await _onWillPop();
-        if (canLeave) router.go(AppRoutes.adminNotificationList);
+        if (canLeave && context.mounted) {
+          setState(() => _allowDiscardPop = true);
+          context.popOrGo(AppRoutes.adminNotificationList);
+        }
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          title: Text(
-            widget.isEditMode ? 'Edit Notification' : 'Create Notification',
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_rounded,
-              color: AppColors.textPrimary,
-            ),
-            onPressed: () async {
-              final router = GoRouter.of(context);
-              final canLeave = await _onWillPop();
-              if (canLeave) router.go(AppRoutes.adminNotificationList);
-            },
-          ),
+        appBar: AdminAppBar(
+          title: widget.isEditMode
+              ? 'Edit Notification'
+              : 'Create Notification',
+          onBackTap: () async {
+            if (!_hasChanges) {
+              context.popOrGo(AppRoutes.adminNotificationList);
+              return;
+            }
+            final pop = await _onWillPop();
+            if (pop && context.mounted) {
+              _allowDiscardPop = true;
+              context.popOrGo(AppRoutes.adminNotificationList);
+            }
+          },
         ),
         body: SafeArea(
           child: SingleChildScrollView(
@@ -402,6 +365,11 @@ class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
                         'Notification Title *',
                         TextFormField(
                           controller: _titleController,
+                          focusNode: _titleFocusNode,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) => FocusScope.of(
+                            context,
+                          ).requestFocus(_bodyFocusNode),
                           style: _fieldStyle,
                           cursorColor: AppColors.primary,
                           decoration: _dec(
@@ -425,6 +393,10 @@ class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
                         'Notification Message *',
                         TextFormField(
                           controller: _bodyController,
+                          focusNode: _bodyFocusNode,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) =>
+                              FocusScope.of(context).unfocus(),
                           style: _fieldStyle,
                           cursorColor: AppColors.primary,
                           maxLines: 3,
@@ -540,22 +512,7 @@ class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
               }
             },
           ),
-          if (_audienceType == NotificationAudienceType.branchCustomers) ...[
-            const SizedBox(height: AppSpacing.sm),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedBranchId,
-              dropdownColor: AppColors.surfaceLight,
-              style: _fieldStyle,
-              decoration: _dec('Select Branch'),
-              items: _availableBranches.map((b) {
-                return DropdownMenuItem(value: b.id, child: Text(b.name));
-              }).toList(),
-              onChanged: (v) => setState(() {
-                _selectedBranchId = v;
-                _hasChanges = true;
-              }),
-            ),
-          ],
+
           if (_audienceType == NotificationAudienceType.selectedCustomers) ...[
             const SizedBox(height: AppSpacing.sm),
             const Text(
@@ -564,7 +521,13 @@ class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
             ),
             const SizedBox(height: 4),
             ..._availableCustomers.map((c) {
-              final isChecked = _selectedCustomerIds.contains(c.id);
+              final targetUid =
+                  (c.firebaseUid != null && c.firebaseUid!.isNotEmpty)
+                  ? c.firebaseUid!
+                  : c.id;
+              final isChecked =
+                  _selectedCustomerIds.contains(targetUid) ||
+                  _selectedCustomerIds.contains(c.id);
               return CheckboxListTile(
                 value: isChecked,
                 title: Text(
@@ -580,8 +543,12 @@ class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
                 onChanged: (val) {
                   setState(() {
                     if (val == true) {
-                      _selectedCustomerIds.add(c.id);
+                      _selectedCustomerIds.add(targetUid);
+                      if (c.id != targetUid) {
+                        _selectedCustomerIds.add(c.id);
+                      }
                     } else {
+                      _selectedCustomerIds.remove(targetUid);
                       _selectedCustomerIds.remove(c.id);
                     }
                     _hasChanges = true;
@@ -637,6 +604,7 @@ class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
             const SizedBox(height: AppSpacing.sm),
             DropdownButtonFormField<String>(
               initialValue: _selectedEntityId,
+              isExpanded: true,
               dropdownColor: AppColors.surfaceLight,
               style: _fieldStyle,
               decoration: _dec('Select Design'),
@@ -656,6 +624,7 @@ class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
             const SizedBox(height: AppSpacing.sm),
             DropdownButtonFormField<String>(
               initialValue: _selectedEntityId,
+              isExpanded: true,
               dropdownColor: AppColors.surfaceLight,
               style: _fieldStyle,
               decoration: _dec('Select Section'),
@@ -676,6 +645,7 @@ class _AdminNotificationFormPageState extends State<AdminNotificationFormPage> {
             const SizedBox(height: AppSpacing.sm),
             DropdownButtonFormField<String>(
               initialValue: _selectedEntityId,
+              isExpanded: true,
               dropdownColor: AppColors.surfaceLight,
               style: _fieldStyle,
               decoration: _dec('Select Stitching Order'),

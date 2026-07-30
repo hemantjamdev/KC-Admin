@@ -1,508 +1,274 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_spacing.dart';
-import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../../boutique/presentation/controllers/boutique_selection_controller.dart';
-import '../../data/repositories/customer_repository_impl.dart';
+import '../../../../core/navigation/navigation_extensions.dart';
+import '../../../../core/widgets/app_state_views.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../application/providers/customer_providers.dart';
 import '../../domain/models/customer_model.dart';
-import '../../domain/repositories/customer_repository.dart';
 
-enum CustomerStatusFilter { all, active, inactive }
-
-enum CustomerSourceFilter { all, google, admin }
-
-/// Admin Customer List page — search, filter, and view Firestore customer records.
-class AdminCustomerListPage extends StatefulWidget {
+/// Admin Customer List page — search and view Firestore customer records.
+class AdminCustomerListPage extends ConsumerStatefulWidget {
   const AdminCustomerListPage({super.key});
 
   @override
-  State<AdminCustomerListPage> createState() => _AdminCustomerListPageState();
+  ConsumerState<AdminCustomerListPage> createState() => _AdminCustomerListPageState();
 }
 
-class _AdminCustomerListPageState extends State<AdminCustomerListPage> {
-  late final CustomerRepository _repository;
+class _AdminCustomerListPageState extends ConsumerState<AdminCustomerListPage> {
   final TextEditingController _searchController = TextEditingController();
-
-  List<CustomerModel> _customers = [];
-  bool _isLoading = false;
-  String? _errorMessage;
-
-  CustomerStatusFilter _statusFilter = CustomerStatusFilter.all;
-  CustomerSourceFilter _sourceFilter = CustomerSourceFilter.all;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _repository = CustomerRepositoryImpl();
-    _loadCustomers();
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadCustomers() async {
-    if (!mounted) return;
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutiqueId = scope.selectedBoutique?.id;
-
-    try {
-      final results = await _repository.getCustomersForAdmin(
-        boutiqueId: boutiqueId,
-        isActive: switch (_statusFilter) {
-          CustomerStatusFilter.active => true,
-          CustomerStatusFilter.inactive => false,
-          CustomerStatusFilter.all => null,
-        },
-        source: switch (_sourceFilter) {
-          CustomerSourceFilter.google => CustomerSource.google,
-          CustomerSourceFilter.admin => CustomerSource.admin,
-          CustomerSourceFilter.all => null,
-        },
-        searchQuery: _searchController.text,
-      );
-
-      if (!mounted) return;
-      setState(() {
-        _customers = results;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Could not load customers. Please check connection.';
-      });
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      ref.read(paginatedCustomersProvider.notifier).fetchNextPage();
     }
   }
 
-  Future<void> _confirmToggleStatus(CustomerModel customer) async {
-    final newStatus = !customer.isActive;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderLg),
-        title: Text(
-          newStatus ? 'Activate Customer?' : 'Deactivate Customer?',
-          style: const TextStyle(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          newStatus
-              ? 'Re-activate "${customer.displayName}" customer profile?'
-              : '"${customer.displayName}" will see a restricted profile state in KC-App.',
-          style: const TextStyle(color: AppColors.textMuted),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: AppColors.textMuted),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(
-              newStatus ? 'Activate' : 'Deactivate',
-              style: TextStyle(
-                color: newStatus ? AppColors.success : AppColors.error,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
 
-    if (confirmed == true && mounted) {
-      try {
-        await _repository.setCustomerActiveStatus(
-          customer.id,
-          newStatus,
-          'admin',
-        );
-        await _loadCustomers();
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              newStatus
-                  ? '"${customer.displayName}" activated.'
-                  : '"${customer.displayName}" deactivated.',
-            ),
-            backgroundColor: AppColors.surfaceLight,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update customer status.'),
-            backgroundColor: AppColors.surfaceLight,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
-  Widget _filterChip<T>(
-    T value,
-    T current,
-    String label,
-    void Function(T) onSelected,
-  ) {
-    final selected = value == current;
-    return GestureDetector(
-      onTap: () {
-        onSelected(value);
-        _loadCustomers();
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.xs,
-        ),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.surface,
-          borderRadius: AppRadius.borderPill,
-          border: Border.all(
-            color: selected ? AppColors.primary : AppColors.surfaceBorder,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? AppColors.background : AppColors.textMuted,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutique = scope.selectedBoutique;
-    final branch = scope.selectedBranch;
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Customers',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+    return PopScope(
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (context.mounted) context.popOrGo(AppRoutes.adminHome);
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          title: Text(
+            'Customer Directory',
+            style: GoogleFonts.playfairDisplay(
+              color: AppColors.textPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          leading: IconButton(
+            icon: PhosphorIcon(
+              PhosphorIcons.caretLeft(PhosphorIconsStyle.bold),
+              size: 20,
+              color: AppColors.textPrimary,
+            ),
+            onPressed: () => context.popOrGo(AppRoutes.adminHome),
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_rounded,
-            color: AppColors.textPrimary,
-          ),
-          onPressed: () => context.go(AppRoutes.adminHome),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.background,
-        icon: const Icon(Icons.person_add_rounded),
-        label: const Text(
-          'Add Customer',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        onPressed: () => context.go(AppRoutes.adminCustomerAdd),
-      ),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                AppSpacing.md,
-                AppSpacing.lg,
-                0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          boutique?.name ?? '—',
-                          style: const TextStyle(
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                  AppSpacing.lg,
+                  0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          '${ref.watch(paginatedCustomersProvider).items.length} registered customers',
+                          style: GoogleFonts.montserrat(
                             color: AppColors.primary,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (branch != null)
-                        Text(
-                          branch.name,
-                          style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      const SizedBox(width: AppSpacing.md),
-                      Text(
-                        '${_customers.length} customers',
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  // Search Field
-                  TextField(
-                    controller: _searchController,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
-                    ),
-                    cursorColor: AppColors.primary,
-                    decoration: InputDecoration(
-                      hintText: 'Search by name, email, phone…',
-                      hintStyle: const TextStyle(
-                        color: AppColors.textHint,
-                        fontSize: 14,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.search_rounded,
-                        color: AppColors.textMuted,
-                        size: 20,
-                      ),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(
-                                Icons.clear_rounded,
-                                color: AppColors.textMuted,
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                _searchController.clear();
-                                _loadCustomers();
-                              },
-                            )
-                          : null,
-                      filled: true,
-                      fillColor: AppColors.surface,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.sm,
-                      ),
-                      border: const OutlineInputBorder(
-                        borderRadius: AppRadius.borderMd,
-                        borderSide: BorderSide(color: AppColors.surfaceBorder),
-                      ),
-                      enabledBorder: const OutlineInputBorder(
-                        borderRadius: AppRadius.borderMd,
-                        borderSide: BorderSide(color: AppColors.surfaceBorder),
-                      ),
-                      focusedBorder: const OutlineInputBorder(
-                        borderRadius: AppRadius.borderMd,
-                        borderSide: BorderSide(
-                          color: AppColors.primary,
-                          width: 1.5,
-                        ),
-                      ),
-                    ),
-                    onChanged: (_) => _loadCustomers(),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  // Status & Source Filter Chips
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _filterChip(
-                          CustomerStatusFilter.all,
-                          _statusFilter,
-                          'All Status',
-                          (v) => setState(() => _statusFilter = v),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        _filterChip(
-                          CustomerStatusFilter.active,
-                          _statusFilter,
-                          'Active',
-                          (v) => setState(() => _statusFilter = v),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        _filterChip(
-                          CustomerStatusFilter.inactive,
-                          _statusFilter,
-                          'Inactive',
-                          (v) => setState(() => _statusFilter = v),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        _filterChip(
-                          CustomerSourceFilter.all,
-                          _sourceFilter,
-                          'All Sources',
-                          (v) => setState(() => _sourceFilter = v),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        _filterChip(
-                          CustomerSourceFilter.google,
-                          _sourceFilter,
-                          'Google',
-                          (v) => setState(() => _sourceFilter = v),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        _filterChip(
-                          CustomerSourceFilter.admin,
-                          _sourceFilter,
-                          'Admin Created',
-                          (v) => setState(() => _sourceFilter = v),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                ],
-              ),
-            ),
-            Expanded(
-              child: _isLoading
-                  ? const Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AppLoadingIndicator(size: 32),
-                          SizedBox(height: AppSpacing.md),
-                          Text(
-                            'Loading customers...',
-                            style: TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: AppSpacing.md),
+                    // Search Field
+                    TextField(
+                      controller: _searchController,
+                      style: GoogleFonts.montserrat(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
                       ),
-                    )
-                  : _errorMessage != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppSpacing.xl),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.cloud_off_rounded,
-                              color: AppColors.error,
-                              size: 48,
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            Text(
-                              _errorMessage!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: AppColors.textMuted,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            TextButton.icon(
-                              icon: const Icon(Icons.refresh_rounded),
-                              label: const Text('Retry'),
-                              onPressed: _loadCustomers,
-                            ),
-                          ],
+                      cursorColor: AppColors.primary,
+                      decoration: InputDecoration(
+                        hintText: 'Search by name, email, phone…',
+                        hintStyle: GoogleFonts.montserrat(
+                          color: AppColors.textHint,
+                          fontSize: 14,
+                        ),
+                        prefixIcon: PhosphorIcon(
+                          PhosphorIcons.magnifyingGlass(),
+                          color: AppColors.textMuted,
+                          size: 18,
+                        ),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: PhosphorIcon(
+                                  PhosphorIcons.x(),
+                                  color: AppColors.textMuted,
+                                  size: 16,
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  ref
+                                      .read(paginatedCustomersProvider.notifier)
+                                      .fetchInitial(query: '');
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: AppColors.surface,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.sm,
+                        ),
+                        border: const OutlineInputBorder(
+                          borderRadius: AppRadius.borderMd,
+                          borderSide: BorderSide(
+                            color: AppColors.surfaceBorder,
+                          ),
+                        ),
+                        enabledBorder: const OutlineInputBorder(
+                          borderRadius: AppRadius.borderMd,
+                          borderSide: BorderSide(
+                            color: AppColors.surfaceBorder,
+                          ),
+                        ),
+                        focusedBorder: const OutlineInputBorder(
+                          borderRadius: AppRadius.borderMd,
+                          borderSide: BorderSide(
+                            color: AppColors.primary,
+                            width: 1.5,
+                          ),
                         ),
                       ),
-                    )
-                  : _customers.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.lg,
-                        AppSpacing.sm,
-                        AppSpacing.lg,
-                        AppSpacing.xxl + AppSpacing.xl,
-                      ),
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: _customers.length,
-                      separatorBuilder: (_, _) =>
-                          const SizedBox(height: AppSpacing.sm),
-                      itemBuilder: (context, i) {
-                        final customer = _customers[i];
-                        return _CustomerCard(
-                          customer: customer,
-                          onTapDetails: () => context.go(
-                            AppRoutes.adminCustomerDetails,
-                            extra: customer,
-                          ),
-                          onEdit: () => context.go(
-                            AppRoutes.adminCustomerEdit,
-                            extra: customer,
-                          ),
-                          onToggleStatus: () => _confirmToggleStatus(customer),
-                        );
+                      onChanged: (q) {
+                        ref
+                            .read(paginatedCustomersProvider.notifier)
+                            .fetchInitial(query: q);
                       },
                     ),
-            ),
-          ],
+                    const SizedBox(height: AppSpacing.sm),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Builder(
+                  builder: (context) {
+                    final paginatedState = ref.watch(paginatedCustomersProvider);
+                    final customers = paginatedState.items;
+
+                    return RefreshIndicator(
+                      color: AppColors.primary,
+                      onRefresh: () async {
+                        await ref
+                            .read(paginatedCustomersProvider.notifier)
+                            .refresh();
+                      },
+                      child: paginatedState.isLoading && customers.isEmpty
+                          ? const AppLoadingState(type: AppLoadingType.list)
+                          : paginatedState.errorMessage != null && customers.isEmpty
+                          ? SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: Container(
+                                height: MediaQuery.of(context).size.height * 0.6,
+                                alignment: Alignment.center,
+                                child: AppErrorState(
+                                  message: paginatedState.errorMessage!,
+                                  onRetry: () => ref
+                                      .read(paginatedCustomersProvider.notifier)
+                                      .refresh(),
+                                ),
+                              ),
+                            )
+                          : customers.isEmpty
+                          ? SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: Container(
+                                height: MediaQuery.of(context).size.height * 0.6,
+                                alignment: Alignment.center,
+                                child: _buildEmptyState(),
+                              ),
+                            )
+                          : ListView.separated(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.fromLTRB(
+                                AppSpacing.lg,
+                                AppSpacing.sm,
+                                AppSpacing.lg,
+                                AppSpacing.xxl + AppSpacing.xl,
+                              ),
+                              itemCount: customers.length + (paginatedState.isLoadingMore ? 1 : 0),
+                              separatorBuilder: (ctx, i) =>
+                                  const SizedBox(height: AppSpacing.md),
+                              itemBuilder: (context, index) {
+                                if (index == customers.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                final customer = customers[index];
+                                return _CustomerCard(
+                                  customer: customer,
+                                  onTapDetails: () => context.push(
+                                    AppRoutes.adminCustomerDetails,
+                                    extra: customer,
+                                  ),
+                                );
+                              },
+                            ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildEmptyState() {
-    final hasFilter =
-        _searchController.text.isNotEmpty ||
-        _statusFilter != CustomerStatusFilter.all ||
-        _sourceFilter != CustomerSourceFilter.all;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              hasFilter
-                  ? Icons.search_off_rounded
-                  : Icons.people_outline_rounded,
-              color: AppColors.textMuted,
-              size: 48,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              hasFilter
-                  ? 'No customers match the selected filters.'
-                  : 'No customers have been added for this boutique.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
+    final hasFilter = _searchController.text.isNotEmpty;
+
+    return AppEmptyState(
+      icon: hasFilter ? PhosphorIcons.magnifyingGlass() : PhosphorIcons.users(),
+      title: hasFilter
+          ? 'No matching customers'
+          : 'No registered customers yet',
+      message: hasFilter
+          ? 'Try adjusting your search query.'
+          : 'Customers will appear here after signing in to the Customer App.',
+      actionLabel: 'Refresh',
+      onAction: () => ref.read(paginatedCustomersProvider.notifier).refresh(),
     );
   }
 }
@@ -511,14 +277,10 @@ class _CustomerCard extends StatelessWidget {
   const _CustomerCard({
     required this.customer,
     required this.onTapDetails,
-    required this.onEdit,
-    required this.onToggleStatus,
   });
 
   final CustomerModel customer;
   final VoidCallback onTapDetails;
-  final VoidCallback onEdit;
-  final VoidCallback onToggleStatus;
 
   String get _initials {
     final parts = customer.displayName.trim().split(' ');
@@ -530,208 +292,127 @@ class _CustomerCard extends StatelessWidget {
         .toUpperCase();
   }
 
-  String _boutiqueBranchSummary() {
-    final boutiqueCount = customer.boutiqueIds.length;
-    final branchCount = customer.branchIds.length;
-    if (boutiqueCount == 0 && branchCount == 0) return 'Unassigned';
-    return '$boutiqueCount boutique(s)${branchCount > 0 ? ', $branchCount branch(es)' : ''}';
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.borderLg,
-        border: Border.all(color: AppColors.surfaceBorder),
-      ),
-      child: ListTile(
-        onTap: onTapDetails,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.xs,
+    return InkWell(
+      onTap: onTapDetails,
+      borderRadius: AppRadius.borderLg,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppRadius.borderLg,
+          border: Border.all(color: AppColors.surfaceBorder),
         ),
-        leading: CircleAvatar(
-          backgroundColor: AppColors.surfaceLight,
-          backgroundImage: customer.photoUrl != null
-              ? NetworkImage(customer.photoUrl!)
-              : null,
-          child: customer.photoUrl == null
-              ? Text(
-                  _initials,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                )
-              : null,
-        ),
-        title: Row(
+        child: Row(
           children: [
+            // Customer Avatar / Monogram
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppColors.accentGlow,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                ),
+                image: customer.photoUrl != null
+                    ? DecorationImage(
+                        image: NetworkImage(customer.photoUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: customer.photoUrl == null
+                  ? Center(
+                      child: Text(
+                        _initials,
+                        style: GoogleFonts.montserrat(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: AppSpacing.md),
+
+            // Customer Info Details
             Expanded(
-              child: Text(
-                customer.displayName,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            _Badge(
-              label: customer.isActive ? 'Active' : 'Inactive',
-              color: customer.isActive ? AppColors.success : AppColors.error,
-            ),
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 2),
-            if (customer.email != null)
-              Text(
-                customer.email!,
-                style: const TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 12,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            if (customer.phone != null)
-              Text(
-                customer.phone!,
-                style: const TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 12,
-                ),
-              ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                _Badge(
-                  label: customer.source.label,
-                  color: customer.source == CustomerSource.google
-                      ? AppColors.primary
-                      : AppColors.warning,
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                if (customer.isFirebaseLinked)
-                  const Icon(
-                    Icons.link_rounded,
-                    color: AppColors.success,
-                    size: 14,
-                  ),
-                const Spacer(),
-                Expanded(
-                  child: Text(
-                    _boutiqueBranchSummary(),
-                    style: const TextStyle(
-                      color: AppColors.textHint,
-                      fontSize: 11,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    customer.displayName,
+                    style: GoogleFonts.montserrat(
+                      color: AppColors.textPrimary,
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w700,
                     ),
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.end,
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  if (customer.email != null && customer.email!.isNotEmpty) ...[
+                    Row(
+                      children: [
+                        PhosphorIcon(
+                          PhosphorIcons.envelopeSimple(),
+                          size: 13.5,
+                          color: AppColors.textMuted,
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            customer.email!,
+                            style: GoogleFonts.montserrat(
+                              color: AppColors.textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (customer.phone != null && customer.phone!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        PhosphorIcon(
+                          PhosphorIcons.phone(),
+                          size: 13.5,
+                          color: AppColors.textMuted,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          customer.phone!,
+                          style: GoogleFonts.montserrat(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+
+            // Trailing Caret
+            PhosphorIcon(
+              PhosphorIcons.caretRight(),
+              color: AppColors.textMuted,
+              size: 16,
             ),
           ],
-        ),
-        trailing: PopupMenuButton<String>(
-          color: AppColors.surfaceLight,
-          shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderLg),
-          icon: const Icon(
-            Icons.more_vert_rounded,
-            color: AppColors.textMuted,
-            size: 20,
-          ),
-          itemBuilder: (_) => [
-            const PopupMenuItem(
-              value: 'details',
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.person_rounded,
-                    color: AppColors.primary,
-                    size: 18,
-                  ),
-                  SizedBox(width: AppSpacing.sm),
-                  Text(
-                    'View Profile',
-                    style: TextStyle(color: AppColors.textPrimary),
-                  ),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'edit',
-              child: Row(
-                children: [
-                  Icon(Icons.edit_rounded, color: AppColors.primary, size: 18),
-                  SizedBox(width: AppSpacing.sm),
-                  Text(
-                    'Edit Customer',
-                    style: TextStyle(color: AppColors.textPrimary),
-                  ),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: 'toggle',
-              child: Row(
-                children: [
-                  Icon(
-                    customer.isActive
-                        ? Icons.person_off_rounded
-                        : Icons.person_outline_rounded,
-                    color: customer.isActive
-                        ? AppColors.warning
-                        : AppColors.success,
-                    size: 18,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    customer.isActive ? 'Deactivate' : 'Activate',
-                    style: const TextStyle(color: AppColors.textPrimary),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          onSelected: (val) {
-            switch (val) {
-              case 'details':
-                onTapDetails();
-              case 'edit':
-                onEdit();
-              case 'toggle':
-                onToggleStatus();
-            }
-          },
         ),
       ),
     );
   }
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge({required this.label, required this.color});
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.15),
-      borderRadius: AppRadius.borderPill,
-    ),
-    child: Text(
-      label,
-      style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
-    ),
-  );
 }

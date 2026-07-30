@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kapada Creation Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Montserrat:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "inverse-primary": "#99d3b4",
+                    "tertiary-fixed": "#9ff4c6",
+                    "surface-tint": "#31694f",
+                    "surface-container-low": "#eef5ef",
+                    "on-background": "#161d19",
+                    "inverse-on-surface": "#ebf3ec",
+                    "error": "#ba1a1a",
+                    "background": "#f4fbf4",
+                    "on-primary": "#ffffff",
+                    "on-tertiary-fixed": "#002113",
+                    "primary-fixed": "#b4f0cf",
+                    "outline": "#707973",
+                    "surface-container": "#e8f0e9",
+                    "outline-variant": "#c0c9c1",
+                    "secondary-container": "#e6e2dc",
+                    "on-primary-container": "#8ac4a5",
+                    "inverse-surface": "#2b322e",
+                    "on-tertiary-container": "#75c99d",
+                    "on-surface": "#161d19",
+                    "secondary-fixed-dim": "#c9c6c1",
+                    "on-secondary-fixed": "#1c1c18",
+                    "on-primary-fixed": "#002113",
+                    "primary": "#003a26",
+                    "surface-variant": "#dde4de",
+                    "surface": "#f4fbf4",
+                    "tertiary": "#003b25",
+                    "on-secondary-fixed-variant": "#484743",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "on-surface-variant": "#404943",
+                    "surface-dim": "#d4dcd5",
+                    "primary-fixed-dim": "#99d3b4",
+                    "on-secondary": "#ffffff",
+                    "on-error": "#ffffff",
+                    "surface-container-high": "#e3eae3",
+                    "tertiary-container": "#005436",
+                    "surface-container-highest": "#dde4de",
+                    "on-primary-fixed-variant": "#165038",
+                    "secondary-fixed": "#e6e2dc",
+                    "on-error-container": "#93000a",
+                    "surface-bright": "#f4fbf4",
+                    "on-tertiary-fixed-variant": "#005235",
+                    "tertiary-fixed-dim": "#84d7ab",
+                    "secondary": "#605e5a",
+                    "primary-container": "#18523a",
+                    "on-secondary-container": "#666460",
+                    "error-container": "#ffdad6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-desktop": "64px",
+                    "base": "8px",
+                    "section-gap": "120px",
+                    "gutter": "24px",
+                    "margin-mobile": "20px",
+                    "container-max": "1280px"
+            },
+            "fontFamily": {
+                    "label-md": ["Montserrat"],
+                    "display-lg": ["Playfair Display"],
+                    "display-lg-mobile": ["Playfair Display"],
+                    "headline-lg-mobile": ["Playfair Display"],
+                    "headline-lg": ["Playfair Display"],
+                    "headline-md": ["Playfair Display"],
+                    "body-lg": ["Montserrat"],
+                    "body-md": ["Montserrat"],
+                    "label-sm": ["Montserrat"]
+            },
+            "fontSize": {
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "display-lg": ["64px", {"lineHeight": "72px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "display-lg-mobile": ["40px", {"lineHeight": "48px", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "headline-lg": ["40px", {"lineHeight": "48px", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .stitched-border {
+            border: 2px dashed #18523A;
+            border-spacing: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body-md selection:bg-primary-fixed">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/30 px-margin-mobile py-4 flex justify-between items-center shadow-sm">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Good morning</span>
+<h1 class="font-headline-md text-headline-md italic text-primary leading-tight">Kapada Creation</h1>
+<p class="font-label-sm text-[10px] text-on-surface-variant">Manage your boutique with ease</p>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative cursor-pointer active:scale-95 duration-200">
+<span class="material-symbols-outlined text-primary text-2xl">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full border-2 border-surface"></span>
+</div>
+<div class="w-10 h-10 rounded-full bg-secondary-container overflow-hidden border border-outline-variant cursor-pointer active:scale-95 duration-200">
+<img class="w-full h-full object-cover" data-alt="A sophisticated professional portrait of a boutique owner in a minimalist studio. She is wearing a dark forest green tailored suit that reflects high-end craftsmanship. The lighting is soft and airy, creating a premium light-mode aesthetic with warm ivory backgrounds. The focus is sharp and editorial, evoking a sense of elegance and authority." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMCWHKxc20M6MXM-VxAR26a-VI5CosS70wQ0ET3PFz2gDjHDbNMP-dxbWtmkXUCWBBPy8F7ZpqUwrV5AKqKJ4x05ojqW0tgVIb776tOJrNGQxox-BLXmzVy0L_62KxDXnBkaWCcjhO5S5Nlt0wjXCh3BuKCkJoYfk3KQfD8bLnta57XmM1DCqt0XHhnqxDZguDwdpkEyy4_7M8X1Of7GupTTdfbhy7Db1N2KCDWOT_Pa8ClqOOqQeosoVp0oP1OR-wIsc8wRCPegCI"/>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-24 px-margin-mobile space-y-8">
+<!-- Hero Operational Card -->
+<section class="relative overflow-hidden bg-primary-container rounded-xl p-6 text-on-primary shadow-lg active:scale-[0.98] transition-transform duration-200">
+<!-- Textile Texture Simulation -->
+<div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 8px 8px;"></div>
+<div class="relative z-10 space-y-4">
+<div class="flex items-start justify-between">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile max-w-[70%] leading-tight">6 stitching requests need attention today</h2>
+<span class="material-symbols-outlined text-4xl opacity-50">architecture</span>
+</div>
+<div class="bg-surface/10 backdrop-blur-md p-3 rounded-lg flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-fixed">auto_awesome</span>
+<p class="font-label-sm text-label-sm">Festival collection is getting more attention today</p>
+</div>
+<button class="w-full bg-surface text-primary py-3 rounded-lg font-label-md text-label-md flex justify-center items-center gap-2 group">
+                    Open Stitching Requests
+                    <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+<!-- Stitched Border Accent -->
+<div class="absolute bottom-2 left-2 right-2 h-1 border-b-2 border-dashed border-primary-fixed/30"></div>
+</section>
+<!-- Stitching Status Overview -->
+<section class="space-y-4">
+<h3 class="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant">Stitching Workflow</h3>
+<div class="flex gap-3 overflow-x-auto custom-scrollbar -mx-margin-mobile px-margin-mobile">
+<div class="flex-shrink-0 bg-white p-4 rounded-xl shadow-sm w-32 flex flex-col items-center gap-2 border border-outline-variant/20">
+<span class="text-2xl font-bold text-primary">12</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant text-center uppercase">Requested</span>
+</div>
+<div class="flex-shrink-0 bg-white p-4 rounded-xl shadow-sm w-32 flex flex-col items-center gap-2 border border-outline-variant/20">
+<span class="text-2xl font-bold text-primary">08</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant text-center uppercase">Accepted</span>
+</div>
+<div class="flex-shrink-0 bg-white p-4 rounded-xl shadow-sm w-32 flex flex-col items-center gap-2 border border-outline-variant/20">
+<span class="text-2xl font-bold text-primary">14</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant text-center uppercase">In Progress</span>
+</div>
+<div class="flex-shrink-0 bg-primary/5 p-4 rounded-xl shadow-sm w-32 flex flex-col items-center gap-2 border-2 border-primary/20">
+<span class="text-2xl font-bold text-primary">05</span>
+<span class="font-label-sm text-[10px] text-primary font-bold text-center uppercase">Ready for Pickup</span>
+</div>
+<div class="flex-shrink-0 bg-white p-4 rounded-xl shadow-sm w-32 flex flex-col items-center gap-2 border border-outline-variant/20">
+<span class="text-2xl font-bold text-primary">42</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant text-center uppercase">Completed</span>
+</div>
+</div>
+</section>
+<!-- Quick Actions Grid -->
+<section class="grid grid-cols-2 gap-4">
+<div class="bg-white p-6 rounded-xl shadow-[0px_4px_20px_rgba(29,36,32,0.04)] border border-outline-variant/10 flex flex-col items-center text-center gap-3 active:scale-95 transition-transform">
+<div class="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">add_circle</span>
+</div>
+<span class="font-label-md text-label-md leading-tight">Add New Product</span>
+</div>
+<div class="bg-white p-6 rounded-xl shadow-[0px_4px_20px_rgba(29,36,32,0.04)] border border-outline-variant/10 flex flex-col items-center text-center gap-3 active:scale-95 transition-transform">
+<div class="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">styler</span>
+</div>
+<span class="font-label-md text-label-md leading-tight">Open Products</span>
+</div>
+<div class="bg-white p-6 rounded-xl shadow-[0px_4px_20px_rgba(29,36,32,0.04)] border border-outline-variant/10 flex flex-col items-center text-center gap-3 active:scale-95 transition-transform">
+<div class="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">lightbulb</span>
+</div>
+<span class="font-label-md text-label-md leading-tight">Open Insights</span>
+</div>
+<div class="bg-white p-6 rounded-xl shadow-[0px_4px_20px_rgba(29,36,32,0.04)] border border-outline-variant/10 flex flex-col items-center text-center gap-3 active:scale-95 transition-transform">
+<div class="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">storefront</span>
+</div>
+<span class="font-label-md text-label-md leading-tight">Update Shop Profile</span>
+</div>
+</section>
+<!-- Recent Stitching Requests -->
+<section class="space-y-4">
+<div class="flex items-end justify-between">
+<h3 class="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant">Recent Requests</h3>
+<button class="font-label-md text-label-md text-primary italic underline decoration-1 underline-offset-4">View All</button>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-4 bg-white rounded-xl border border-outline-variant/20 shadow-sm">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary">PS</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md">Priya Sharma</span>
+<span class="font-body-md text-xs text-on-surface-variant">Blouse Stitching</span>
+</div>
+</div>
+<div class="flex flex-col items-end gap-1">
+<span class="bg-primary-container/10 text-primary-container px-2 py-0.5 rounded text-[10px] font-bold uppercase">Requested</span>
+<span class="text-[10px] text-on-surface-variant">12 min ago</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 bg-white rounded-xl border border-outline-variant/20 shadow-sm">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary">AM</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md">Ananya Mishra</span>
+<span class="font-body-md text-xs text-on-surface-variant">Anarkali Suit</span>
+</div>
+</div>
+<div class="flex flex-col items-end gap-1">
+<span class="bg-primary-container/10 text-primary-container px-2 py-0.5 rounded text-[10px] font-bold uppercase">Requested</span>
+<span class="text-[10px] text-on-surface-variant">45 min ago</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 bg-white rounded-xl border border-outline-variant/20 shadow-sm">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary">RK</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md">Ritu Kapoor</span>
+<span class="font-body-md text-xs text-on-surface-variant">Lehenga Customization</span>
+</div>
+</div>
+<div class="flex flex-col items-end gap-1">
+<span class="bg-primary-container/10 text-primary-container px-2 py-0.5 rounded text-[10px] font-bold uppercase">Requested</span>
+<span class="text-[10px] text-on-surface-variant">2 hours ago</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Small Insight Preview -->
+<section>
+<div class="bg-secondary-container rounded-xl p-5 border border-outline-variant/30 flex items-center gap-4">
+<div class="w-12 h-12 flex-shrink-0 bg-white rounded-full flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-secondary-container">Popular Section</p>
+<p class="font-headline-md text-[18px] text-primary">Festival is the most favorited section</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom NavBar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-surface/90 backdrop-blur-md border-t border-outline-variant/20 shadow-[0px_-4px_20px_rgba(29,36,32,0.04)]">
+<div class="flex justify-around items-center h-16 w-full px-4">
+<button class="flex flex-col items-center justify-center text-primary font-bold active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-secondary active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined">styler</span>
+<span class="font-label-sm text-label-sm">Products</span>
+</button>
+<!-- Prominent Add Button -->
+<button class="relative -top-6 w-14 h-14 bg-primary text-on-primary rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform duration-150 border-4 border-surface">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+<button class="flex flex-col items-center justify-center text-secondary active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined">insights</span>
+<span class="font-label-sm text-label-sm">Insights</span>
+</button>
+<button class="flex flex-col items-center justify-center text-secondary active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</button>
+</div>
+</nav>
+<script>
+        // Micro-interaction for cards
+        document.querySelectorAll('section > div, section > button').forEach(el => {
+            el.addEventListener('mousedown', () => {
+                el.style.transform = 'scale(0.98)';
+            });
+            el.addEventListener('mouseup', () => {
+                el.style.transform = 'scale(1)';
+            });
+            el.addEventListener('mouseleave', () => {
+                el.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body></html>

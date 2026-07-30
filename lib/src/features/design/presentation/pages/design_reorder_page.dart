@@ -1,66 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/navigation/navigation_extensions.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../../boutique/presentation/controllers/boutique_selection_controller.dart';
-import '../../../category/data/repositories/category_firestore_repository.dart';
+import '../../../../core/widgets/app_toast.dart';
+import '../../../category/application/providers/category_providers.dart';
 import '../../../category/domain/models/category_model.dart';
 import '../../domain/models/design_model.dart';
-import '../controllers/design_controller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../application/providers/design_providers.dart';
 
 /// Page for drag-and-drop reordering of designs within KC-Admin.
-class DesignReorderPage extends StatefulWidget {
+class DesignReorderPage extends ConsumerStatefulWidget {
   const DesignReorderPage({super.key});
 
   @override
-  State<DesignReorderPage> createState() => _DesignReorderPageState();
+  ConsumerState<DesignReorderPage> createState() => _DesignReorderPageState();
 }
 
-class _DesignReorderPageState extends State<DesignReorderPage> {
-  final CategoryFirestoreRepository _categoryRepository = CategoryFirestoreRepository();
-  late DesignController _controller;
+class _DesignReorderPageState extends ConsumerState<DesignReorderPage> {
   List<CategoryModel> _categories = [];
   String? _selectedCategoryId;
   List<DesignModel> _reorderableList = [];
   bool _hasChanges = false;
+  bool _allowDiscardPop = false;
 
   @override
   void initState() {
     super.initState();
-    final boutiqueId =
-        BoutiqueSelectionScope.of(context).selectedBoutique?.id ?? '';
-    _controller = DesignController(
-      boutiqueId: boutiqueId,
-      activeCategoryIds: const [],
-    );
-    _controller.addListener(_onControllerUpdate);
-
+    const boutiqueId = 'boutique_01';
     _initData(boutiqueId);
   }
 
   Future<void> _initData(String boutiqueId) async {
     try {
-      _categories = await _categoryRepository.watchCategories(boutiqueId).first;
+      _categories = await ref.read(categoryRepositoryProvider).watchCategories(boutiqueId).first;
     } catch (_) {
       _categories = [];
     }
     if (!mounted) return;
-    _controller.loadDesigns();
-  }
-
-  void _onControllerUpdate() {
-    if (mounted && _reorderableList.isEmpty && !_controller.isLoading) {
-      _filterList();
-    }
+    // Populate from provider once data loads
+    final designs = ref.read(designListProvider).valueOrNull ?? [];
+    setState(() {
+      _reorderableList = List.from(designs);
+    });
   }
 
   void _filterList() {
     setState(() {
-      final all = _controller.allDesigns;
+      final all = ref.read(designListProvider).valueOrNull ?? [];
       if (_selectedCategoryId == null) {
         _reorderableList = List.from(all);
       } else {
@@ -117,35 +110,32 @@ class _DesignReorderPageState extends State<DesignReorderPage> {
   }
 
   Future<void> _save() async {
-    final router = GoRouter.of(context);
-    _controller.reorderDesigns(_reorderableList);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Design order updated (in-memory).'),
-        backgroundColor: AppColors.surfaceLight,
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
+    await ref.read(designMutationProvider.notifier).reorder(_reorderableList);
+    if (!mounted) return;
+    AppToast.show(
+      context,
+      'Design order updated successfully.',
+      type: ToastType.success,
     );
-    router.go(AppRoutes.adminDesignList);
+    context.popOrGoWithResult(true, AppRoutes.adminDesignList);
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_onControllerUpdate);
-    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: !_hasChanges,
+      canPop: !_hasChanges || _allowDiscardPop,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final router = GoRouter.of(context);
         final canLeave = await _onWillPop();
-        if (canLeave) router.go(AppRoutes.adminDesignList);
+        if (canLeave && context.mounted) {
+          setState(() => _allowDiscardPop = true);
+          context.popOrGo(AppRoutes.adminDesignList);
+        }
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -159,19 +149,26 @@ class _DesignReorderPageState extends State<DesignReorderPage> {
             ),
           ),
           leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_rounded,
+            icon: PhosphorIcon(
+              PhosphorIcons.caretLeft(PhosphorIconsStyle.bold),
+              size: 20,
               color: AppColors.textPrimary,
             ),
             onPressed: () async {
-              final router = GoRouter.of(context);
+              if (!_hasChanges) {
+                context.popOrGo(AppRoutes.adminDesignList);
+                return;
+              }
               final canLeave = await _onWillPop();
-              if (canLeave) router.go(AppRoutes.adminDesignList);
+              if (canLeave && context.mounted) {
+                setState(() => _allowDiscardPop = true);
+                context.popOrGo(AppRoutes.adminDesignList);
+              }
             },
           ),
         ),
         body: SafeArea(
-          child: _controller.isLoading
+          child: ref.watch(designListProvider).isLoading
               ? const Center(child: AppLoadingIndicator(size: 32))
               : Column(
                   children: [

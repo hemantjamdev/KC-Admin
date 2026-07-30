@@ -10,6 +10,10 @@ abstract class CustomerRepository {
     CustomerSource? source,
     String? searchQuery,
   });
+  Future<({List<CustomerModel> items, String? lastDocId, bool hasMore})> fetchPaginatedCustomers({
+    int limit = 20,
+    String? startAfterId,
+  });
   Future<CustomerModel> createCustomer(CustomerModel customer);
   Future<CustomerModel> updateCustomer(CustomerModel customer);
   Future<void> setCustomerActiveStatus(

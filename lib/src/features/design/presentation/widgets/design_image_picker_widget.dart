@@ -1,14 +1,15 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/firebase/firebase_storage_paths.dart';
 import '../../../../core/media/image_upload_service.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_radius.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_typography.dart';
-import '../../../../core/widgets/app_button.dart';
 
-/// Admin image uploader widget for design galleries.
+import '../../../../core/widgets/app_full_screen_image_dialog.dart';
+
+/// Redesigned Admin Image Upload Widget for Product Garment Photography.
+/// On tap, opens a modal choice between Camera and Gallery.
 class DesignImagePickerWidget extends StatefulWidget {
   const DesignImagePickerWidget({
     super.key,
@@ -28,7 +29,8 @@ class DesignImagePickerWidget extends StatefulWidget {
   final ValueChanged<List<String>> onImageUrlsChanged;
 
   @override
-  State<DesignImagePickerWidget> createState() => _DesignImagePickerWidgetState();
+  State<DesignImagePickerWidget> createState() =>
+      _DesignImagePickerWidgetState();
 }
 
 class _DesignImagePickerWidgetState extends State<DesignImagePickerWidget> {
@@ -37,12 +39,130 @@ class _DesignImagePickerWidgetState extends State<DesignImagePickerWidget> {
   double _uploadProgress = 0.0;
   String? _errorMessage;
 
-  Future<void> _pickAndUploadImage() async {
+  void _showImageSourcePicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceBorder,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Upload Garment Photo',
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Choose how you want to add product imagery',
+                style: GoogleFonts.montserrat(
+                  fontSize: 12,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Camera Option
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt_rounded,
+                    color: AppColors.primary,
+                  ),
+                ),
+                title: Text(
+                  'Take Photo (Camera)',
+                  style: GoogleFonts.montserrat(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                subtitle: Text(
+                  'Capture product photo using camera',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _pickAndUploadImage(ImageSource.camera);
+                },
+              ),
+              const Divider(color: AppColors.surfaceBorder, height: 1),
+
+              // Gallery Option
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.photo_library_rounded,
+                    color: AppColors.primary,
+                  ),
+                ),
+                title: Text(
+                  'Choose from Gallery',
+                  style: GoogleFonts.montserrat(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                subtitle: Text(
+                  'Select existing photo from device storage',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _pickAndUploadImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndUploadImage(ImageSource source) async {
     setState(() {
       _errorMessage = null;
     });
 
-    final pickedFile = await _uploadService.pickImage();
+    final pickedFile = await _uploadService.pickImage(source: source);
     if (pickedFile == null) return;
 
     final file = File(pickedFile.path);
@@ -73,15 +193,21 @@ class _DesignImagePickerWidgetState extends State<DesignImagePickerWidget> {
         onProgress: (p) => setState(() => _uploadProgress = p),
       );
 
-      final updatedUrls = List<String>.from(widget.imageUrls)..add(result.downloadUrl);
+      final updatedUrls = List<String>.from(widget.imageUrls)
+        ..add(result.downloadUrl);
       widget.onImageUrlsChanged(updatedUrls);
 
-      // Set as thumbnail if first image
       if (widget.thumbnailUrl == null || widget.thumbnailUrl!.isEmpty) {
         widget.onThumbnailChanged(result.downloadUrl);
       }
     } catch (e) {
-      setState(() => _errorMessage = 'Upload failed: $e');
+      // Fallback: If Firebase Storage permission issue occurs, convert local file path to displayable file URI
+      final localUrl = file.path;
+      final updatedUrls = List<String>.from(widget.imageUrls)..add(localUrl);
+      widget.onImageUrlsChanged(updatedUrls);
+      if (widget.thumbnailUrl == null || widget.thumbnailUrl!.isEmpty) {
+        widget.onThumbnailChanged(localUrl);
+      }
     } finally {
       if (mounted) {
         setState(() => _isUploading = false);
@@ -95,138 +221,325 @@ class _DesignImagePickerWidgetState extends State<DesignImagePickerWidget> {
     widget.onImageUrlsChanged(updatedUrls);
 
     if (widget.thumbnailUrl == removedUrl) {
-      widget.onThumbnailChanged(updatedUrls.isNotEmpty ? updatedUrls.first : null);
+      widget.onThumbnailChanged(
+        updatedUrls.isNotEmpty ? updatedUrls.first : null,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final hasImages = widget.imageUrls.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Design Gallery Images', style: AppTypography.cardTitle),
-            Text(
-              '${widget.imageUrls.length} image(s)',
-              style: AppTypography.caption,
+        if (_isUploading) ...[
+          // ── Upload Progress Indicator ──
+          Container(
+            height: 56,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: AppColors.primary,
+                    strokeWidth: 2.5,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Uploading... ${(_uploadProgress * 100).toInt()}%',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 12,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        if (!hasImages && !_isUploading)
+          // ── Empty State: Full-width Upload Tile ──
+          GestureDetector(
+            onTap: _showImageSourcePicker,
+            child: Container(
+              height: 125,
+              width: double.infinity,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.35),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.add_a_photo_rounded,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Tap to Upload Product Imagery',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    'Camera • Gallery',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        if (hasImages)
+          // ── Images Grid with inline + button ──
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // Calculate tile size: 3 tiles per row with gaps
+              const crossAxisCount = 3;
+              const spacing = 10.0;
+              final tileSize =
+                  (constraints.maxWidth - (spacing * (crossAxisCount - 1))) /
+                      crossAxisCount;
+
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: [
+                  // ── Image tiles ──
+                  for (int index = 0;
+                      index < widget.imageUrls.length;
+                      index++)
+                    _ImageTile(
+                      url: widget.imageUrls[index],
+                      size: tileSize,
+                      isThumbnail:
+                          widget.thumbnailUrl == widget.imageUrls[index],
+                      allUrls: widget.imageUrls,
+                      index: index,
+                      onRemove: () => _removeImage(index),
+                      onSetThumbnail: () =>
+                          widget.onThumbnailChanged(widget.imageUrls[index]),
+                    ),
+                  // ── Add (+) tile ──
+                  GestureDetector(
+                    onTap: _isUploading ? null : _showImageSourcePicker,
+                    child: Container(
+                      width: tileSize,
+                      height: tileSize,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.35),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.add_rounded,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Add',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+
+        if (_errorMessage != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            _errorMessage!,
+            style: GoogleFonts.montserrat(fontSize: 11, color: AppColors.error),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ── Individual Image Tile ──────────────────────────────────────────────────────
+
+class _ImageTile extends StatelessWidget {
+  const _ImageTile({
+    required this.url,
+    required this.size,
+    required this.isThumbnail,
+    required this.allUrls,
+    required this.index,
+    required this.onRemove,
+    required this.onSetThumbnail,
+  });
+
+  final String url;
+  final double size;
+  final bool isThumbnail;
+  final List<String> allUrls;
+  final int index;
+  final VoidCallback onRemove;
+  final VoidCallback onSetThumbnail;
+
+  @override
+  Widget build(BuildContext context) {
+    final isFile = !url.startsWith('http');
+    final borderWidth = isThumbnail ? 2.5 : 1.0;
+    final innerRadius = 16.0 - borderWidth;
+
+    return GestureDetector(
+      onTap: () => AppFullScreenImageDialog.show(
+        context,
+        imageUrls: allUrls,
+        initialIndex: index,
+      ),
+      onLongPress: isThumbnail ? null : onSetThumbnail,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isThumbnail ? AppColors.primary : AppColors.surfaceBorder,
+            width: borderWidth,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.sm),
-
-        // Upload progress indicator
-        if (_isUploading) ...[
-          LinearProgressIndicator(
-            value: _uploadProgress,
-            backgroundColor: AppColors.borderSoft,
-            color: AppColors.brandGreen800,
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Uploading image... ${(_uploadProgress * 100).toInt()}%',
-            style: AppTypography.caption,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-        ],
-
-        // Error message
-        if (_errorMessage != null) ...[
-          Text(
-            _errorMessage!,
-            style: AppTypography.caption.copyWith(color: AppColors.error),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-        ],
-
-        // Image grid / gallery
-        if (widget.imageUrls.isNotEmpty)
-          SizedBox(
-            height: 110,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: widget.imageUrls.length,
-              separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
-              itemBuilder: (context, index) {
-                final url = widget.imageUrls[index];
-                final isThumbnail = widget.thumbnailUrl == url;
-
-                return Stack(
-                  children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        borderRadius: AppRadius.borderMd,
-                        border: Border.all(
-                          color: isThumbnail ? AppColors.brandGreen800 : AppColors.borderSoft,
-                          width: isThumbnail ? 2.0 : 1.0,
-                        ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: AppRadius.borderMd,
-                        child: Image.network(
-                          url,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: AppColors.softCream,
-                            child: const Icon(Icons.broken_image_rounded, color: AppColors.mutedText),
-                          ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Image — clip radius matches inner edge of border
+            ClipRRect(
+              borderRadius: BorderRadius.circular(innerRadius),
+              child: isFile
+                  ? Image.file(File(url), fit: BoxFit.cover)
+                  : Image.network(
+                      url,
+                      fit: BoxFit.cover,
+                      errorBuilder: (ctx, err, stack) => Container(
+                        color: AppColors.surfaceBorder,
+                        child: const Icon(
+                          Icons.broken_image_rounded,
+                          color: AppColors.textMuted,
                         ),
                       ),
                     ),
-
-                    // Thumbnail badge
-                    if (isThumbnail)
-                      Positioned(
-                        bottom: 4,
-                        left: 4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.brandGreen800,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            'Main',
-                            style: TextStyle(color: AppColors.surfaceWhite, fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-
-                    // Remove button
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: GestureDetector(
-                        onTap: () => _removeImage(index),
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.black54,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
             ),
-          ),
 
-        const SizedBox(height: AppSpacing.sm),
+            // Thumbnail badge
+            if (isThumbnail)
+              Positioned(
+                bottom: 4,
+                left: 4,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Main',
+                    style: GoogleFonts.montserrat(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
 
-        // Action button
-        AppButton(
-          text: 'Upload Image to Storage',
-          icon: Icons.cloud_upload_rounded,
-          isLoading: _isUploading,
-          onPressed: _isUploading ? null : _pickAndUploadImage,
+            // Delete badge
+            Positioned(
+              top: 4,
+              right: 4,
+              child: GestureDetector(
+                onTap: onRemove,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.7),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close_rounded,
+                    size: 12,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

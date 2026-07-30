@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../domain/models/notification_model.dart';
 
 /// Navigation resolver for notification destinations in KC-Admin.
@@ -15,14 +15,10 @@ abstract class NotificationDestinationResolver {
 
     if (type == NotificationDestinationType.none) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Destination Link: ${type.label}${entityId != null ? ' (#$entityId)' : ''}',
-        ),
-        backgroundColor: AppColors.surfaceLight,
-        behavior: SnackBarBehavior.floating,
-      ),
+    AppToast.show(
+      context,
+      'Destination Link: ${type.label}${entityId != null ? ' (#$entityId)' : ''}',
+      type: ToastType.info,
     );
   }
 }

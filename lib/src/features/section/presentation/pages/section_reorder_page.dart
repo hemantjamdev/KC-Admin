@@ -1,56 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/navigation/navigation_extensions.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../../boutique/presentation/controllers/boutique_selection_controller.dart';
-import '../../../design/presentation/controllers/design_controller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/section_model.dart';
-import '../controllers/section_controller.dart';
+import '../../application/providers/section_providers.dart';
 
 /// Page for drag-and-drop reordering of curated sections within KC-Admin.
-class SectionReorderPage extends StatefulWidget {
+class SectionReorderPage extends ConsumerStatefulWidget {
   const SectionReorderPage({super.key});
 
   @override
-  State<SectionReorderPage> createState() => _SectionReorderPageState();
+  ConsumerState<SectionReorderPage> createState() => _SectionReorderPageState();
 }
 
-class _SectionReorderPageState extends State<SectionReorderPage> {
-  late SectionController _sectionController;
-  late DesignController _designController;
+class _SectionReorderPageState extends ConsumerState<SectionReorderPage> {
   List<SectionModel> _reorderableList = [];
   bool _hasChanges = false;
+  bool _allowDiscardPop = false;
 
   @override
   void initState() {
     super.initState();
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutiqueId = scope.selectedBoutique?.id ?? '';
-    final branchId = scope.selectedBranch?.id;
-
-    _designController = DesignController(
-      boutiqueId: boutiqueId,
-      activeCategoryIds: const [],
-    );
-    _sectionController = SectionController(
-      boutiqueId: boutiqueId,
-      branchId: branchId,
-      designController: _designController,
-    );
-    _sectionController.addListener(_onControllerUpdate);
-    _sectionController.loadSections();
-  }
-
-  void _onControllerUpdate() {
-    if (mounted && _reorderableList.isEmpty && !_sectionController.isLoading) {
-      setState(() {
-        _reorderableList = List.from(_sectionController.allSections);
-      });
-    }
   }
 
   void _onReorder(int oldIndex, int newIndex) {
@@ -99,36 +77,42 @@ class _SectionReorderPageState extends State<SectionReorderPage> {
   }
 
   Future<void> _save() async {
-    final router = GoRouter.of(context);
-    _sectionController.reorderSections(_reorderableList);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Section order updated.'),
-        backgroundColor: AppColors.surfaceLight,
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
+    await ref.read(sectionMutationProvider.notifier).reorder(_reorderableList);
+    if (!mounted) return;
+    AppToast.show(
+      context,
+      'Section order updated successfully.',
+      type: ToastType.success,
     );
-    router.go(AppRoutes.adminSectionList);
-  }
-
-  @override
-  void dispose() {
-    _sectionController.removeListener(_onControllerUpdate);
-    _sectionController.dispose();
-    _designController.dispose();
-    super.dispose();
+    context.popOrGoWithResult(true, AppRoutes.adminSectionList);
   }
 
   @override
   Widget build(BuildContext context) {
+    final sectionsAsync = ref.watch(sectionListProvider);
+    if (sectionsAsync.isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(title: const Text('Reorder Sections')),
+        body: const Center(child: AppLoadingIndicator(size: 32)),
+      );
+    }
+
+    if (_reorderableList.isEmpty &&
+        sectionsAsync.valueOrNull != null &&
+        !_hasChanges) {
+      _reorderableList = List.of(sectionsAsync.valueOrNull!);
+    }
+
     return PopScope(
-      canPop: !_hasChanges,
+      canPop: !_hasChanges || _allowDiscardPop,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final router = GoRouter.of(context);
         final canLeave = await _onWillPop();
-        if (canLeave) router.go(AppRoutes.adminSectionList);
+        if (canLeave && context.mounted) {
+          setState(() => _allowDiscardPop = true);
+          context.popOrGo(AppRoutes.adminSectionList);
+        }
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -142,123 +126,123 @@ class _SectionReorderPageState extends State<SectionReorderPage> {
             ),
           ),
           leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_rounded,
+            icon: PhosphorIcon(
+              PhosphorIcons.caretLeft(PhosphorIconsStyle.bold),
+              size: 20,
               color: AppColors.textPrimary,
             ),
             onPressed: () async {
-              final router = GoRouter.of(context);
+              if (!_hasChanges) {
+                context.popOrGo(AppRoutes.adminSectionList);
+                return;
+              }
               final canLeave = await _onWillPop();
-              if (canLeave) router.go(AppRoutes.adminSectionList);
+              if (canLeave && context.mounted) {
+                setState(() => _allowDiscardPop = true);
+                context.popOrGo(AppRoutes.adminSectionList);
+              }
             },
           ),
         ),
         body: SafeArea(
-          child: _sectionController.isLoading
-              ? const Center(child: AppLoadingIndicator(size: 32))
-              : Column(
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.all(AppSpacing.md),
-                      child: Text(
-                        'Drag handles to change the display sequence of home sections.',
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 13,
+          child: Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(AppSpacing.md),
+                child: Text(
+                  'Drag handles to change the display sequence of home sections.',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                ),
+              ),
+              Expanded(
+                child: _reorderableList.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No sections found to reorder.',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 14,
+                          ),
                         ),
-                      ),
-                    ),
-                    Expanded(
-                      child: _reorderableList.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'No sections found to reorder.',
-                                style: TextStyle(
+                      )
+                    : ReorderableListView.builder(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: _reorderableList.length,
+                        onReorder: _onReorder,
+                        proxyDecorator: (child, _, _) =>
+                            Material(color: Colors.transparent, child: child),
+                        itemBuilder: (context, index) {
+                          final section = _reorderableList[index];
+                          return Container(
+                            key: ValueKey(section.id),
+                            margin: const EdgeInsets.only(
+                              bottom: AppSpacing.sm,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: AppRadius.borderMd,
+                              border: Border.all(
+                                color: AppColors.surfaceBorder,
+                              ),
+                            ),
+                            child: ListTile(
+                              leading: ReorderableDragStartListener(
+                                index: index,
+                                child: const Icon(
+                                  Icons.drag_handle_rounded,
                                   color: AppColors.textMuted,
-                                  fontSize: 14,
                                 ),
                               ),
-                            )
-                          : ReorderableListView.builder(
-                              padding: const EdgeInsets.all(AppSpacing.md),
-                              physics: const BouncingScrollPhysics(),
-                              itemCount: _reorderableList.length,
-                              onReorder: _onReorder,
-                              proxyDecorator: (child, _, _) => Material(
-                                color: Colors.transparent,
-                                child: child,
+                              title: Text(
+                                section.title,
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                              itemBuilder: (context, index) {
-                                final section = _reorderableList[index];
-                                return Container(
-                                  key: ValueKey(section.id),
-                                  margin: const EdgeInsets.only(
-                                    bottom: AppSpacing.sm,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.surface,
-                                    borderRadius: AppRadius.borderMd,
-                                    border: Border.all(
-                                      color: AppColors.surfaceBorder,
-                                    ),
-                                  ),
-                                  child: ListTile(
-                                    leading: ReorderableDragStartListener(
-                                      index: index,
-                                      child: const Icon(
-                                        Icons.drag_handle_rounded,
-                                        color: AppColors.textMuted,
-                                      ),
-                                    ),
-                                    title: Text(
-                                      section.title,
-                                      style: const TextStyle(
-                                        color: AppColors.textPrimary,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    subtitle: Text(
-                                      '${section.type.label} • Sort Order: $index',
-                                      style: const TextStyle(
-                                        color: AppColors.textMuted,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
+                              subtitle: Text(
+                                '${section.type.label} • Sort Order: $index',
+                                style: const TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
+                          );
+                        },
+                      ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: AppButton(
+                        text: 'Cancel',
+                        variant: AppButtonVariant.secondary,
+                        onPressed: () async {
+                          final router = GoRouter.of(context);
+                          final canLeave = await _onWillPop();
+                          if (canLeave) {
+                            router.go(AppRoutes.adminSectionList);
+                          }
+                        },
+                      ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: AppButton(
-                              text: 'Cancel',
-                              variant: AppButtonVariant.secondary,
-                              onPressed: () async {
-                                final router = GoRouter.of(context);
-                                final canLeave = await _onWillPop();
-                                if (canLeave) {
-                                  router.go(AppRoutes.adminSectionList);
-                                }
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: AppButton(
-                              text: 'Save Order',
-                              onPressed: _hasChanges ? _save : null,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: AppButton(
+                        text: 'Save Order',
+                        onPressed: _hasChanges ? _save : null,
                       ),
                     ),
                   ],
                 ),
+              ),
+            ],
+          ),
         ),
       ),
     );

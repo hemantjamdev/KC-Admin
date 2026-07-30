@@ -1,68 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/navigation/navigation_extensions.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../../boutique/data/repositories/branch_firestore_repository.dart';
-import '../../../boutique/domain/models/branch_model.dart';
-import '../../../boutique/presentation/controllers/boutique_selection_controller.dart';
-import '../../../design/presentation/controllers/design_controller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/section_model.dart';
-import '../controllers/section_controller.dart';
+import '../../application/providers/section_providers.dart';
 
 /// Form page for Adding or Editing a Curated Section in KC-Admin.
-class SectionFormPage extends StatefulWidget {
+class SectionFormPage extends ConsumerStatefulWidget {
   const SectionFormPage({super.key, this.existingSection});
   final SectionModel? existingSection;
   bool get isEditMode => existingSection != null;
 
   @override
-  State<SectionFormPage> createState() => _SectionFormPageState();
+  ConsumerState<SectionFormPage> createState() => _SectionFormPageState();
 }
 
-class _SectionFormPageState extends State<SectionFormPage> {
-  final BranchFirestoreRepository _branchRepository = BranchFirestoreRepository();
+class _SectionFormPageState extends ConsumerState<SectionFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _subtitleController = TextEditingController();
   final _sortOrderController = TextEditingController(text: '0');
 
+  final _titleFocusNode = FocusNode();
+  final _subtitleFocusNode = FocusNode();
+  final _sortFocusNode = FocusNode();
+
   SectionType _type = SectionType.manual;
-  bool _isBoutiqueWide = true;
-  String? _selectedBranchId;
+
   bool _isActive = true;
   DateTime? _startAt;
   DateTime? _endAt;
 
   bool _isSaving = false;
   bool _hasChanges = false;
-  List<BranchModel> _branches = [];
-
-  late SectionController _sectionController;
-  late DesignController _designController;
+  bool _allowDiscardPop = false;
 
   @override
   void initState() {
     super.initState();
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutiqueId = scope.selectedBoutique?.id ?? '';
-    final branchId = scope.selectedBranch?.id;
-    
-    _designController = DesignController(
-      boutiqueId: boutiqueId,
-      activeCategoryIds: const [],
-    );
-    _sectionController = SectionController(
-      boutiqueId: boutiqueId,
-      branchId: branchId,
-      designController: _designController,
-    );
-
-    _initData(boutiqueId);
 
     if (widget.isEditMode) {
       final s = widget.existingSection!;
@@ -70,14 +54,11 @@ class _SectionFormPageState extends State<SectionFormPage> {
       _subtitleController.text = s.subtitle ?? '';
       _sortOrderController.text = s.sortOrder.toString();
       _type = s.type;
-      _isBoutiqueWide = s.branchId == null;
-      _selectedBranchId = s.branchId;
       _isActive = s.isActive;
       _startAt = s.startAt;
       _endAt = s.endAt;
     } else {
       _sortOrderController.text = '0';
-      if (_branches.isNotEmpty) _selectedBranchId = _branches.first.id;
     }
 
     _titleController.addListener(_markDirty);
@@ -85,12 +66,15 @@ class _SectionFormPageState extends State<SectionFormPage> {
     _sortOrderController.addListener(_markDirty);
   }
 
-  Future<void> _initData(String boutiqueId) async {
-    final branches = await _branchRepository.getBranchesForBoutique(boutiqueId);
-    if (!mounted) return;
-    setState(() {
-      _branches = branches.where((b) => b.isActive).toList();
-    });
+  @override
+  void dispose() {
+    _titleFocusNode.dispose();
+    _subtitleFocusNode.dispose();
+    _sortFocusNode.dispose();
+    _titleController.dispose();
+    _subtitleController.dispose();
+    _sortOrderController.dispose();
+    super.dispose();
   }
 
   void _markDirty() {
@@ -165,12 +149,10 @@ class _SectionFormPageState extends State<SectionFormPage> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     if (_startAt != null && _endAt != null && !_endAt!.isAfter(_startAt!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('End date must be later than start date.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.surfaceLight,
-        ),
+      AppToast.show(
+        context,
+        'End date must be later than start date.',
+        type: ToastType.warning,
       );
       return;
     }
@@ -179,10 +161,8 @@ class _SectionFormPageState extends State<SectionFormPage> {
     await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
 
-    final boutiqueId =
-        BoutiqueSelectionScope.of(context).selectedBoutique?.id ?? '';
+    const boutiqueId = 'boutique_01';
     final now = DateTime.now();
-    final router = GoRouter.of(context);
 
     final SectionModel section;
     if (widget.isEditMode) {
@@ -192,23 +172,20 @@ class _SectionFormPageState extends State<SectionFormPage> {
             ? null
             : _subtitleController.text.trim(),
         type: _type,
-        branchId: _isBoutiqueWide ? null : _selectedBranchId,
         sortOrder: int.tryParse(_sortOrderController.text) ?? 0,
         isActive: _isActive,
         startAt: _startAt,
         endAt: _endAt,
         updatedAt: now,
-        clearBranchId: _isBoutiqueWide,
         clearSubtitle: _subtitleController.text.trim().isEmpty,
         clearStartAt: _startAt == null,
         clearEndAt: _endAt == null,
       );
-      _sectionController.updateSection(section);
+      await ref.read(sectionMutationProvider.notifier).update(section);
     } else {
       section = SectionModel(
         id: 'section_${now.millisecondsSinceEpoch}',
         boutiqueId: boutiqueId,
-        branchId: _isBoutiqueWide ? null : _selectedBranchId,
         title: _titleController.text.trim(),
         subtitle: _subtitleController.text.trim().isEmpty
             ? null
@@ -221,44 +198,32 @@ class _SectionFormPageState extends State<SectionFormPage> {
         createdAt: now,
         updatedAt: now,
       );
-      _sectionController.addSection(section);
+      await ref.read(sectionMutationProvider.notifier).create(section);
     }
 
+    if (!mounted) return;
     setState(() => _isSaving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          widget.isEditMode
-              ? '"${section.title}" updated.'
-              : '"${section.title}" created.',
-        ),
-        backgroundColor: AppColors.surfaceLight,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
+    AppToast.show(
+      context,
+      widget.isEditMode
+          ? '"${section.title}" updated.'
+          : '"${section.title}" created.',
+      type: ToastType.success,
     );
-    router.go(AppRoutes.adminSectionList);
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _subtitleController.dispose();
-    _sortOrderController.dispose();
-    _sectionController.dispose();
-    _designController.dispose();
-    super.dispose();
+    context.popOrGoWithResult(true, AppRoutes.adminSectionList);
   }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: !_hasChanges,
+      canPop: !_hasChanges || _allowDiscardPop,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final router = GoRouter.of(context);
         final canLeave = await _onWillPop();
-        if (canLeave) router.go(AppRoutes.adminSectionList);
+        if (canLeave && context.mounted) {
+          setState(() => _allowDiscardPop = true);
+          context.popOrGo(AppRoutes.adminSectionList);
+        }
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -272,14 +237,21 @@ class _SectionFormPageState extends State<SectionFormPage> {
             ),
           ),
           leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_rounded,
+            icon: PhosphorIcon(
+              PhosphorIcons.caretLeft(PhosphorIconsStyle.bold),
+              size: 20,
               color: AppColors.textPrimary,
             ),
             onPressed: () async {
-              final router = GoRouter.of(context);
+              if (!_hasChanges) {
+                context.popOrGo(AppRoutes.adminSectionList);
+                return;
+              }
               final canLeave = await _onWillPop();
-              if (canLeave) router.go(AppRoutes.adminSectionList);
+              if (canLeave && context.mounted) {
+                setState(() => _allowDiscardPop = true);
+                context.popOrGo(AppRoutes.adminSectionList);
+              }
             },
           ),
         ),
@@ -299,6 +271,11 @@ class _SectionFormPageState extends State<SectionFormPage> {
                         'Title *',
                         TextFormField(
                           controller: _titleController,
+                          focusNode: _titleFocusNode,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) => FocusScope.of(
+                            context,
+                          ).requestFocus(_subtitleFocusNode),
                           style: _fieldStyle,
                           cursorColor: AppColors.primary,
                           decoration: _dec('e.g. Featured Bridal Looks'),
@@ -318,6 +295,11 @@ class _SectionFormPageState extends State<SectionFormPage> {
                         'Subtitle',
                         TextFormField(
                           controller: _subtitleController,
+                          focusNode: _subtitleFocusNode,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) => FocusScope.of(
+                            context,
+                          ).requestFocus(_sortFocusNode),
                           style: _fieldStyle,
                           cursorColor: AppColors.primary,
                           decoration: _dec(
@@ -329,12 +311,14 @@ class _SectionFormPageState extends State<SectionFormPage> {
                       const SizedBox(height: AppSpacing.md),
                       _field('Section Type *', _buildTypeDropdown()),
                       const SizedBox(height: AppSpacing.md),
-                      _field('Scope *', _buildScopeSelector()),
-                      const SizedBox(height: AppSpacing.md),
                       _field(
                         'Sort Order *',
                         TextFormField(
                           controller: _sortOrderController,
+                          focusNode: _sortFocusNode,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) =>
+                              FocusScope.of(context).unfocus(),
                           style: _fieldStyle,
                           cursorColor: AppColors.primary,
                           decoration: _dec('0'),
@@ -415,124 +399,6 @@ class _SectionFormPageState extends State<SectionFormPage> {
           },
         ),
       ),
-    );
-  }
-
-  Widget _buildScopeSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() {
-                  _isBoutiqueWide = true;
-                  _hasChanges = true;
-                }),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: _isBoutiqueWide
-                        ? AppColors.primary
-                        : AppColors.surface,
-                    borderRadius: AppRadius.borderMd,
-                    border: Border.all(
-                      color: _isBoutiqueWide
-                          ? AppColors.primary
-                          : AppColors.surfaceBorder,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'Boutique-wide',
-                      style: TextStyle(
-                        color: _isBoutiqueWide
-                            ? AppColors.background
-                            : AppColors.textMuted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() {
-                  _isBoutiqueWide = false;
-                  _hasChanges = true;
-                }),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: !_isBoutiqueWide
-                        ? AppColors.primary
-                        : AppColors.surface,
-                    borderRadius: AppRadius.borderMd,
-                    border: Border.all(
-                      color: !_isBoutiqueWide
-                          ? AppColors.primary
-                          : AppColors.surfaceBorder,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'Specific Branch',
-                      style: TextStyle(
-                        color: !_isBoutiqueWide
-                            ? AppColors.background
-                            : AppColors.textMuted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        if (!_isBoutiqueWide) ...[
-          const SizedBox(height: AppSpacing.sm),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: AppRadius.borderMd,
-              border: Border.all(color: AppColors.surfaceBorder),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedBranchId,
-                dropdownColor: AppColors.surfaceLight,
-                borderRadius: AppRadius.borderMd,
-                isExpanded: true,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                items: _branches
-                    .map(
-                      (b) => DropdownMenuItem(
-                        value: b.id,
-                        child: Text(
-                          b.name,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() {
-                  _selectedBranchId = v;
-                  _hasChanges = true;
-                }),
-              ),
-            ),
-          ),
-        ],
-      ],
     );
   }
 
@@ -707,21 +573,23 @@ class _SectionFormPageState extends State<SectionFormPage> {
     ),
   );
 
-  Widget _field(String label, Widget child) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        label,
-        style: const TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
+  Widget _field(String label, Widget child) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-      ),
-      const SizedBox(height: AppSpacing.xs),
-      child,
-    ],
-  );
+        const SizedBox(height: AppSpacing.xs),
+        child,
+      ],
+    );
+  }
 
   static const TextStyle _fieldStyle = TextStyle(
     color: AppColors.textPrimary,

@@ -1,68 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_spacing.dart';
-import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../../boutique/presentation/controllers/boutique_selection_controller.dart';
-import '../../../category/data/repositories/category_firestore_repository.dart';
+import '../../../../core/navigation/navigation_extensions.dart';
+import '../../../../core/widgets/app_full_screen_image_dialog.dart';
+import '../../../../core/widgets/app_state_views.dart';
+import '../../../../core/widgets/app_toast.dart';
+import '../../../category/application/providers/category_providers.dart';
 import '../../../category/domain/models/category_model.dart';
 import '../../domain/models/design_availability_model.dart';
 import '../../domain/models/design_model.dart';
-import '../controllers/design_controller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../application/providers/design_providers.dart';
 
 /// Admin Design List page — shows, searches, and provides CRUD entry points.
-class AdminDesignListPage extends StatefulWidget {
+class AdminDesignListPage extends ConsumerStatefulWidget {
   const AdminDesignListPage({super.key});
 
   @override
-  State<AdminDesignListPage> createState() => _AdminDesignListPageState();
+  ConsumerState<AdminDesignListPage> createState() =>
+      _AdminDesignListPageState();
 }
 
-class _AdminDesignListPageState extends State<AdminDesignListPage> {
-  late DesignController _controller;
-  final CategoryFirestoreRepository _categoryRepository = CategoryFirestoreRepository();
+class _AdminDesignListPageState extends ConsumerState<AdminDesignListPage> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   List<CategoryModel> _categories = [];
-  String? _selectedCategoryId;
-  DesignStatusFilter _statusFilter = DesignStatusFilter.all;
-  AvailabilityFilter _availabilityFilter = AvailabilityFilter.all;
 
   @override
   void initState() {
     super.initState();
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutiqueId = scope.selectedBoutique?.id ?? '';
+    _initData('boutique_01');
+    _scrollController.addListener(_onScroll);
+  }
 
-    _controller = DesignController(
-      boutiqueId: boutiqueId,
-      activeCategoryIds: [],
-    );
-    _controller.addListener(_onUpdate);
-
-    _initData(boutiqueId);
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      ref.read(paginatedDesignsProvider.notifier).fetchNextPage();
+    }
   }
 
   Future<void> _initData(String boutiqueId) async {
     try {
-      _categories = await _categoryRepository.watchCategories(boutiqueId).first;
+      _categories = await ref.read(categoryRepositoryProvider).watchCategories(boutiqueId).first;
     } catch (_) {
       _categories = [];
     }
     if (!mounted) return;
-    _controller.loadDesigns();
-  }
-
-  void _onUpdate() {
-    if (mounted) setState(() {});
+    setState(() {});
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_onUpdate);
-    _controller.dispose();
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -76,7 +71,7 @@ class _AdminDesignListPageState extends State<AdminDesignListPage> {
 
   Future<void> _confirmToggleStatus(DesignModel design) async {
     if (!design.isActive) {
-      _controller.toggleDesignStatus(design.id);
+      await ref.read(designMutationProvider.notifier).toggleStatus(design.id);
       return;
     }
     final confirmed = await showDialog<bool>(
@@ -110,7 +105,9 @@ class _AdminDesignListPageState extends State<AdminDesignListPage> {
         ],
       ),
     );
-    if (confirmed == true) _controller.toggleDesignStatus(design.id);
+    if (confirmed == true) {
+      await ref.read(designMutationProvider.notifier).toggleStatus(design.id);
+    }
   }
 
   Future<void> _confirmDelete(DesignModel design) async {
@@ -120,12 +117,14 @@ class _AdminDesignListPageState extends State<AdminDesignListPage> {
         backgroundColor: AppColors.surface,
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderLg),
         title: const Text(
-          'Delete Design?',
-          style: TextStyle(color: AppColors.textPrimary),
+          'Delete Product?',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Text(
-          'This removes "${design.name}" from in-memory mock data. '
-          'Related availability records will also be removed.',
+          'Are you sure you want to permanently delete "${design.name}"? This action cannot be undone.',
           style: const TextStyle(color: AppColors.textMuted),
         ),
         actions: [
@@ -136,25 +135,24 @@ class _AdminDesignListPageState extends State<AdminDesignListPage> {
               style: TextStyle(color: AppColors.textMuted),
             ),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: AppColors.error),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
             ),
+            child: const Text('Delete'),
           ),
         ],
       ),
     );
     if (confirmed == true && mounted) {
-      _controller.deleteDesign(design.id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('"${design.name}" deleted from mock data.'),
-          backgroundColor: AppColors.surfaceLight,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-        ),
+      await ref.read(designMutationProvider.notifier).delete(design.id);
+      if (!mounted) return;
+      AppToast.show(
+        context,
+        '"${design.name}" deleted successfully.',
+        type: ToastType.success,
       );
     }
   }
@@ -176,7 +174,7 @@ class _AdminDesignListPageState extends State<AdminDesignListPage> {
         ),
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : AppColors.surface,
-          borderRadius: AppRadius.borderPill,
+          borderRadius: AppRadius.borderSm,
           border: Border.all(
             color: selected ? AppColors.primary : AppColors.surfaceBorder,
           ),
@@ -195,63 +193,56 @@ class _AdminDesignListPageState extends State<AdminDesignListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutique = scope.selectedBoutique;
-    final branch = scope.selectedBranch;
-    final visible = _controller.visibleDesigns;
+    return PopScope(
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (context.mounted) context.popOrGo(AppRoutes.adminHome);
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text(
+            'Designs',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          leading: IconButton(
+            icon: PhosphorIcon(
+              PhosphorIcons.caretLeft(PhosphorIconsStyle.bold),
+              size: 20,
+              color: AppColors.textPrimary,
+            ),
+            onPressed: () => context.popOrGo(AppRoutes.adminHome),
+          ),
+          actions: [
+            IconButton(
+              icon: PhosphorIcon(PhosphorIcons.sortAscending(), color: AppColors.primary),
+              tooltip: 'Reorder',
+              onPressed: () => context.push(AppRoutes.adminDesignReorder),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.background,
+          icon: PhosphorIcon(PhosphorIcons.plus()),
+          label: const Text(
+            'Add',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          onPressed: () => context.push(AppRoutes.adminDesignAdd),
+        ),
+        body: SafeArea(
+          child: Builder(
+            builder: (context) {
+              final paginatedState = ref.watch(paginatedDesignsProvider);
+              final visible = paginatedState.items;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Designs',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_rounded,
-            color: AppColors.textPrimary,
-          ),
-          onPressed: () => context.go(AppRoutes.adminHome),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.sort_rounded, color: AppColors.primary),
-            tooltip: 'Reorder',
-            onPressed: () => context.go(AppRoutes.adminDesignReorder),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.background,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: () => context.go(AppRoutes.adminDesignAdd),
-      ),
-      body: SafeArea(
-        child: _controller.isLoading
-            ? const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AppLoadingIndicator(size: 32),
-                    SizedBox(height: AppSpacing.md),
-                    Text(
-                      'Loading designs...',
-                      style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            : Column(
+              return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Padding(
@@ -266,31 +257,12 @@ class _AdminDesignListPageState extends State<AdminDesignListPage> {
                       children: [
                         Row(
                           children: [
-                            Expanded(
-                              child: Text(
-                                boutique?.name ?? '—',
-                                style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (branch != null)
-                              Text(
-                                branch.name,
-                                style: const TextStyle(
-                                  color: AppColors.textMuted,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            const SizedBox(width: AppSpacing.md),
                             Text(
-                              '${_controller.totalCount} designs',
+                              '${visible.length} products',
                               style: const TextStyle(
-                                color: AppColors.textMuted,
-                                fontSize: 12,
+                                color: AppColors.primary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
@@ -310,21 +282,28 @@ class _AdminDesignListPageState extends State<AdminDesignListPage> {
                               color: AppColors.textHint,
                               fontSize: 14,
                             ),
-                            prefixIcon: const Icon(
-                              Icons.search_rounded,
+                            prefixIcon: PhosphorIcon(
+                              PhosphorIcons.magnifyingGlass(),
                               color: AppColors.textMuted,
-                              size: 20,
+                              size: 18,
                             ),
                             suffixIcon: _searchController.text.isNotEmpty
                                 ? IconButton(
-                                    icon: const Icon(
-                                      Icons.clear_rounded,
+                                    icon: PhosphorIcon(
+                                      PhosphorIcons.x(),
                                       color: AppColors.textMuted,
-                                      size: 20,
+                                      size: 16,
                                     ),
                                     onPressed: () {
                                       _searchController.clear();
-                                      _controller.searchDesigns('');
+                                      ref
+                                          .read(paginatedDesignsProvider.notifier)
+                                          .fetchInitial(
+                                            categoryId: ref
+                                                .read(designFilterProvider)
+                                                .selectedCategoryId,
+                                            query: '',
+                                          );
                                     },
                                   )
                                 : null,
@@ -355,8 +334,14 @@ class _AdminDesignListPageState extends State<AdminDesignListPage> {
                             ),
                           ),
                           onChanged: (v) {
-                            _controller.searchDesigns(v);
-                            setState(() {});
+                            ref
+                                .read(paginatedDesignsProvider.notifier)
+                                .fetchInitial(
+                                  categoryId: ref
+                                      .read(designFilterProvider)
+                                      .selectedCategoryId,
+                                  query: v,
+                                );
                           },
                         ),
                         const SizedBox(height: AppSpacing.md),
@@ -367,31 +352,34 @@ class _AdminDesignListPageState extends State<AdminDesignListPage> {
                             children: [
                               _filterChip(
                                 DesignStatusFilter.all,
-                                _statusFilter,
+                                ref.watch(designFilterProvider).statusFilter,
                                 'All',
                                 (v) {
-                                  setState(() => _statusFilter = v);
-                                  _controller.filterByStatus(v);
+                                  ref
+                                      .read(designFilterProvider.notifier)
+                                      .filterByStatus(v);
                                 },
                               ),
                               const SizedBox(width: AppSpacing.sm),
                               _filterChip(
                                 DesignStatusFilter.active,
-                                _statusFilter,
+                                ref.watch(designFilterProvider).statusFilter,
                                 'Active',
                                 (v) {
-                                  setState(() => _statusFilter = v);
-                                  _controller.filterByStatus(v);
+                                  ref
+                                      .read(designFilterProvider.notifier)
+                                      .filterByStatus(v);
                                 },
                               ),
                               const SizedBox(width: AppSpacing.sm),
                               _filterChip(
                                 DesignStatusFilter.inactive,
-                                _statusFilter,
+                                ref.watch(designFilterProvider).statusFilter,
                                 'Inactive',
                                 (v) {
-                                  setState(() => _statusFilter = v);
-                                  _controller.filterByStatus(v);
+                                  ref
+                                      .read(designFilterProvider.notifier)
+                                      .filterByStatus(v);
                                 },
                               ),
                             ],
@@ -405,11 +393,20 @@ class _AdminDesignListPageState extends State<AdminDesignListPage> {
                             children: [
                               _filterChip<String?>(
                                 null,
-                                _selectedCategoryId,
+                                ref
+                                    .watch(designFilterProvider)
+                                    .selectedCategoryId,
                                 'All Categories',
                                 (v) {
-                                  setState(() => _selectedCategoryId = v);
-                                  _controller.filterByCategory(v);
+                                  ref
+                                      .read(designFilterProvider.notifier)
+                                      .filterByCategory(v);
+                                  ref
+                                      .read(paginatedDesignsProvider.notifier)
+                                      .fetchInitial(
+                                        categoryId: v,
+                                        query: _searchController.text,
+                                      );
                                 },
                               ),
                               ..._categories.map(
@@ -419,11 +416,20 @@ class _AdminDesignListPageState extends State<AdminDesignListPage> {
                                   ),
                                   child: _filterChip<String?>(
                                     c.id,
-                                    _selectedCategoryId,
+                                    ref
+                                        .watch(designFilterProvider)
+                                        .selectedCategoryId,
                                     c.name,
                                     (v) {
-                                      setState(() => _selectedCategoryId = v);
-                                      _controller.filterByCategory(v);
+                                      ref
+                                          .read(designFilterProvider.notifier)
+                                          .filterByCategory(v);
+                                      ref
+                                          .read(paginatedDesignsProvider.notifier)
+                                          .fetchInitial(
+                                            categoryId: v,
+                                            query: _searchController.text,
+                                          );
                                     },
                                   ),
                                 ),
@@ -431,129 +437,85 @@ class _AdminDesignListPageState extends State<AdminDesignListPage> {
                             ],
                           ),
                         ),
-                        if (branch != null) ...[
-                          const SizedBox(height: AppSpacing.sm),
-                          // Availability filter
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: [
-                                _filterChip(
-                                  AvailabilityFilter.all,
-                                  _availabilityFilter,
-                                  'Any Availability',
-                                  (v) {
-                                    setState(() => _availabilityFilter = v);
-                                    _controller.filterByAvailability(
-                                      v,
-                                      branchId: branch.id,
-                                    );
-                                  },
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                _filterChip(
-                                  AvailabilityFilter.available,
-                                  _availabilityFilter,
-                                  'Available',
-                                  (v) {
-                                    setState(() => _availabilityFilter = v);
-                                    _controller.filterByAvailability(
-                                      v,
-                                      branchId: branch.id,
-                                    );
-                                  },
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                _filterChip(
-                                  AvailabilityFilter.unavailable,
-                                  _availabilityFilter,
-                                  'Unavailable',
-                                  (v) {
-                                    setState(() => _availabilityFilter = v);
-                                    _controller.filterByAvailability(
-                                      v,
-                                      branchId: branch.id,
-                                    );
-                                  },
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                _filterChip(
-                                  AvailabilityFilter.hidden,
-                                  _availabilityFilter,
-                                  'Hidden',
-                                  (v) {
-                                    setState(() => _availabilityFilter = v);
-                                    _controller.filterByAvailability(
-                                      v,
-                                      branchId: branch.id,
-                                    );
-                                  },
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                _filterChip(
-                                  AvailabilityFilter.notConfigured,
-                                  _availabilityFilter,
-                                  'Not Configured',
-                                  (v) {
-                                    setState(() => _availabilityFilter = v);
-                                    _controller.filterByAvailability(
-                                      v,
-                                      branchId: branch.id,
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
                         const SizedBox(height: AppSpacing.md),
                       ],
                     ),
                   ),
                   Expanded(
-                    child: visible.isEmpty
-                        ? _emptyState()
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(
-                              AppSpacing.lg,
-                              0,
-                              AppSpacing.lg,
-                              AppSpacing.xxl + AppSpacing.xl,
+                    child: RefreshIndicator(
+                      color: AppColors.primary,
+                      onRefresh: () async {
+                        await ref
+                            .read(paginatedDesignsProvider.notifier)
+                            .refresh();
+                      },
+                      child: paginatedState.isLoading && visible.isEmpty
+                          ? const AppLoadingState(type: AppLoadingType.list)
+                          : paginatedState.errorMessage != null && visible.isEmpty
+                          ? AppErrorState(
+                              message: 'Failed to load designs list.',
+                              onRetry: () => ref
+                                  .read(paginatedDesignsProvider.notifier)
+                                  .refresh(),
+                            )
+                          : visible.isEmpty
+                          ? _emptyState()
+                          : ListView.separated(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.fromLTRB(
+                                AppSpacing.lg,
+                                0,
+                                AppSpacing.lg,
+                                AppSpacing.xxl + AppSpacing.xl,
+                              ),
+                              physics: const BouncingScrollPhysics(
+                                parent: AlwaysScrollableScrollPhysics(),
+                              ),
+                              itemCount: visible.length +
+                                  (paginatedState.isLoadingMore ? 1 : 0),
+                              separatorBuilder: (ctx, i) =>
+                                  const SizedBox(height: AppSpacing.sm),
+                              itemBuilder: (context, i) {
+                                if (i == visible.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                final design = visible[i];
+                                final DesignAvailabilityModel? avail = null;
+                                return _DesignRow(
+                                  design: design,
+                                  categoryName: _categoryName(
+                                    design.categoryId,
+                                  ),
+                                  availability: avail,
+                                  onEdit: () => context.push(
+                                    AppRoutes.adminDesignEdit,
+                                    extra: design,
+                                  ),
+                                  onAvailability: () => context.push(
+                                    AppRoutes.adminDesignAvailability,
+                                    extra: design,
+                                  ),
+                                  onToggleStatus: () =>
+                                      _confirmToggleStatus(design),
+                                  onDelete: () => _confirmDelete(design),
+                                );
+                              },
                             ),
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: visible.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: AppSpacing.sm),
-                            itemBuilder: (context, i) {
-                              final design = visible[i];
-                              final branchId = branch?.id;
-                              final avail = branchId != null
-                                  ? _controller.getAvailabilityForBranchDesign(
-                                      branchId,
-                                      design.id,
-                                    )
-                                  : null;
-                              return _DesignRow(
-                                design: design,
-                                categoryName: _categoryName(design.categoryId),
-                                availability: avail,
-                                onEdit: () => context.go(
-                                  AppRoutes.adminDesignEdit,
-                                  extra: design,
-                                ),
-                                onAvailability: () => context.go(
-                                  AppRoutes.adminDesignAvailability,
-                                  extra: design,
-                                ),
-                                onToggleStatus: () =>
-                                    _confirmToggleStatus(design),
-                                onDelete: () => _confirmDelete(design),
-                              );
-                            },
-                          ),
+                    ),
                   ),
                 ],
-              ),
+              );
+            },
+          ),
+        ),
       ),
     );
   }
@@ -561,35 +523,17 @@ class _AdminDesignListPageState extends State<AdminDesignListPage> {
   Widget _emptyState() {
     final hasSearch =
         _searchController.text.isNotEmpty ||
-        _selectedCategoryId != null ||
-        _statusFilter != DesignStatusFilter.all ||
-        _availabilityFilter != AvailabilityFilter.all;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              hasSearch ? Icons.search_off_rounded : Icons.style_outlined,
-              color: AppColors.textMuted,
-              size: 48,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              hasSearch
-                  ? 'No designs match the selected filters.'
-                  : 'No designs have been created for this boutique.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
+        ref.watch(designFilterProvider).selectedCategoryId != null ||
+        ref.watch(designFilterProvider).statusFilter !=
+            DesignStatusFilter.all ||
+        ref.watch(designFilterProvider).availabilityFilter !=
+            AvailabilityFilter.all;
+    return AppEmptyState(
+      icon: hasSearch ? PhosphorIcons.magnifyingGlass() : PhosphorIcons.tShirt(),
+      title: hasSearch ? 'No Matching Designs' : 'No Designs Found',
+      message: hasSearch
+          ? 'No designs match the selected search or filters.'
+          : 'No design products have been created for this boutique yet.',
     );
   }
 }
@@ -656,18 +600,30 @@ class _DesignRow extends StatelessWidget {
         child: Row(
           children: [
             // Thumbnail / Fallback
-            ClipRRect(
-              borderRadius: AppRadius.borderMd,
-              child: SizedBox(
-                width: 46,
-                height: 46,
-                child: design.thumbnailUrl != null
-                    ? Image.network(
-                        design.thumbnailUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => _fallback(),
-                      )
-                    : _fallback(),
+            GestureDetector(
+              onTap: () {
+                final urls = design.imageUrls.isNotEmpty
+                    ? design.imageUrls
+                    : (design.thumbnailUrl != null
+                          ? [design.thumbnailUrl!]
+                          : <String>[]);
+                if (urls.isNotEmpty) {
+                  AppFullScreenImageDialog.show(context, imageUrls: urls);
+                }
+              },
+              child: ClipRRect(
+                borderRadius: AppRadius.borderMd,
+                child: SizedBox(
+                  width: 46,
+                  height: 46,
+                  child: design.thumbnailUrl != null
+                      ? Image.network(
+                          design.thumbnailUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => _fallback(),
+                        )
+                      : _fallback(),
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -739,40 +695,40 @@ class _DesignRow extends StatelessWidget {
               shape: const RoundedRectangleBorder(
                 borderRadius: AppRadius.borderLg,
               ),
-              icon: const Icon(
-                Icons.more_vert_rounded,
+              icon: PhosphorIcon(
+                PhosphorIcons.dotsThreeVertical(),
                 color: AppColors.textMuted,
                 size: 20,
               ),
               itemBuilder: (_) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'edit',
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.edit_rounded,
+                      PhosphorIcon(
+                        PhosphorIcons.pencilSimple(),
                         color: AppColors.primary,
                         size: 18,
                       ),
-                      SizedBox(width: AppSpacing.sm),
-                      Text(
+                      const SizedBox(width: AppSpacing.sm),
+                      const Text(
                         'Edit',
                         style: TextStyle(color: AppColors.textPrimary),
                       ),
                     ],
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'availability',
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.tune_rounded,
+                      PhosphorIcon(
+                        PhosphorIcons.sliders(),
                         color: AppColors.primary,
                         size: 18,
                       ),
-                      SizedBox(width: AppSpacing.sm),
-                      Text(
+                      const SizedBox(width: AppSpacing.sm),
+                      const Text(
                         'Availability',
                         style: TextStyle(color: AppColors.textPrimary),
                       ),
@@ -783,10 +739,10 @@ class _DesignRow extends StatelessWidget {
                   value: 'toggle',
                   child: Row(
                     children: [
-                      Icon(
+                      PhosphorIcon(
                         design.isActive
-                            ? Icons.visibility_off_rounded
-                            : Icons.visibility_rounded,
+                            ? PhosphorIcons.eyeSlash()
+                            : PhosphorIcons.eye(),
                         color: design.isActive
                             ? AppColors.warning
                             : AppColors.success,
@@ -800,17 +756,17 @@ class _DesignRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.delete_outline_rounded,
+                      PhosphorIcon(
+                        PhosphorIcons.trash(),
                         color: AppColors.error,
                         size: 18,
                       ),
-                      SizedBox(width: AppSpacing.sm),
-                      Text('Delete', style: TextStyle(color: AppColors.error)),
+                      const SizedBox(width: AppSpacing.sm),
+                      const Text('Delete', style: TextStyle(color: AppColors.error)),
                     ],
                   ),
                 ),

@@ -1,98 +1,94 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:uuid/uuid.dart';
+
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
-import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/navigation/navigation_extensions.dart';
+import '../../../../core/widgets/admin_app_bar.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../../boutique/presentation/controllers/boutique_selection_controller.dart';
-import '../../../customer/data/repositories/customer_repository_impl.dart';
+import '../../../../core/widgets/app_toast.dart';
+import '../../../category/application/providers/category_providers.dart';
+import '../../../customer/application/providers/customer_providers.dart';
 import '../../../customer/domain/models/customer_model.dart';
-import '../../../design/data/repositories/design_firestore_repository.dart';
-import '../../../design/domain/models/design_model.dart';
+import '../../application/providers/stitching_providers.dart';
 import '../../domain/models/stitching_order_model.dart';
-import '../controllers/stitching_order_controller.dart';
 
-/// Add / Edit Stitching Order Form Page.
-class StitchingOrderFormPage extends StatefulWidget {
-  const StitchingOrderFormPage({super.key, this.existingOrder});
+/// Unified Add / Edit Stitching Request Form Page.
+class StitchingOrderFormPage extends ConsumerStatefulWidget {
+  const StitchingOrderFormPage({
+    super.key,
+    this.existingOrder,
+    this.preselectedCustomer,
+  });
+
   final StitchingOrderModel? existingOrder;
+  final CustomerModel? preselectedCustomer;
+
   bool get isEditMode => existingOrder != null;
 
   @override
-  State<StitchingOrderFormPage> createState() => _StitchingOrderFormPageState();
+  ConsumerState<StitchingOrderFormPage> createState() =>
+      _StitchingOrderFormPageState();
 }
 
-class _StitchingOrderFormPageState extends State<StitchingOrderFormPage> {
-  final DesignFirestoreRepository _designRepository = DesignFirestoreRepository();
-  List<DesignModel> _availableDesigns = [];
+class _StitchingOrderFormPageState
+    extends ConsumerState<StitchingOrderFormPage> {
   final _formKey = GlobalKey<FormState>();
-  final _orderNumberController = TextEditingController();
+
+  final _nameController = TextEditingController();
   final _notesController = TextEditingController();
 
-  // Measurement controllers
-  final _chestController = TextEditingController();
-  final _waistController = TextEditingController();
-  final _hipController = TextEditingController();
-  final _shoulderController = TextEditingController();
-  final _sleeveLengthController = TextEditingController();
-  final _garmentLengthController = TextEditingController();
-  final _inseamController = TextEditingController();
-  String _measurementUnit = 'in';
-
-  final CustomerRepositoryImpl _customerRepo = CustomerRepositoryImpl();
-  List<CustomerModel> _availableCustomers = [];
-  String? _selectedCustomerId;
-
-  List<DesignReferenceModel> _designReferences = [];
-  DateTime? _expectedReadyAt;
-  StitchingOrderStatus _status = StitchingOrderStatus.received;
+  String _selectedCategory = 'New Arrival';
+  DateTime? _pickupDate;
 
   bool _isSaving = false;
   bool _hasChanges = false;
-  late StitchingOrderController _controller;
+  bool _allowDiscardPop = false;
+
+  List<CustomerModel> _availableCustomers = [];
+  String? _selectedCustomerId;
+
+  static const List<String> _defaultCategories = [
+    'New Arrival',
+    'Seasonal',
+    'Festive',
+    'Blouse',
+    'Lehenga',
+    'Suit',
+    'Saree',
+    'Kurti',
+    'General',
+  ];
 
   @override
   void initState() {
     super.initState();
     _loadCustomers();
 
+    final minPickupDate = DateTime.now().add(const Duration(days: 3));
+
     if (widget.isEditMode) {
       final o = widget.existingOrder!;
       _selectedCustomerId = o.customerId;
-      _orderNumberController.text = o.orderNumber;
+      _nameController.text = o.displayRequestName;
+      _selectedCategory = o.displayCategoryName;
       _notesController.text = o.notes ?? '';
-      _status = o.status;
-      _expectedReadyAt = o.expectedReadyAt;
-      _designReferences = List.from(o.designReferences);
-
-      if (o.measurementSummary != null) {
-        final m = o.measurementSummary!;
-        _chestController.text = m.chest?.toString() ?? '';
-        _waistController.text = m.waist?.toString() ?? '';
-        _hipController.text = m.hip?.toString() ?? '';
-        _shoulderController.text = m.shoulder?.toString() ?? '';
-        _sleeveLengthController.text = m.sleeveLength?.toString() ?? '';
-        _garmentLengthController.text = m.garmentLength?.toString() ?? '';
-        _inseamController.text = m.inseam?.toString() ?? '';
-        _measurementUnit = m.unit;
-      }
+      _pickupDate = o.expectedReadyAt ?? minPickupDate;
     } else {
-      final nowStr = DateTime.now().millisecondsSinceEpoch.toString();
-      _orderNumberController.text =
-          'KC-ORD-${nowStr.substring(nowStr.length - 4)}';
-      _designReferences.add(
-        const DesignReferenceModel(
-          designId: 'design_01',
-          designName: 'Royal Velvet Bridal Lehenga',
-          quantity: 1,
-        ),
-      );
+      if (widget.preselectedCustomer != null) {
+        final pc = widget.preselectedCustomer!;
+        _selectedCustomerId = pc.firebaseUid ?? pc.id;
+      }
+      _pickupDate = minPickupDate;
     }
 
-    _orderNumberController.addListener(_markDirty);
+    _nameController.addListener(_markDirty);
     _notesController.addListener(_markDirty);
   }
 
@@ -102,377 +98,259 @@ class _StitchingOrderFormPageState extends State<StitchingOrderFormPage> {
 
   Future<void> _loadCustomers() async {
     try {
-      final list = await _customerRepo.getCustomersForAdmin();
+      final list =
+          await ref.read(customerRepositoryProvider).getCustomersForAdmin();
       if (!mounted) return;
       setState(() {
         _availableCustomers = list;
-        if (!widget.isEditMode && list.isNotEmpty) {
-          _selectedCustomerId = list.first.id;
+
+        if (widget.preselectedCustomer != null) {
+          final pc = widget.preselectedCustomer!;
+          final targetId = pc.firebaseUid ?? pc.id;
+
+          if (!list.any((c) => (c.firebaseUid ?? c.id) == targetId)) {
+            _availableCustomers.insert(0, pc);
+          }
+          _selectedCustomerId = targetId;
+        } else if (!widget.isEditMode &&
+            _selectedCustomerId == null &&
+            list.isNotEmpty) {
+          final firstCustomer = list.first;
+          _selectedCustomerId = firstCustomer.firebaseUid ?? firstCustomer.id;
         }
       });
     } catch (_) {}
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutiqueId = scope.selectedBoutique?.id ?? 'boutique_01';
-    _controller = StitchingOrderController(
-      boutiqueId: boutiqueId,
-      branchId: scope.selectedBranch?.id,
-    );
-    _loadDesigns(boutiqueId);
-  }
-
-  Future<void> _loadDesigns(String boutiqueId) async {
-    try {
-      final list = await _designRepository.watchDesigns(boutiqueId).first;
-      if (!mounted) return;
-      setState(() => _availableDesigns = list);
-    } catch (_) {}
+  void dispose() {
+    _nameController.dispose();
+    _notesController.dispose();
+    super.dispose();
   }
 
   Future<bool> _onWillPop() async {
-    if (!_hasChanges) return true;
-    final confirmed = await showDialog<bool>(
+    if (_allowDiscardPop || !_hasChanges || _isSaving) return true;
+
+    final shouldDiscard = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderLg),
-        title: const Text(
-          'Discard Changes?',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Discard changes?'),
         content: const Text(
-          'Unsaved order details will be lost.',
-          style: TextStyle(color: AppColors.textMuted),
+          'You have unsaved changes to this request. Are you sure you want to discard them?',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(
-              'Keep Editing',
-              style: TextStyle(color: AppColors.primary),
-            ),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Keep Editing'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Discard',
-              style: TextStyle(color: AppColors.error),
-            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Discard'),
           ),
         ],
       ),
     );
-    return confirmed == true;
+
+    return shouldDiscard ?? false;
   }
 
-  void _addDesignReference() {
-    showDialog(
+  Future<void> _selectPickupDate() async {
+    final now = DateTime.now();
+    final minDate = now.add(const Duration(days: 3));
+    final maxDate = now.add(const Duration(days: 30));
+
+    final initialDate = _pickupDate != null &&
+            _pickupDate!.isAfter(minDate.subtract(const Duration(days: 1))) &&
+            _pickupDate!.isBefore(maxDate.add(const Duration(days: 1)))
+        ? _pickupDate!
+        : minDate;
+
+    final picked = await showDatePicker(
       context: context,
-      builder: (ctx) {
-        String name = '';
-        int qty = 1;
-        String? selectedDesignId = _availableDesigns.isNotEmpty ? _availableDesigns.first.id : null;
-
-        return StatefulBuilder(
-          builder: (context, setDlgState) => AlertDialog(
-            backgroundColor: AppColors.surface,
-            shape: const RoundedRectangleBorder(
-              borderRadius: AppRadius.borderLg,
+      initialDate: initialDate,
+      firstDate: minDate,
+      lastDate: maxDate,
+      helpText: 'Select Pickup Date (3 to 30 days in future)',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: AppColors.surfaceWhite,
+              onSurface: AppColors.textPrimary,
             ),
-            title: const Text(
-              'Add Design Reference',
-              style: TextStyle(color: AppColors.textPrimary),
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String?>(
-                    initialValue: selectedDesignId,
-                    dropdownColor: AppColors.surfaceLight,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 13,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Catalogue Design or Custom',
-                    ),
-                    items: [
-                      const DropdownMenuItem<String?>(
-                        value: null,
-                        child: Text('Custom Design'),
-                      ),
-                      ..._availableDesigns.map(
-                        (d) => DropdownMenuItem(
-                          value: d.id,
-                          child: Text(d.name, overflow: TextOverflow.ellipsis),
-                        ),
-                      ),
-                    ],
-                    onChanged: (val) {
-                      setDlgState(() {
-                        selectedDesignId = val;
-                        if (val != null) {
-                          name = _availableDesigns
-                              .firstWhere((d) => d.id == val)
-                              .name;
-                        }
-                      });
-                    },
-                  ),
-                  if (selectedDesignId == null) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    TextFormField(
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 14,
-                      ),
-                      decoration: const InputDecoration(
-                        hintText: 'Enter custom design name',
-                      ),
-                      onChanged: (val) => name = val,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: AppColors.textMuted),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  final finalName = selectedDesignId != null
-                      ? _availableDesigns
-                            .firstWhere((d) => d.id == selectedDesignId)
-                            .name
-                      : name;
-                  if (finalName.trim().isEmpty) return;
-
-                  final thumb = selectedDesignId != null
-                      ? _availableDesigns
-                            .firstWhere((d) => d.id == selectedDesignId)
-                            .thumbnailUrl
-                      : null;
-
-                  setState(() {
-                    _designReferences.add(
-                      DesignReferenceModel(
-                        designId: selectedDesignId,
-                        designName: finalName.trim(),
-                        thumbnailUrl: thumb,
-                        quantity: qty,
-                      ),
-                    );
-                    _hasChanges = true;
-                  });
-                  Navigator.of(ctx).pop();
-                },
-                child: const Text(
-                  'Add',
-                  style: TextStyle(color: AppColors.primary),
-                ),
-              ),
-            ],
           ),
+          child: child!,
         );
       },
     );
+
+    if (picked != null && picked != _pickupDate) {
+      setState(() {
+        _pickupDate = picked;
+        _hasChanges = true;
+      });
+    }
   }
 
-  Future<void> _save() async {
-    if (_isSaving) return;
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+  Future<void> _saveRequest() async {
+    if (!_formKey.currentState!.validate()) return;
 
     if (_selectedCustomerId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a customer for this order.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.surfaceLight,
-        ),
+      AppToast.show(
+        context,
+        'Please select a customer for this request',
+        type: ToastType.error,
       );
       return;
     }
 
-    if (_designReferences.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please add at least one design reference.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.surfaceLight,
-        ),
+    if (_pickupDate == null) {
+      AppToast.show(
+        context,
+        'Please select a valid pickup date',
+        type: ToastType.error,
       );
       return;
     }
 
     setState(() => _isSaving = true);
 
-    final scope = BoutiqueSelectionScope.of(context);
-    final boutiqueId = scope.selectedBoutique?.id ?? 'boutique_01';
-    final branchId = scope.selectedBranch?.id ?? 'branch_01';
-    final router = GoRouter.of(context);
-
-    // Build measurement summary
-    final chest = double.tryParse(_chestController.text.trim());
-    final waist = double.tryParse(_waistController.text.trim());
-    final hip = double.tryParse(_hipController.text.trim());
-    final shoulder = double.tryParse(_shoulderController.text.trim());
-    final sleeve = double.tryParse(_sleeveLengthController.text.trim());
-    final garment = double.tryParse(_garmentLengthController.text.trim());
-    final inseam = double.tryParse(_inseamController.text.trim());
-
-    final MeasurementSummaryModel? measurements =
-        (chest != null ||
-            waist != null ||
-            hip != null ||
-            shoulder != null ||
-            sleeve != null ||
-            garment != null ||
-            inseam != null)
-        ? MeasurementSummaryModel(
-            chest: chest,
-            waist: waist,
-            hip: hip,
-            shoulder: shoulder,
-            sleeveLength: sleeve,
-            garmentLength: garment,
-            inseam: inseam,
-            unit: _measurementUnit,
-          )
-        : null;
-
-    final now = DateTime.now();
-
     try {
+      final repo = ref.read(stitchingRepositoryProvider);
+      final customer = _availableCustomers.firstWhere(
+        (c) => (c.firebaseUid ?? c.id) == _selectedCustomerId,
+        orElse: () => widget.preselectedCustomer ??
+            CustomerModel(
+              id: _selectedCustomerId!,
+              displayName: 'Customer',
+              isActive: true,
+              source: CustomerSource.admin,
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
+      );
+
+      final nowStr = DateTime.now().millisecondsSinceEpoch.toString();
+      final orderNumber = widget.isEditMode
+          ? widget.existingOrder!.orderNumber
+          : 'REQ-${nowStr.substring(nowStr.length - 6)}';
+
+      final requestName = _nameController.text.trim();
+      final remarkNotes = _notesController.text.trim();
+
+      final orderModel = StitchingOrderModel(
+        id: widget.isEditMode
+            ? widget.existingOrder!.id
+            : const Uuid().v4(),
+        boutiqueId: 'boutique_01',
+        branchId: 'branch_01',
+        customerId: _selectedCustomerId!,
+        customerName: customer.displayName,
+        customerPhone: customer.phone,
+        customerEmail: customer.email,
+        orderNumber: orderNumber,
+        status: widget.isEditMode
+            ? widget.existingOrder!.status
+            : StitchingOrderStatus.requested,
+        requestName: requestName,
+        categoryName: _selectedCategory,
+        designReferences: [
+          DesignReferenceModel(
+            designName: requestName,
+            quantity: 1,
+            notes: _selectedCategory,
+          ),
+        ],
+        notes: remarkNotes.isNotEmpty ? remarkNotes : null,
+        expectedReadyAt: _pickupDate,
+        createdAt: widget.isEditMode
+            ? widget.existingOrder!.createdAt
+            : DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
       if (widget.isEditMode) {
-        final existing = widget.existingOrder!;
-        final updated = existing.copyWith(
-          customerId: _selectedCustomerId,
-          orderNumber: _orderNumberController.text.trim(),
-          status: _status,
-          designReferences: _designReferences,
-          measurementSummary: measurements,
-          clearMeasurementSummary: measurements == null,
-          notes: _notesController.text.trim().isEmpty
-              ? null
-              : _notesController.text.trim(),
-          clearNotes: _notesController.text.trim().isEmpty,
-          expectedReadyAt: _expectedReadyAt,
-          clearExpectedReadyAt: _expectedReadyAt == null,
-          updatedAt: now,
-          updatedBy: 'admin',
-        );
-        await _controller.updateOrder(updated);
+        await repo.updateOrder(orderModel);
       } else {
-        final newOrder = StitchingOrderModel(
-          id: const Uuid().v4(),
-          boutiqueId: boutiqueId,
-          branchId: branchId,
-          customerId: _selectedCustomerId!,
-          orderNumber: _orderNumberController.text.trim(),
-          status: _status,
-          designReferences: _designReferences,
-          measurementSummary: measurements,
-          notes: _notesController.text.trim().isEmpty
-              ? null
-              : _notesController.text.trim(),
-          expectedReadyAt: _expectedReadyAt,
-          createdAt: now,
-          updatedAt: now,
-          createdBy: 'admin',
-          updatedBy: 'admin',
+        await repo.createOrderWithHistory(
+          order: orderModel,
+          initialNote:
+              'Request created for $requestName under $_selectedCategory.',
+          createdBy: 'Admin',
         );
-        await _controller.createOrder(newOrder);
       }
 
       if (!mounted) return;
-      setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.isEditMode
-                ? 'Order ${_orderNumberController.text} updated.'
-                : 'Order ${_orderNumberController.text} created.',
-          ),
-          backgroundColor: AppColors.surfaceLight,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-        ),
+
+      AppToast.show(
+        context,
+        widget.isEditMode
+            ? 'Stitching request updated successfully'
+            : 'Stitching request created successfully',
+        type: ToastType.success,
       );
-      router.go(AppRoutes.adminStitchingOrderList);
+
+      _allowDiscardPop = true;
+      context.popOrGo(AppRoutes.adminStitchingOrderList);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to save order. Please try again.'),
-          backgroundColor: AppColors.surfaceLight,
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppToast.show(
+        context,
+        'Failed to save request: $e',
+        type: ToastType.error,
       );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
   @override
-  void dispose() {
-    _orderNumberController.dispose();
-    _notesController.dispose();
-    _chestController.dispose();
-    _waistController.dispose();
-    _hipController.dispose();
-    _shoulderController.dispose();
-    _sleeveLengthController.dispose();
-    _garmentLengthController.dispose();
-    _inseamController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final categoriesAsync = ref.watch(categoryListProvider);
+    final categoryList = categoriesAsync.valueOrNull ?? [];
+
+    final categoryOptions = <String>{
+      ..._defaultCategories,
+      ...categoryList.map((c) => c.name),
+    }.toList();
+
+    final selectedCat = categoryOptions.contains(_selectedCategory)
+        ? _selectedCategory
+        : categoryOptions.first;
+
     return PopScope(
-      canPop: !_hasChanges,
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final router = GoRouter.of(context);
-        final canLeave = await _onWillPop();
-        if (canLeave) router.go(AppRoutes.adminStitchingOrderList);
+        if (await _onWillPop()) {
+          _allowDiscardPop = true;
+          if (context.mounted) {
+            context.popOrGo(AppRoutes.adminStitchingOrderList);
+          }
+        }
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          title: Text(
-            widget.isEditMode ? 'Edit Order' : 'Add Stitching Order',
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_rounded,
-              color: AppColors.textPrimary,
-            ),
-            onPressed: () async {
-              final router = GoRouter.of(context);
-              final canLeave = await _onWillPop();
-              if (canLeave) router.go(AppRoutes.adminStitchingOrderList);
-            },
-          ),
+        appBar: AdminAppBar(
+          title: widget.isEditMode
+              ? 'Edit Stitching Request'
+              : 'New Stitching Request',
+          onBackTap: () async {
+            if (await _onWillPop()) {
+              _allowDiscardPop = true;
+              if (context.mounted) {
+                context.popOrGo(AppRoutes.adminStitchingOrderList);
+              }
+            }
+          },
         ),
         body: SafeArea(
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.all(AppSpacing.lg),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 560),
@@ -481,84 +359,259 @@ class _StitchingOrderFormPageState extends State<StitchingOrderFormPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Customer Dropdown
-                      _field(
-                        'Select Customer *',
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedCustomerId,
-                          dropdownColor: AppColors.surfaceLight,
-                          style: _fieldStyle,
-                          decoration: _dec('Select customer'),
-                          items: _availableCustomers.map((c) {
-                            return DropdownMenuItem(
-                              value: c.id,
-                              child: Text(
-                                '${c.displayName}${c.phone != null ? ' (${c.phone})' : ''}',
-                                overflow: TextOverflow.ellipsis,
+                      // Form Card Container
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: AppRadius.borderLg,
+                          border: Border.all(color: AppColors.surfaceBorder),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Customer Selection Header Tile
+                            _buildCustomerSection(),
+
+                            const SizedBox(height: 16),
+                            const Divider(
+                              color: AppColors.surfaceBorder,
+                              height: 1,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Request Name Field
+                            Text(
+                              'Request Name *',
+                              style: GoogleFonts.montserrat(
+                                color: AppColors.textPrimary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
                               ),
-                            );
-                          }).toList(),
-                          onChanged: (v) => setState(() {
-                            _selectedCustomerId = v;
-                            _hasChanges = true;
-                          }),
+                            ),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: _nameController,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 14,
+                                color: AppColors.textPrimary,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'e.g. Royal Silk Anarkali Suit',
+                                hintStyle: GoogleFonts.montserrat(
+                                  color: AppColors.textMuted,
+                                  fontSize: 13,
+                                ),
+                                filled: true,
+                                fillColor: AppColors.surfaceLight,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: AppRadius.borderMd,
+                                  borderSide: const BorderSide(
+                                    color: AppColors.borderSoft,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: AppRadius.borderMd,
+                                  borderSide: const BorderSide(
+                                    color: AppColors.borderSoft,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: AppRadius.borderMd,
+                                  borderSide: const BorderSide(
+                                    color: AppColors.primary,
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter request name';
+                                }
+                                return null;
+                              },
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Category Selection Field
+                            Text(
+                              'Category *',
+                              style: GoogleFonts.montserrat(
+                                color: AppColors.textPrimary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            DropdownButtonFormField<String>(
+                              initialValue: selectedCat,
+                              icon: PhosphorIcon(
+                                PhosphorIcons.caretDown(),
+                                size: 18,
+                                color: AppColors.textMuted,
+                              ),
+                              dropdownColor: AppColors.surface,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 14,
+                                color: AppColors.textPrimary,
+                              ),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: AppColors.surfaceLight,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: AppRadius.borderMd,
+                                  borderSide: const BorderSide(
+                                    color: AppColors.borderSoft,
+                                  ),
+                                ),
+                              ),
+                              items: categoryOptions.map((cat) {
+                                return DropdownMenuItem<String>(
+                                  value: cat,
+                                  child: Text(cat),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() {
+                                    _selectedCategory = val;
+                                    _hasChanges = true;
+                                  });
+                                }
+                              },
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Pickup Date Tile
+                            Text(
+                              'Pickup Date * (Min 3 days, Max 1 month)',
+                              style: GoogleFonts.montserrat(
+                                color: AppColors.textPrimary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            InkWell(
+                              onTap: _selectPickupDate,
+                              borderRadius: AppRadius.borderMd,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceLight,
+                                  borderRadius: AppRadius.borderMd,
+                                  border:
+                                      Border.all(color: AppColors.borderSoft),
+                                ),
+                                child: Row(
+                                  children: [
+                                    PhosphorIcon(
+                                      PhosphorIcons.calendarBlank(),
+                                      color: AppColors.primary,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        _pickupDate != null
+                                            ? '${DateFormat('EEE, dd MMM yyyy').format(_pickupDate!)}  (${_getPickupDelayText(_pickupDate!)})'
+                                            : 'Select Pickup Date',
+                                        style: GoogleFonts.montserrat(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                    PhosphorIcon(
+                                      PhosphorIcons.pencilSimple(),
+                                      size: 16,
+                                      color: AppColors.textMuted,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Remark / Instructions Field
+                            Text(
+                              'Remark / Instructions (Optional)',
+                              style: GoogleFonts.montserrat(
+                                color: AppColors.textPrimary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: _notesController,
+                              maxLines: 4,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 13,
+                                color: AppColors.textPrimary,
+                              ),
+                              decoration: InputDecoration(
+                                hintText:
+                                    'Add custom latkan preference, lining material, urgent event details...',
+                                hintStyle: GoogleFonts.montserrat(
+                                  color: AppColors.textMuted,
+                                  fontSize: 12,
+                                ),
+                                filled: true,
+                                fillColor: AppColors.surfaceLight,
+                                contentPadding: const EdgeInsets.all(12),
+                                border: OutlineInputBorder(
+                                  borderRadius: AppRadius.borderMd,
+                                  borderSide: const BorderSide(
+                                    color: AppColors.borderSoft,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: AppRadius.borderMd,
+                                  borderSide: const BorderSide(
+                                    color: AppColors.borderSoft,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: AppRadius.borderMd,
+                                  borderSide: const BorderSide(
+                                    color: AppColors.primary,
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.md),
 
-                      // Order Number
-                      _field(
-                        'Order Number *',
-                        TextFormField(
-                          controller: _orderNumberController,
-                          style: _fieldStyle,
-                          cursorColor: AppColors.primary,
-                          decoration: _dec('e.g. KC-AHD-2026-0001'),
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) {
-                              return 'Order number is required.';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
+                      const SizedBox(height: 20),
 
-                      // Design References List
-                      _designReferencesSection(),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Measurement Editor
-                      _measurementEditorSection(),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Expected Ready Date Picker
-                      _datePickerSection(),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Notes
-                      _field(
-                        'General Notes (Optional)',
-                        TextFormField(
-                          controller: _notesController,
-                          style: _fieldStyle,
-                          cursorColor: AppColors.primary,
-                          maxLines: 3,
-                          decoration: _dec(
-                            'e.g. Special lining requests, urgent delivery',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-
+                      // Submit Button
                       _isSaving
-                          ? const Center(child: AppLoadingIndicator(size: 36))
+                          ? const Center(child: AppLoadingIndicator())
                           : AppButton(
                               text: widget.isEditMode
-                                  ? 'Save Order'
-                                  : 'Create Order',
-                              onPressed: _save,
+                                  ? 'Update Request'
+                                  : 'Submit Request',
+                              onPressed: _saveRequest,
                             ),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -570,284 +623,137 @@ class _StitchingOrderFormPageState extends State<StitchingOrderFormPage> {
     );
   }
 
-  Widget _designReferencesSection() {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.borderMd,
-        border: Border.all(color: AppColors.surfaceBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildCustomerSection() {
+    if (widget.preselectedCustomer != null) {
+      final pc = widget.preselectedCustomer!;
+      final initials = pc.displayName
+          .trim()
+          .split(RegExp(r'\s+'))
+          .map((e) => e.isNotEmpty ? e[0] : '')
+          .take(2)
+          .join()
+          .toUpperCase();
+
+      return Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Design References *',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              TextButton.icon(
-                icon: const Icon(Icons.add_rounded, size: 16),
-                label: const Text('Add Design', style: TextStyle(fontSize: 12)),
-                onPressed: _addDesignReference,
-              ),
-            ],
-          ),
-          if (_designReferences.isEmpty)
-            const Text(
-              'No design references added yet.',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-            )
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _designReferences.length,
-              separatorBuilder: (_, _) => const Divider(
-                color: AppColors.surfaceBorder,
-                height: AppSpacing.sm,
-              ),
-              itemBuilder: (context, i) {
-                final item = _designReferences[i];
-                return Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.designName,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            '${item.isCustom ? 'Custom Pattern' : 'Catalogue Design'} • Qty: ${item.quantity}',
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: AppColors.surfaceLight,
+            backgroundImage:
+                pc.photoUrl != null ? NetworkImage(pc.photoUrl!) : null,
+            child: pc.photoUrl == null
+                ? Text(
+                    initials,
+                    style: GoogleFonts.montserrat(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
                     ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.delete_outline_rounded,
-                        color: AppColors.error,
-                        size: 18,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _designReferences.removeAt(i);
-                          _hasChanges = true;
-                        });
-                      },
-                    ),
-                  ],
-                );
-              },
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _measurementEditorSection() {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.borderMd,
-        border: Border.all(color: AppColors.surfaceBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Body & Garment Measurements',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              DropdownButton<String>(
-                value: _measurementUnit,
-                dropdownColor: AppColors.surfaceLight,
-                style: const TextStyle(color: AppColors.primary, fontSize: 12),
-                underline: const SizedBox(),
-                items: const [
-                  DropdownMenuItem(value: 'in', child: Text('Inches (in)')),
-                  DropdownMenuItem(
-                    value: 'cm',
-                    child: Text('Centimeters (cm)'),
-                  ),
-                ],
-                onChanged: (v) {
-                  if (v != null) {
-                    setState(() {
-                      _measurementUnit = v;
-                      _hasChanges = true;
-                    });
-                  }
-                },
-              ),
-            ],
+                  )
+                : null,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              Expanded(child: _measInput('Chest', _chestController)),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(child: _measInput('Waist', _waistController)),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(child: _measInput('Hip', _hipController)),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              Expanded(child: _measInput('Shoulder', _shoulderController)),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(child: _measInput('Sleeve', _sleeveLengthController)),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(child: _measInput('Length', _garmentLengthController)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _measInput(String label, TextEditingController ctrl) {
-    return TextFormField(
-      controller: ctrl,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        border: const OutlineInputBorder(
-          borderRadius: AppRadius.borderMd,
-          borderSide: BorderSide(color: AppColors.surfaceBorder),
-        ),
-      ),
-    );
-  }
-
-  Widget _datePickerSection() {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.borderMd,
-        border: Border.all(color: AppColors.surfaceBorder),
-      ),
-      child: Row(
-        children: [
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Expected Ready Date',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 13,
+                Text(
+                  'CUSTOMER',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
+                    color: AppColors.textMuted,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 2),
                 Text(
-                  _expectedReadyAt == null
-                      ? 'No date set'
-                      : '${_expectedReadyAt!.day}/${_expectedReadyAt!.month}/${_expectedReadyAt!.year}',
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 12,
+                  pc.displayName,
+                  style: GoogleFonts.montserrat(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
             ),
           ),
-          TextButton(
-            onPressed: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate:
-                    _expectedReadyAt ??
-                    DateTime.now().add(const Duration(days: 7)),
-                firstDate: DateTime.now(),
-                lastDate: DateTime.now().add(const Duration(days: 180)),
-              );
-              if (picked != null) {
-                setState(() {
-                  _expectedReadyAt = picked;
-                  _hasChanges = true;
-                });
-              }
-            },
-            child: const Text('Pick Date'),
-          ),
         ],
-      ),
+      );
+    }
+
+    final selectedCust = _availableCustomers.any(
+      (c) => (c.firebaseUid ?? c.id) == _selectedCustomerId,
+    )
+        ? _selectedCustomerId
+        : (_availableCustomers.isNotEmpty
+            ? (_availableCustomers.first.firebaseUid ?? _availableCustomers.first.id)
+            : null);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Select Customer *',
+          style: GoogleFonts.montserrat(
+            color: AppColors.textPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String>(
+          initialValue: selectedCust,
+          icon: PhosphorIcon(
+            PhosphorIcons.caretDown(),
+            size: 18,
+            color: AppColors.textMuted,
+          ),
+          dropdownColor: AppColors.surface,
+          style: GoogleFonts.montserrat(
+            fontSize: 14,
+            color: AppColors.textPrimary,
+          ),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: AppColors.surfaceLight,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: AppRadius.borderMd,
+              borderSide: const BorderSide(
+                color: AppColors.borderSoft,
+              ),
+            ),
+          ),
+          items: _availableCustomers.map((cust) {
+            final id = cust.firebaseUid ?? cust.id;
+            return DropdownMenuItem<String>(
+              value: id,
+              child: Text(
+                '${cust.displayName}${cust.phone != null ? ' (${cust.phone})' : ''}',
+                overflow: TextOverflow.ellipsis,
+              ),
+            );
+          }).toList(),
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                _selectedCustomerId = val;
+                _hasChanges = true;
+              });
+            }
+          },
+          validator: (val) => val == null ? 'Please select customer' : null,
+        ),
+      ],
     );
   }
 
-  Widget _field(String label, Widget child) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        label,
-        style: const TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      const SizedBox(height: AppSpacing.xs),
-      child,
-    ],
-  );
-
-  static const TextStyle _fieldStyle = TextStyle(
-    color: AppColors.textPrimary,
-    fontSize: 14,
-  );
-
-  InputDecoration _dec(String hint) => InputDecoration(
-    hintText: hint,
-    hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
-    filled: true,
-    fillColor: AppColors.surface,
-    contentPadding: const EdgeInsets.symmetric(
-      horizontal: AppSpacing.md,
-      vertical: AppSpacing.md,
-    ),
-    border: const OutlineInputBorder(
-      borderRadius: AppRadius.borderMd,
-      borderSide: BorderSide(color: AppColors.surfaceBorder),
-    ),
-    enabledBorder: const OutlineInputBorder(
-      borderRadius: AppRadius.borderMd,
-      borderSide: BorderSide(color: AppColors.surfaceBorder),
-    ),
-    focusedBorder: const OutlineInputBorder(
-      borderRadius: AppRadius.borderMd,
-      borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-    ),
-  );
+  String _getPickupDelayText(DateTime pickupDate) {
+    final diff = pickupDate.difference(DateTime.now()).inDays + 1;
+    if (diff <= 3) return 'Urgent - 3 days delay';
+    return 'Pickup in $diff days';
+  }
 }
