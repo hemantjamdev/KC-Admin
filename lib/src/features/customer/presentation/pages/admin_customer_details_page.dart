@@ -483,6 +483,47 @@ class __CustomerReminderBottomSheetState
 
   Future<void> _sendReminder() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderLg),
+        title: Text(
+          'Send Stitching Reminder?',
+          style: GoogleFonts.playfairDisplay(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Send this stitching reminder notification to ${widget.customer.displayName} now?',
+          style: GoogleFonts.montserrat(color: AppColors.textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.montserrat(color: AppColors.textMuted),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(
+              'Send',
+              style: GoogleFonts.montserrat(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     setState(() => _isSending = true);
 
     try {
