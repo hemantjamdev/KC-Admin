@@ -97,8 +97,6 @@ class _AdminNotificationListPageState
     }
   }
 
-  NotificationStatus? _selectedStatus;
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -131,93 +129,71 @@ class _AdminNotificationListPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Search Input Field & Filter Chips
+              // Search Input Field
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _searchController,
-                      style: GoogleFonts.montserrat(
-                        color: AppColors.textPrimary,
-                        fontSize: 14,
-                      ),
-                      cursorColor: AppColors.primary,
-                      decoration: InputDecoration(
-                        hintText: 'Search notifications by title or message…',
-                        hintStyle: GoogleFonts.montserrat(
-                          color: AppColors.textHint,
-                          fontSize: 13,
-                        ),
-                        prefixIcon: PhosphorIcon(
-                          PhosphorIcons.magnifyingGlass(),
-                          color: AppColors.textMuted,
-                          size: 18,
-                        ),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: PhosphorIcon(
-                                  PhosphorIcons.x(),
-                                  color: AppColors.textMuted,
-                                  size: 16,
-                                ),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  ref
-                                      .read(paginatedNotificationsProvider.notifier)
-                                      .fetchInitial(query: '');
-                                },
-                              )
-                            : null,
-                        filled: true,
-                        fillColor: AppColors.surface,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                            color: AppColors.surfaceBorder,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                            color: AppColors.surfaceBorder,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                            color: AppColors.primary,
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-                      onChanged: (q) => ref
-                          .read(paginatedNotificationsProvider.notifier)
-                          .fetchInitial(query: q),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                child: TextField(
+                  controller: _searchController,
+                  style: GoogleFonts.montserrat(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                  ),
+                  cursorColor: AppColors.primary,
+                  decoration: InputDecoration(
+                    hintText: 'Search notifications by title or message…',
+                    hintStyle: GoogleFonts.montserrat(
+                      color: AppColors.textHint,
+                      fontSize: 13,
                     ),
-                    const SizedBox(height: 10),
-
-                    // Filter Chips Row
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        children: [
-                          _filterChip(null, 'All Broadcasts'),
-                          const SizedBox(width: 6),
-                          _filterChip(NotificationStatus.published, 'Published'),
-                          const SizedBox(width: 6),
-                          _filterChip(NotificationStatus.scheduled, 'Scheduled'),
-                          const SizedBox(width: 6),
-                          _filterChip(NotificationStatus.draft, 'Drafts'),
-                        ],
+                    prefixIcon: PhosphorIcon(
+                      PhosphorIcons.magnifyingGlass(),
+                      color: AppColors.textMuted,
+                      size: 18,
+                    ),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: PhosphorIcon(
+                              PhosphorIcons.x(),
+                              color: AppColors.textMuted,
+                              size: 16,
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                              ref
+                                  .read(paginatedNotificationsProvider.notifier)
+                                  .fetchInitial(query: '');
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                        color: AppColors.surfaceBorder,
                       ),
                     ),
-                  ],
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                        color: AppColors.surfaceBorder,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  onChanged: (q) => ref
+                      .read(paginatedNotificationsProvider.notifier)
+                      .fetchInitial(query: q),
                 ),
               ),
 
@@ -226,13 +202,7 @@ class _AdminNotificationListPageState
                 child: Builder(
                   builder: (context) {
                     final paginatedState = ref.watch(paginatedNotificationsProvider);
-                    var notifications = paginatedState.items;
-
-                    if (_selectedStatus != null) {
-                      notifications = notifications
-                          .where((n) => n.status == _selectedStatus)
-                          .toList();
-                    }
+                    final notifications = paginatedState.items;
 
                     return RefreshIndicator(
                       color: AppColors.primary,
@@ -310,29 +280,6 @@ class _AdminNotificationListPageState
           ),
         ),
       ),
-    );
-  }
-
-  Widget _filterChip(NotificationStatus? status, String label) {
-    final isSelected = _selectedStatus == status;
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) => setState(() => _selectedStatus = status),
-      selectedColor: AppColors.primary,
-      backgroundColor: AppColors.surface,
-      labelStyle: GoogleFonts.montserrat(
-        color: isSelected ? Colors.white : AppColors.textMuted,
-        fontSize: 12,
-        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(
-          color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
-        ),
-      ),
-      showCheckmark: false,
     );
   }
 
@@ -557,34 +504,19 @@ class _NotificationCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (notification.status == NotificationStatus.draft) ...[
-                  const SizedBox(width: 4),
-                  InkWell(
-                    onTap: onEdit,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: PhosphorIcon(
-                        PhosphorIcons.pencilSimple(),
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
+                const SizedBox(width: 4),
+                InkWell(
+                  onTap: onDelete,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: PhosphorIcon(
+                      PhosphorIcons.trash(),
+                      size: 16,
+                      color: AppColors.error,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  InkWell(
-                    onTap: onDelete,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: PhosphorIcon(
-                        PhosphorIcons.trash(),
-                        size: 16,
-                        color: AppColors.error,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ],
             ),
           ],

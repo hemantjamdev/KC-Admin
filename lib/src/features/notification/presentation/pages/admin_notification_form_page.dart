@@ -55,8 +55,6 @@ class _AdminNotificationFormPageState
       NotificationDestinationType.none;
   String? _selectedEntityId;
 
-  DeliveryMode _deliveryMode = DeliveryMode.publishNow;
-  DateTime? _scheduledAt;
   DateTime? _expiresAt;
 
   bool _isSaving = false;
@@ -83,16 +81,7 @@ class _AdminNotificationFormPageState
       _destinationType =
           n.relatedEntityType ?? NotificationDestinationType.none;
       _selectedEntityId = n.relatedEntityId;
-      _scheduledAt = n.scheduledAt;
       _expiresAt = n.expiresAt;
-
-      if (n.status == NotificationStatus.published) {
-        _deliveryMode = DeliveryMode.publishNow;
-      } else if (n.status == NotificationStatus.scheduled) {
-        _deliveryMode = DeliveryMode.schedule;
-      } else {
-        _deliveryMode = DeliveryMode.saveDraft;
-      }
     }
 
     _titleController.addListener(_markDirty);
@@ -194,66 +183,46 @@ class _AdminNotificationFormPageState
       return;
     }
 
-    // Schedule validation
-    if (_deliveryMode == DeliveryMode.schedule && _scheduledAt == null) {
-      AppToast.show(
-        context,
-        'Please set a future date/time for scheduling.',
-        type: ToastType.warning,
-      );
-      return;
-    }
-
     const boutiqueId = 'boutique_01';
 
-    // Publish confirmation dialog
-    if (_deliveryMode == DeliveryMode.publishNow) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderLg),
-          title: const Text(
-            'Publish Notification?',
-            style: TextStyle(color: AppColors.textPrimary),
-          ),
-          content: Text(
-            'Publish "${_titleController.text.trim()}" now into the customer app? Published notifications cannot be edited.',
-            style: const TextStyle(color: AppColors.textMuted),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: AppColors.textMuted),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text(
-                'Publish',
-                style: TextStyle(color: AppColors.primary),
-              ),
-            ),
-          ],
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.borderLg),
+        title: Text(
+          widget.isEditMode ? 'Update Notification?' : 'Publish Notification?',
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
-      );
-      if (confirmed != true) return;
-    }
+        content: Text(
+          'Publish "${_titleController.text.trim()}" now into the customer app?',
+          style: const TextStyle(color: AppColors.textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(
+              widget.isEditMode ? 'Update' : 'Publish',
+              style: const TextStyle(color: AppColors.primary),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
 
     setState(() => _isSaving = true);
     final now = DateTime.now();
 
-    NotificationStatus initialStatus = NotificationStatus.draft;
-    DateTime? pubAt;
-
-    if (_deliveryMode == DeliveryMode.publishNow) {
-      initialStatus = NotificationStatus.published;
-      pubAt = now;
-    } else if (_deliveryMode == DeliveryMode.schedule) {
-      initialStatus = NotificationStatus.scheduled;
-    }
+    final initialStatus = NotificationStatus.published;
+    final pubAt = now;
 
     try {
       if (widget.isEditMode) {
@@ -267,7 +236,6 @@ class _AdminNotificationFormPageState
           relatedEntityType: _destinationType,
           relatedEntityId: _selectedEntityId,
           status: initialStatus,
-          scheduledAt: _scheduledAt,
           publishedAt: pubAt,
           expiresAt: _expiresAt,
           updatedAt: now,
@@ -288,7 +256,6 @@ class _AdminNotificationFormPageState
           relatedEntityType: _destinationType,
           relatedEntityId: _selectedEntityId,
           status: initialStatus,
-          scheduledAt: _scheduledAt,
           publishedAt: pubAt,
           expiresAt: _expiresAt,
           createdAt: now,
@@ -458,18 +425,14 @@ class _AdminNotificationFormPageState
                       _buildLivePreviewCard(),
                       const SizedBox(height: AppSpacing.md),
 
-                      // 5. Delivery Mode Card
-                      _deliveryModeSection(),
                       const SizedBox(height: AppSpacing.xl),
 
                       _isSaving
                           ? const Center(child: AppLoadingIndicator(size: 36))
                           : AppButton(
-                              text: _deliveryMode == DeliveryMode.publishNow
-                                  ? 'Publish Notification'
-                                  : (_deliveryMode == DeliveryMode.schedule
-                                        ? 'Schedule Notification'
-                                        : 'Save as Draft'),
+                              text: widget.isEditMode
+                                  ? 'Update Notification'
+                                  : 'Publish Notification',
                               onPressed: _save,
                             ),
                     ],
@@ -649,123 +612,7 @@ class _AdminNotificationFormPageState
     );
   }
 
-  Widget _deliveryModeSection() {
-    return _formCard(
-      title: 'Delivery Schedule',
-      icon: PhosphorIcons.clock(),
-      children: [
-        RadioListTile<DeliveryMode>(
-          value: DeliveryMode.publishNow,
-          groupValue: _deliveryMode,
-          title: Text(
-            'Publish Immediately',
-            style: GoogleFonts.montserrat(
-              color: AppColors.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          activeColor: AppColors.primary,
-          dense: true,
-          contentPadding: EdgeInsets.zero,
-          onChanged: (v) => setState(() {
-            _deliveryMode = v!;
-            _hasChanges = true;
-          }),
-        ),
-        RadioListTile<DeliveryMode>(
-          value: DeliveryMode.schedule,
-          groupValue: _deliveryMode,
-          title: Text(
-            'Schedule for Future Date/Time',
-            style: GoogleFonts.montserrat(
-              color: AppColors.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          activeColor: AppColors.primary,
-          dense: true,
-          contentPadding: EdgeInsets.zero,
-          onChanged: (v) => setState(() {
-            _deliveryMode = v!;
-            _hasChanges = true;
-          }),
-        ),
-        if (_deliveryMode == DeliveryMode.schedule) ...[
-          Padding(
-            padding: const EdgeInsets.only(left: 32, top: 4, bottom: 8),
-            child: Row(
-              children: [
-                PhosphorIcon(
-                  PhosphorIcons.calendarBlank(),
-                  size: 16,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  _scheduledAt == null
-                      ? 'No schedule date set'
-                      : 'Scheduled: ${_scheduledAt!.day}/${_scheduledAt!.month}/${_scheduledAt!.year}',
-                  style: GoogleFonts.montserrat(
-                    color: AppColors.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                TextButton(
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate:
-                          _scheduledAt ??
-                          DateTime.now().add(const Duration(days: 1)),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 180)),
-                    );
-                    if (picked != null) {
-                      setState(() {
-                        _scheduledAt = picked;
-                        _hasChanges = true;
-                      });
-                    }
-                  },
-                  child: Text(
-                    'Pick Date',
-                    style: GoogleFonts.montserrat(
-                      color: AppColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-        RadioListTile<DeliveryMode>(
-          value: DeliveryMode.saveDraft,
-          groupValue: _deliveryMode,
-          title: Text(
-            'Save as Draft',
-            style: GoogleFonts.montserrat(
-              color: AppColors.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          activeColor: AppColors.primary,
-          dense: true,
-          contentPadding: EdgeInsets.zero,
-          onChanged: (v) => setState(() {
-            _deliveryMode = v!;
-            _hasChanges = true;
-          }),
-        ),
-      ],
-    );
-  }
+
 
   Widget _formCard({
     required String title,
