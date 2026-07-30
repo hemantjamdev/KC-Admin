@@ -13,14 +13,6 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/admin_app_bar.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../../customer/application/providers/customer_providers.dart';
-import '../../../customer/domain/models/customer_model.dart';
-import '../../../design/application/providers/design_providers.dart';
-import '../../../design/domain/models/design_model.dart';
-import '../../../section/application/providers/section_providers.dart';
-import '../../../section/domain/models/section_model.dart';
-import '../../../stitching/application/providers/stitching_providers.dart';
-import '../../../stitching/domain/models/stitching_order_model.dart';
 import '../../domain/models/notification_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/providers/notification_providers.dart';
@@ -45,13 +37,13 @@ class _AdminNotificationFormPageState
   final _bodyFocusNode = FocusNode();
 
   NotificationType _type = NotificationType.general;
-  NotificationAudienceType _audienceType =
+  final NotificationAudienceType _audienceType =
       NotificationAudienceType.allBoutiqueCustomers;
-  final List<String> _selectedCustomerIds = [];
+  final List<String> _selectedCustomerIds = const [];
 
-  NotificationDestinationType _destinationType =
+  final NotificationDestinationType _destinationType =
       NotificationDestinationType.none;
-  String? _selectedEntityId;
+  final String? _selectedEntityId = null;
 
   DateTime? _expiresAt;
 
@@ -59,26 +51,15 @@ class _AdminNotificationFormPageState
   bool _hasChanges = false;
   bool _allowDiscardPop = false;
 
-  List<CustomerModel> _availableCustomers = [];
-  List<DesignModel> _availableDesigns = [];
-  List<SectionModel> _availableSections = [];
-  List<StitchingOrderModel> _availableOrders = [];
-
   @override
   void initState() {
     super.initState();
-    _loadCustomers();
 
     if (widget.isEditMode) {
       final n = widget.existingNotification!;
       _titleController.text = n.title;
       _bodyController.text = n.body;
       _type = n.type;
-      _audienceType = n.audienceType;
-      _selectedCustomerIds.addAll(n.customerIds);
-      _destinationType =
-          n.relatedEntityType ?? NotificationDestinationType.none;
-      _selectedEntityId = n.relatedEntityId;
       _expiresAt = n.expiresAt;
     }
 
@@ -99,35 +80,7 @@ class _AdminNotificationFormPageState
     if (!_hasChanges) setState(() => _hasChanges = true);
   }
 
-  Future<void> _loadCustomers() async {
-    try {
-      final repo = ref.read(customerRepositoryProvider);
-      final list = await repo.getCustomersForAdmin();
-      if (!mounted) return;
-      setState(() => _availableCustomers = list);
-    } catch (_) {}
-  }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    const boutiqueId = 'boutique_01';
-    _loadMetadata(boutiqueId);
-  }
-
-  Future<void> _loadMetadata(String boutiqueId) async {
-    try {
-      final designs = await ref.read(designRepositoryProvider).watchDesigns(boutiqueId).first;
-      final sections = await ref.read(sectionRepositoryProvider).watchSections(boutiqueId).first;
-      final orders = await ref.read(stitchingRepositoryProvider).watchAdminOrders(boutiqueId, null).first;
-      if (!mounted) return;
-      setState(() {
-        _availableDesigns = designs;
-        _availableSections = sections;
-        _availableOrders = orders;
-      });
-    } catch (_) {}
-  }
 
   Future<bool> _onWillPop() async {
     if (!_hasChanges) return true;
@@ -168,18 +121,6 @@ class _AdminNotificationFormPageState
   Future<void> _save() async {
     if (_isSaving) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
-
-    // Audience validation
-
-    if (_audienceType == NotificationAudienceType.selectedCustomers &&
-        _selectedCustomerIds.isEmpty) {
-      AppToast.show(
-        context,
-        'Please select at least one customer for this audience.',
-        type: ToastType.warning,
-      );
-      return;
-    }
 
     const boutiqueId = 'boutique_01';
 
@@ -411,15 +352,7 @@ class _AdminNotificationFormPageState
                       ),
                       const SizedBox(height: AppSpacing.md),
 
-                      // 2. Audience Selector Card
-                      _audienceSection(),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // 3. Destination Selector Card
-                      _destinationSection(),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // 4. Live Notification Preview Card
+                      // 2. Live Notification Preview Card
                       _buildLivePreviewCard(),
                       const SizedBox(height: AppSpacing.md),
 
@@ -444,171 +377,7 @@ class _AdminNotificationFormPageState
     );
   }
 
-  Widget _audienceSection() {
-    return _formCard(
-      title: 'Audience Targeting',
-      icon: PhosphorIcons.usersThree(),
-      children: [
-        DropdownButtonFormField<NotificationAudienceType>(
-          initialValue: _audienceType,
-          dropdownColor: AppColors.surfaceLight,
-          style: _fieldStyle,
-          decoration: _dec('Select audience'),
-          items: NotificationAudienceType.values.map((a) {
-            return DropdownMenuItem(value: a, child: Text(a.label));
-          }).toList(),
-          onChanged: (v) {
-            if (v != null) {
-              setState(() {
-                _audienceType = v;
-                _hasChanges = true;
-              });
-            }
-          },
-        ),
 
-        if (_audienceType == NotificationAudienceType.selectedCustomers) ...[
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Select Target Customers:',
-            style: GoogleFonts.montserrat(
-              color: AppColors.textMuted,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 4),
-          ..._availableCustomers.map((c) {
-            final targetUid =
-                (c.firebaseUid != null && c.firebaseUid!.isNotEmpty)
-                ? c.firebaseUid!
-                : c.id;
-            final isChecked =
-                _selectedCustomerIds.contains(targetUid) ||
-                _selectedCustomerIds.contains(c.id);
-            return CheckboxListTile(
-              value: isChecked,
-              title: Text(
-                c.displayName,
-                style: GoogleFonts.montserrat(
-                  color: AppColors.textPrimary,
-                  fontSize: 13,
-                ),
-              ),
-              activeColor: AppColors.primary,
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              onChanged: (val) {
-                setState(() {
-                  if (val == true) {
-                    _selectedCustomerIds.add(targetUid);
-                    if (c.id != targetUid) {
-                      _selectedCustomerIds.add(c.id);
-                    }
-                  } else {
-                    _selectedCustomerIds.remove(targetUid);
-                    _selectedCustomerIds.remove(c.id);
-                  }
-                  _hasChanges = true;
-                });
-              },
-            );
-          }),
-        ],
-      ],
-    );
-  }
-
-  Widget _destinationSection() {
-    return _formCard(
-      title: 'In-App Destination Link',
-      icon: PhosphorIcons.link(),
-      children: [
-        DropdownButtonFormField<NotificationDestinationType>(
-          initialValue: _destinationType,
-          dropdownColor: AppColors.surfaceLight,
-          style: _fieldStyle,
-          decoration: _dec('Select destination'),
-          items: NotificationDestinationType.values.map((d) {
-            return DropdownMenuItem(value: d, child: Text(d.label));
-          }).toList(),
-          onChanged: (v) {
-            if (v != null) {
-              setState(() {
-                _destinationType = v;
-                _selectedEntityId = null;
-                _hasChanges = true;
-              });
-            }
-          },
-        ),
-        if (_destinationType == NotificationDestinationType.design) ...[
-          const SizedBox(height: AppSpacing.sm),
-          DropdownButtonFormField<String>(
-            initialValue: _selectedEntityId,
-            isExpanded: true,
-            dropdownColor: AppColors.surfaceLight,
-            style: _fieldStyle,
-            decoration: _dec('Select Design'),
-            items: _availableDesigns.map((d) {
-              return DropdownMenuItem(
-                value: d.id,
-                child: Text(d.name, overflow: TextOverflow.ellipsis),
-              );
-            }).toList(),
-            onChanged: (v) => setState(() {
-              _selectedEntityId = v;
-              _hasChanges = true;
-            }),
-          ),
-        ],
-        if (_destinationType == NotificationDestinationType.section) ...[
-          const SizedBox(height: AppSpacing.sm),
-          DropdownButtonFormField<String>(
-            initialValue: _selectedEntityId,
-            isExpanded: true,
-            dropdownColor: AppColors.surfaceLight,
-            style: _fieldStyle,
-            decoration: _dec('Select Section'),
-            items: _availableSections.map((s) {
-              return DropdownMenuItem(
-                value: s.id,
-                child: Text(s.title, overflow: TextOverflow.ellipsis),
-              );
-            }).toList(),
-            onChanged: (v) => setState(() {
-              _selectedEntityId = v;
-              _hasChanges = true;
-            }),
-          ),
-        ],
-        if (_destinationType ==
-            NotificationDestinationType.stitchingOrder) ...[
-          const SizedBox(height: AppSpacing.sm),
-          DropdownButtonFormField<String>(
-            initialValue: _selectedEntityId,
-            isExpanded: true,
-            dropdownColor: AppColors.surfaceLight,
-            style: _fieldStyle,
-            decoration: _dec('Select Stitching Order'),
-            items: _availableOrders.map((o) {
-              return DropdownMenuItem(
-                value: o.id,
-                child: Text(
-                  '${o.orderNumber} (${o.displayRequestName})',
-                  overflow: TextOverflow.ellipsis,
-                ),
-              );
-            }).toList(),
-            onChanged: (v) => setState(() {
-              _selectedEntityId = v;
-              _hasChanges = true;
-            }),
-          ),
-        ],
-      ],
-    );
-  }
 
 
 
