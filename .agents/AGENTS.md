@@ -6,7 +6,7 @@ This document defines the core product philosophy, architectural standards, desi
 
 ## 1. Product Philosophy & Brand Identity
 
-- **Luxury Boutique Experience**: Kapada Creation represents bespoke tailoring, fine craftsmanship, and premium boutique fashion. The UI must evoke elegance, warmth, and exclusivity.
+- **Kapada Creation (KC) Brand Identity**: Kapada Creation represents boutique fashion, fine stitching craftsmanship, and personalized customer experience. The UI must reflect the Kapada Creation brand with elegance, warmth, and trust.
 - **Clarity & Trust**: Customers and Admins must experience zero friction or ambiguity regarding stitching order statuses, design collections, or notifications.
 - **Instant Responsiveness**: All actions provide real-time feedback (micro-animations, instant optimistic state, clean toast notifications, live previews).
 
