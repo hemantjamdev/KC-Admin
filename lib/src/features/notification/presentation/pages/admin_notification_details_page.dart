@@ -14,8 +14,30 @@ import '../../application/providers/notification_providers.dart';
 /// Clean Admin Notification Details Page — displays notification details,
 /// and shows a Publish button if the status is Draft.
 class AdminNotificationDetailsPage extends ConsumerStatefulWidget {
-  const AdminNotificationDetailsPage({super.key, required this.notification});
+  const AdminNotificationDetailsPage({
+    super.key,
+    required this.notification,
+    this.isBottomSheet = false,
+  });
+
   final NotificationModel notification;
+  final bool isBottomSheet;
+
+  /// Displays notification details as a modal bottom sheet.
+  static Future<void> showAsBottomSheet(
+    BuildContext context, {
+    required NotificationModel notification,
+  }) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AdminNotificationDetailsPage(
+        notification: notification,
+        isBottomSheet: true,
+      ),
+    );
+  }
 
   @override
   ConsumerState<AdminNotificationDetailsPage> createState() =>
@@ -90,33 +112,12 @@ class _AdminNotificationDetailsPageState
   Widget build(BuildContext context) {
     final isDraft = _notification.status == NotificationStatus.draft;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: Text(
-          'Notification Details',
-          style: GoogleFonts.playfairDisplay(
-            color: AppColors.textPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        leading: IconButton(
-          icon: PhosphorIcon(
-            PhosphorIcons.caretLeft(PhosphorIconsStyle.bold),
-            size: 20,
-            color: AppColors.textPrimary,
-          ),
-          onPressed: () => context.popOrGo(AppRoutes.adminNotificationList),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(20),
+    final mainContent = SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(20),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -182,7 +183,7 @@ class _AdminNotificationDetailsPageState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'DETAILS',
+                      'DELIVERY DETAILS',
                       style: GoogleFonts.montserrat(
                         color: AppColors.primary,
                         fontSize: 10,
@@ -205,6 +206,11 @@ class _AdminNotificationDetailsPageState
                         'Published At',
                         _formatDate(_notification.publishedAt),
                       ),
+                    if (_notification.scheduledAt != null)
+                      _infoRow(
+                        'Scheduled At',
+                        _formatDate(_notification.scheduledAt),
+                      ),
                   ],
                 ),
               ),
@@ -224,6 +230,92 @@ class _AdminNotificationDetailsPageState
           ),
         ),
       ),
+    );
+
+    if (widget.isBottomSheet) {
+      return Container(
+        height: MediaQuery.of(context).size.height * 0.82,
+        decoration: const BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          children: [
+            // Modal Sheet Header
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 10, 12, 10),
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                border: Border(bottom: BorderSide(color: AppColors.surfaceBorder)),
+              ),
+              child: Column(
+                children: [
+                  Center(
+                    child: Container(
+                      width: 38,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceBorder,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Notification Details',
+                        style: GoogleFonts.playfairDisplay(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: PhosphorIcon(
+                          PhosphorIcons.x(),
+                          color: AppColors.textMuted,
+                          size: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Expanded(child: mainContent),
+          ],
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text(
+          'Notification Details',
+          style: GoogleFonts.playfairDisplay(
+            color: AppColors.textPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        leading: IconButton(
+          icon: PhosphorIcon(
+            PhosphorIcons.caretLeft(PhosphorIconsStyle.bold),
+            size: 20,
+            color: AppColors.textPrimary,
+          ),
+          onPressed: () => context.popOrGo(AppRoutes.adminNotificationList),
+        ),
+      ),
+      body: SafeArea(child: mainContent),
     );
   }
 

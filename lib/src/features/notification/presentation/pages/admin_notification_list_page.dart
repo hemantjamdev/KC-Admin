@@ -12,6 +12,7 @@ import '../../../../core/widgets/app_toast.dart';
 import '../../domain/models/notification_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/providers/notification_providers.dart';
+import 'admin_notification_details_page.dart';
 
 /// Clean & neat Admin Notification List Page — search, listing, and add button.
 class AdminNotificationListPage extends ConsumerStatefulWidget {
@@ -254,9 +255,10 @@ class _AdminNotificationListPageState
                                 final notif = notifications[i];
                                 return _NotificationCard(
                                   notification: notif,
-                                  onTapDetails: () => context.push(
-                                    AppRoutes.adminNotificationDetails,
-                                    extra: notif,
+                                  onTapDetails: () =>
+                                      AdminNotificationDetailsPage.showAsBottomSheet(
+                                    context,
+                                    notification: notif,
                                   ),
                                   onEdit: () => context.push(
                                     AppRoutes.adminNotificationEdit,

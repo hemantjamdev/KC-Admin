@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
@@ -450,6 +452,10 @@ class _AdminNotificationFormPageState
                       _destinationSection(),
                       const SizedBox(height: AppSpacing.md),
 
+                      // Live Notification Preview Card
+                      _buildLivePreviewCard(),
+                      const SizedBox(height: AppSpacing.md),
+
                       // Delivery Mode
                       _deliveryModeSection(),
                       const SizedBox(height: AppSpacing.xl),
@@ -816,4 +822,147 @@ class _AdminNotificationFormPageState
       borderSide: BorderSide(color: AppColors.primary, width: 1.5),
     ),
   );
+
+  Widget _buildLivePreviewCard() {
+    final titleText = _titleController.text.trim().isEmpty
+        ? 'Notification Title Preview'
+        : _titleController.text.trim();
+    final bodyText = _bodyController.text.trim().isEmpty
+        ? 'Notification message text will appear here as you type…'
+        : _bodyController.text.trim();
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              PhosphorIcon(
+                PhosphorIcons.deviceMobile(),
+                size: 16,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'LIVE CUSTOMER PREVIEW',
+                style: GoogleFonts.montserrat(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'iOS / Android',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceLight,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.surfaceBorder),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.notifications_active_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Kapada Creation',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            'now',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 10,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        titleText,
+                        style: GoogleFonts.montserrat(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        bodyText,
+                        style: GoogleFonts.montserrat(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

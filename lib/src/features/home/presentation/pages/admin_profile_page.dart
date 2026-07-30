@@ -488,29 +488,38 @@ class AdminProfilePage extends ConsumerWidget {
 
                     const SizedBox(height: 20),
 
-                    Text(
-                      'APP INFORMATION',
-                      style: GoogleFonts.montserrat(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textMuted,
-                        letterSpacing: 1.2,
+                    const SizedBox(height: 12),
+
+                    Center(
+                      child: FutureBuilder<PackageInfo>(
+                        future: PackageInfo.fromPlatform(),
+                        builder: (context, snapshot) {
+                          final version = snapshot.hasData
+                              ? 'v${snapshot.data!.version} (${snapshot.data!.buildNumber})'
+                              : 'v1.0.0';
+                          return Column(
+                            children: [
+                              Text(
+                                'Kapada Creation Admin',
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                version,
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textMuted.withValues(alpha: 0.7),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    FutureBuilder<PackageInfo>(
-                      future: PackageInfo.fromPlatform(),
-                      builder: (context, snapshot) {
-                        final version = snapshot.hasData
-                            ? 'v${snapshot.data!.version} (${snapshot.data!.buildNumber})'
-                            : 'v1.0.0';
-                        return _SettingsTile(
-                          icon: PhosphorIcons.info(PhosphorIconsStyle.bold),
-                          title: 'Kapada Creation Admin',
-                          subtitle: version,
-                          onTap: null,
-                        );
-                      },
                     ),
 
                     const SizedBox(height: 24),
