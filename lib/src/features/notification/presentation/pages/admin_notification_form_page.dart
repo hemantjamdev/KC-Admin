@@ -25,8 +25,6 @@ import '../../domain/models/notification_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/providers/notification_providers.dart';
 
-enum DeliveryMode { publishNow, schedule, saveDraft }
-
 /// Add / Edit Notification Form Page for KC-Admin.
 class AdminNotificationFormPage extends ConsumerStatefulWidget {
   const AdminNotificationFormPage({super.key, this.existingNotification});
