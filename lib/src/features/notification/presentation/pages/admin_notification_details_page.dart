@@ -5,14 +5,10 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/navigation/navigation_extensions.dart';
-import '../../../../core/widgets/app_button.dart';
-import '../../../../core/widgets/app_toast.dart';
 import '../../domain/models/notification_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../application/providers/notification_providers.dart';
 
-/// Clean Admin Notification Details Page — displays notification details,
-/// and shows a Publish button if the status is Draft.
+/// Clean Admin Notification Details Page — displays notification details.
 class AdminNotificationDetailsPage extends ConsumerStatefulWidget {
   const AdminNotificationDetailsPage({
     super.key,
@@ -59,59 +55,8 @@ class _AdminNotificationDetailsPageState
     return DateFormat('dd MMM yyyy, hh:mm a').format(dt);
   }
 
-  Future<void> _publishNow() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Publish Notification?',
-          style: GoogleFonts.playfairDisplay(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Text(
-          'Publish "${_notification.title}" into the customer app immediately?',
-          style: GoogleFonts.montserrat(color: AppColors.textMuted),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.montserrat(color: AppColors.textMuted),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(
-              'Publish',
-              style: GoogleFonts.montserrat(color: AppColors.primary),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      await ref
-          .read(adminNotificationMutationProvider.notifier)
-          .publish(_notification.id);
-      if (!mounted) return;
-      AppToast.show(
-        context,
-        'Notification "${_notification.title}" published!',
-        type: ToastType.success,
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isDraft = _notification.status == NotificationStatus.draft;
-
     final mainContent = SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(20),
@@ -206,26 +151,11 @@ class _AdminNotificationDetailsPageState
                         'Published At',
                         _formatDate(_notification.publishedAt),
                       ),
-                    if (_notification.scheduledAt != null)
-                      _infoRow(
-                        'Scheduled At',
-                        _formatDate(_notification.scheduledAt),
-                      ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 28),
-
-              // Publish Button if Draft
-              if (isDraft)
-                AppButton(
-                  text: 'Publish Notification',
-                  icon: PhosphorIcons.paperPlaneRight(),
-                  onPressed: _publishNow,
-                ),
-
-              const SizedBox(height: 36),
             ],
           ),
         ),
