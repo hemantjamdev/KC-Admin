@@ -97,6 +97,8 @@ class _AdminNotificationListPageState
     }
   }
 
+  NotificationStatus? _selectedStatus;
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -117,7 +119,7 @@ class _AdminNotificationListPageState
           elevation: 4,
           icon: PhosphorIcon(PhosphorIcons.plus(), size: 20),
           label: Text(
-            'Create Notification',
+            'New Notification',
             style: GoogleFonts.montserrat(
               fontWeight: FontWeight.w700,
               fontSize: 13,
@@ -129,71 +131,93 @@ class _AdminNotificationListPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Search Input Field
+              // Search Input Field & Filter Chips
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                child: TextField(
-                  controller: _searchController,
-                  style: GoogleFonts.montserrat(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
-                  ),
-                  cursorColor: AppColors.primary,
-                  decoration: InputDecoration(
-                    hintText: 'Search notifications by title or message…',
-                    hintStyle: GoogleFonts.montserrat(
-                      color: AppColors.textHint,
-                      fontSize: 13,
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _searchController,
+                      style: GoogleFonts.montserrat(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                      ),
+                      cursorColor: AppColors.primary,
+                      decoration: InputDecoration(
+                        hintText: 'Search notifications by title or message…',
+                        hintStyle: GoogleFonts.montserrat(
+                          color: AppColors.textHint,
+                          fontSize: 13,
+                        ),
+                        prefixIcon: PhosphorIcon(
+                          PhosphorIcons.magnifyingGlass(),
+                          color: AppColors.textMuted,
+                          size: 18,
+                        ),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: PhosphorIcon(
+                                  PhosphorIcons.x(),
+                                  color: AppColors.textMuted,
+                                  size: 16,
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  ref
+                                      .read(paginatedNotificationsProvider.notifier)
+                                      .fetchInitial(query: '');
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: AppColors.surface,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: AppColors.surfaceBorder,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: AppColors.surfaceBorder,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: AppColors.primary,
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                      onChanged: (q) => ref
+                          .read(paginatedNotificationsProvider.notifier)
+                          .fetchInitial(query: q),
                     ),
-                    prefixIcon: PhosphorIcon(
-                      PhosphorIcons.magnifyingGlass(),
-                      color: AppColors.textMuted,
-                      size: 18,
-                    ),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: PhosphorIcon(
-                              PhosphorIcons.x(),
-                              color: AppColors.textMuted,
-                              size: 16,
-                            ),
-                            onPressed: () {
-                              _searchController.clear();
-                              ref
-                                  .read(paginatedNotificationsProvider.notifier)
-                                  .fetchInitial(query: '');
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: AppColors.surface,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(
-                        color: AppColors.surfaceBorder,
+                    const SizedBox(height: 10),
+
+                    // Filter Chips Row
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: [
+                          _filterChip(null, 'All Broadcasts'),
+                          const SizedBox(width: 6),
+                          _filterChip(NotificationStatus.published, 'Published'),
+                          const SizedBox(width: 6),
+                          _filterChip(NotificationStatus.scheduled, 'Scheduled'),
+                          const SizedBox(width: 6),
+                          _filterChip(NotificationStatus.draft, 'Drafts'),
+                        ],
                       ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(
-                        color: AppColors.surfaceBorder,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(
-                        color: AppColors.primary,
-                        width: 1.5,
-                      ),
-                    ),
-                  ),
-                  onChanged: (q) => ref
-                      .read(paginatedNotificationsProvider.notifier)
-                      .fetchInitial(query: q),
+                  ],
                 ),
               ),
 
@@ -202,7 +226,13 @@ class _AdminNotificationListPageState
                 child: Builder(
                   builder: (context) {
                     final paginatedState = ref.watch(paginatedNotificationsProvider);
-                    final notifications = paginatedState.items;
+                    var notifications = paginatedState.items;
+
+                    if (_selectedStatus != null) {
+                      notifications = notifications
+                          .where((n) => n.status == _selectedStatus)
+                          .toList();
+                    }
 
                     return RefreshIndicator(
                       color: AppColors.primary,
@@ -225,7 +255,7 @@ class _AdminNotificationListPageState
                               physics: const AlwaysScrollableScrollPhysics(),
                               children: [
                                 SizedBox(
-                                  height: MediaQuery.of(context).size.height * 0.5,
+                                  height: MediaQuery.of(context).size.height * 0.45,
                                   child: _buildEmptyState(),
                                 ),
                               ],
@@ -283,6 +313,29 @@ class _AdminNotificationListPageState
     );
   }
 
+  Widget _filterChip(NotificationStatus? status, String label) {
+    final isSelected = _selectedStatus == status;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => setState(() => _selectedStatus = status),
+      selectedColor: AppColors.primary,
+      backgroundColor: AppColors.surface,
+      labelStyle: GoogleFonts.montserrat(
+        color: isSelected ? Colors.white : AppColors.textMuted,
+        fontSize: 12,
+        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(
+          color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
+        ),
+      ),
+      showCheckmark: false,
+    );
+  }
+
   Widget _buildEmptyState() {
     final hasFilter = _searchController.text.isNotEmpty;
 
@@ -319,209 +372,222 @@ class _NotificationCard extends StatelessWidget {
 
   String _formatDate(DateTime? dt) {
     if (dt == null) return 'N/A';
-    return DateFormat('d MMM yyyy').format(dt);
+    return DateFormat('d MMM yyyy, h:mm a').format(dt);
+  }
+
+  (IconData, Color) _getTypeTheme(NotificationType type) {
+    return switch (type) {
+      NotificationType.general => (
+          PhosphorIcons.bell(PhosphorIconsStyle.bold),
+          AppColors.primary,
+        ),
+      NotificationType.stitchingUpdate => (
+          PhosphorIcons.scissors(PhosphorIconsStyle.bold),
+          const Color(0xFF10B981),
+        ),
+      NotificationType.designUpdate => (
+          PhosphorIcons.sparkle(PhosphorIconsStyle.bold),
+          const Color(0xFF2563EB),
+        ),
+      NotificationType.boutiqueAnnouncement => (
+          PhosphorIcons.megaphone(PhosphorIconsStyle.bold),
+          const Color(0xFFD97706),
+        ),
+    };
   }
 
   @override
   Widget build(BuildContext context) {
+    final (typeIcon, typeColor) = _getTypeTheme(notification.type);
     final isPublished = notification.status == NotificationStatus.published;
+    final isScheduled = notification.status == NotificationStatus.scheduled;
     final statusColor = isPublished
-        ? const Color(0xFF2E7D32)
-        : const Color(0xFFE65100);
+        ? const Color(0xFF10B981)
+        : isScheduled
+        ? const Color(0xFFD97706)
+        : const Color(0xFF6B7280);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        onTap: onTapDetails,
-        contentPadding: const EdgeInsets.all(14),
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: statusColor.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Center(
-            child: PhosphorIcon(
-              isPublished
-                  ? PhosphorIcons.megaphone()
-                  : PhosphorIcons.bell(),
-              size: 22,
-              color: statusColor,
-            ),
-          ),
-        ),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                notification.title,
-                style: GoogleFonts.playfairDisplay(
-                  color: AppColors.textPrimary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                notification.status.label,
-                style: GoogleFonts.montserrat(
-                  color: statusColor,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+    return InkWell(
+      onTap: onTapDetails,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.surfaceBorder),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        subtitle: Column(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 4),
-            Text(
-              notification.body,
-              style: GoogleFonts.montserrat(
-                color: AppColors.textMuted,
-                fontSize: 12,
-                height: 1.3,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 8),
+            // Top Row: Type Icon + Title + Status Badge
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    '${notification.audienceType.label} • ${_formatDate(notification.publishedAt ?? notification.createdAt)}',
-                    style: GoogleFonts.montserrat(
-                      color: AppColors.textHint,
-                      fontSize: 11,
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: typeColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: PhosphorIcon(
+                      typeIcon,
+                      size: 20,
+                      color: typeColor,
                     ),
-                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              notification.title,
+                              style: GoogleFonts.playfairDisplay(
+                                color: AppColors.textPrimary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              notification.status.label,
+                              style: GoogleFonts.montserrat(
+                                color: statusColor,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        notification.type.label,
+                        style: GoogleFonts.montserrat(
+                          color: typeColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ],
-        ),
-        trailing: PopupMenuButton<String>(
-          color: AppColors.surface,
-          elevation: 3,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          icon: PhosphorIcon(
-            PhosphorIcons.dotsThreeVertical(),
-            color: AppColors.textMuted,
-            size: 20,
-          ),
-          itemBuilder: (_) => [
-            PopupMenuItem(
-              value: 'details',
-              child: Row(
-                children: [
-                  PhosphorIcon(
-                    PhosphorIcons.eye(),
-                    color: AppColors.primary,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'View Details',
-                    style: GoogleFonts.montserrat(color: AppColors.textPrimary),
-                  ),
-                ],
+            const SizedBox(height: 10),
+
+            // Notification Message Body Excerpt
+            Text(
+              notification.body,
+              style: GoogleFonts.montserrat(
+                color: AppColors.textMuted,
+                fontSize: 12.5,
+                height: 1.4,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            PopupMenuItem(
-              value: 'preview',
-              child: Row(
-                children: [
-                  PhosphorIcon(
-                    PhosphorIcons.deviceMobile(),
-                    color: AppColors.primary,
-                    size: 18,
+
+            const SizedBox(height: 12),
+            const Divider(color: AppColors.surfaceBorder, height: 1),
+            const SizedBox(height: 8),
+
+            // Bottom Bar: Target Audience, Timestamp & Quick Actions
+            Row(
+              children: [
+                PhosphorIcon(
+                  PhosphorIcons.usersThree(),
+                  size: 14,
+                  color: AppColors.textMuted,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  notification.audienceType.label,
+                  style: GoogleFonts.montserrat(
+                    color: AppColors.textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
                   ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Preview In-App',
-                    style: GoogleFonts.montserrat(color: AppColors.textPrimary),
+                ),
+                const Spacer(),
+                Text(
+                  _formatDate(notification.publishedAt ?? notification.createdAt),
+                  style: GoogleFonts.montserrat(
+                    color: AppColors.textHint,
+                    fontSize: 11,
                   ),
-                ],
-              ),
-            ),
-            if (notification.status == NotificationStatus.draft)
-              PopupMenuItem(
-                value: 'edit',
-                child: Row(
-                  children: [
-                    PhosphorIcon(
-                      PhosphorIcons.pencilSimple(),
+                ),
+                const SizedBox(width: 8),
+                // Action Icon Buttons
+                InkWell(
+                  onTap: onPreview,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: PhosphorIcon(
+                      PhosphorIcons.deviceMobile(),
+                      size: 16,
                       color: AppColors.primary,
-                      size: 18,
                     ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Edit Draft',
-                      style: GoogleFonts.montserrat(
-                        color: AppColors.textPrimary,
+                  ),
+                ),
+                if (notification.status == NotificationStatus.draft) ...[
+                  const SizedBox(width: 4),
+                  InkWell(
+                    onTap: onEdit,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: PhosphorIcon(
+                        PhosphorIcons.pencilSimple(),
+                        size: 16,
+                        color: AppColors.primary,
                       ),
                     ),
-                  ],
-                ),
-              ),
-            if (notification.status == NotificationStatus.draft)
-              PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    PhosphorIcon(
-                      PhosphorIcons.trash(),
-                      color: AppColors.error,
-                      size: 18,
+                  ),
+                  const SizedBox(width: 4),
+                  InkWell(
+                    onTap: onDelete,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: PhosphorIcon(
+                        PhosphorIcons.trash(),
+                        size: 16,
+                        color: AppColors.error,
+                      ),
                     ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Delete Draft',
-                      style: GoogleFonts.montserrat(color: AppColors.error),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+                ],
+              ],
+            ),
           ],
-          onSelected: (val) {
-            switch (val) {
-              case 'details':
-                onTapDetails();
-              case 'preview':
-                onPreview();
-              case 'edit':
-                onEdit();
-              case 'delete':
-                onDelete();
-            }
-          },
         ),
       ),
     );

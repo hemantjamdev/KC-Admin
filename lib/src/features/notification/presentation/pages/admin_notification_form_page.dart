@@ -362,101 +362,103 @@ class _AdminNotificationFormPageState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Title
-                      _field(
-                        'Notification Title *',
-                        TextFormField(
-                          controller: _titleController,
-                          focusNode: _titleFocusNode,
-                          textInputAction: TextInputAction.next,
-                          onFieldSubmitted: (_) => FocusScope.of(
-                            context,
-                          ).requestFocus(_bodyFocusNode),
-                          style: _fieldStyle,
-                          cursorColor: AppColors.primary,
-                          decoration: _dec(
-                            'e.g. New Bridal Collection Arrived!',
+                      // 1. Content Card
+                      _formCard(
+                        title: 'Notification Content',
+                        icon: PhosphorIcons.megaphone(),
+                        children: [
+                          _field(
+                            'Notification Title *',
+                            TextFormField(
+                              controller: _titleController,
+                              focusNode: _titleFocusNode,
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) => FocusScope.of(
+                                context,
+                              ).requestFocus(_bodyFocusNode),
+                              style: _fieldStyle,
+                              cursorColor: AppColors.primary,
+                              decoration: _dec(
+                                'e.g. New Festive Collection Arrived!',
+                              ),
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return 'Title is required.';
+                                }
+                                if (v.trim().length < 3) {
+                                  return 'Title must be at least 3 characters.';
+                                }
+                                return null;
+                              },
+                            ),
                           ),
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) {
-                              return 'Title is required.';
-                            }
-                            if (v.trim().length < 3) {
-                              return 'Title must be at least 3 characters.';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Body
-                      _field(
-                        'Notification Message *',
-                        TextFormField(
-                          controller: _bodyController,
-                          focusNode: _bodyFocusNode,
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (_) =>
-                              FocusScope.of(context).unfocus(),
-                          style: _fieldStyle,
-                          cursorColor: AppColors.primary,
-                          maxLines: 3,
-                          decoration: _dec(
-                            'Enter notification message for customers…',
+                          const SizedBox(height: AppSpacing.md),
+                          _field(
+                            'Notification Message *',
+                            TextFormField(
+                              controller: _bodyController,
+                              focusNode: _bodyFocusNode,
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) =>
+                                  FocusScope.of(context).unfocus(),
+                              style: _fieldStyle,
+                              cursorColor: AppColors.primary,
+                              maxLines: 3,
+                              decoration: _dec(
+                                'Enter notification message for customers…',
+                              ),
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return 'Message is required.';
+                                }
+                                if (v.trim().length < 5) {
+                                  return 'Message must be at least 5 characters.';
+                                }
+                                return null;
+                              },
+                            ),
                           ),
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) {
-                              return 'Message is required.';
-                            }
-                            if (v.trim().length < 5) {
-                              return 'Message must be at least 5 characters.';
-                            }
-                            return null;
-                          },
-                        ),
+                          const SizedBox(height: AppSpacing.md),
+                          _field(
+                            'Notification Type *',
+                            DropdownButtonFormField<NotificationType>(
+                              initialValue: _type,
+                              dropdownColor: AppColors.surfaceLight,
+                              style: _fieldStyle,
+                              decoration: _dec('Select type'),
+                              items: NotificationType.values.map((t) {
+                                return DropdownMenuItem(
+                                  value: t,
+                                  child: Text(t.label),
+                                );
+                              }).toList(),
+                              onChanged: (v) {
+                                if (v != null) {
+                                  setState(() {
+                                    _type = v;
+                                    _hasChanges = true;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: AppSpacing.md),
 
-                      // Type Selector
-                      _field(
-                        'Notification Type *',
-                        DropdownButtonFormField<NotificationType>(
-                          initialValue: _type,
-                          dropdownColor: AppColors.surfaceLight,
-                          style: _fieldStyle,
-                          decoration: _dec('Select type'),
-                          items: NotificationType.values.map((t) {
-                            return DropdownMenuItem(
-                              value: t,
-                              child: Text(t.label),
-                            );
-                          }).toList(),
-                          onChanged: (v) {
-                            if (v != null) {
-                              setState(() {
-                                _type = v;
-                                _hasChanges = true;
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Audience Selector
+                      // 2. Audience Selector Card
                       _audienceSection(),
                       const SizedBox(height: AppSpacing.md),
 
-                      // Destination Selector
+                      // 3. Destination Selector Card
                       _destinationSection(),
                       const SizedBox(height: AppSpacing.md),
 
-                      // Live Notification Preview Card
+                      // 4. Live Notification Preview Card
                       _buildLivePreviewCard(),
                       const SizedBox(height: AppSpacing.md),
 
-                      // Delivery Mode
+                      // 5. Delivery Mode Card
                       _deliveryModeSection(),
                       const SizedBox(height: AppSpacing.xl),
 
@@ -482,298 +484,320 @@ class _AdminNotificationFormPageState
   }
 
   Widget _audienceSection() {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.borderMd,
-        border: Border.all(color: AppColors.surfaceBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Audience Targeting *',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
+    return _formCard(
+      title: 'Audience Targeting',
+      icon: PhosphorIcons.usersThree(),
+      children: [
+        DropdownButtonFormField<NotificationAudienceType>(
+          initialValue: _audienceType,
+          dropdownColor: AppColors.surfaceLight,
+          style: _fieldStyle,
+          decoration: _dec('Select audience'),
+          items: NotificationAudienceType.values.map((a) {
+            return DropdownMenuItem(value: a, child: Text(a.label));
+          }).toList(),
+          onChanged: (v) {
+            if (v != null) {
+              setState(() {
+                _audienceType = v;
+                _hasChanges = true;
+              });
+            }
+          },
+        ),
+
+        if (_audienceType == NotificationAudienceType.selectedCustomers) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Select Target Customers:',
+            style: GoogleFonts.montserrat(
+              color: AppColors.textMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: AppSpacing.xs),
-          DropdownButtonFormField<NotificationAudienceType>(
-            initialValue: _audienceType,
-            dropdownColor: AppColors.surfaceLight,
-            style: _fieldStyle,
-            decoration: _dec('Select audience'),
-            items: NotificationAudienceType.values.map((a) {
-              return DropdownMenuItem(value: a, child: Text(a.label));
-            }).toList(),
-            onChanged: (v) {
-              if (v != null) {
+          const SizedBox(height: 4),
+          ..._availableCustomers.map((c) {
+            final targetUid =
+                (c.firebaseUid != null && c.firebaseUid!.isNotEmpty)
+                ? c.firebaseUid!
+                : c.id;
+            final isChecked =
+                _selectedCustomerIds.contains(targetUid) ||
+                _selectedCustomerIds.contains(c.id);
+            return CheckboxListTile(
+              value: isChecked,
+              title: Text(
+                c.displayName,
+                style: GoogleFonts.montserrat(
+                  color: AppColors.textPrimary,
+                  fontSize: 13,
+                ),
+              ),
+              activeColor: AppColors.primary,
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              onChanged: (val) {
                 setState(() {
-                  _audienceType = v;
+                  if (val == true) {
+                    _selectedCustomerIds.add(targetUid);
+                    if (c.id != targetUid) {
+                      _selectedCustomerIds.add(c.id);
+                    }
+                  } else {
+                    _selectedCustomerIds.remove(targetUid);
+                    _selectedCustomerIds.remove(c.id);
+                  }
                   _hasChanges = true;
                 });
-              }
-            },
-          ),
-
-          if (_audienceType == NotificationAudienceType.selectedCustomers) ...[
-            const SizedBox(height: AppSpacing.sm),
-            const Text(
-              'Select Customers:',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-            ),
-            const SizedBox(height: 4),
-            ..._availableCustomers.map((c) {
-              final targetUid =
-                  (c.firebaseUid != null && c.firebaseUid!.isNotEmpty)
-                  ? c.firebaseUid!
-                  : c.id;
-              final isChecked =
-                  _selectedCustomerIds.contains(targetUid) ||
-                  _selectedCustomerIds.contains(c.id);
-              return CheckboxListTile(
-                value: isChecked,
-                title: Text(
-                  c.displayName,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 13,
-                  ),
-                ),
-                activeColor: AppColors.primary,
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                onChanged: (val) {
-                  setState(() {
-                    if (val == true) {
-                      _selectedCustomerIds.add(targetUid);
-                      if (c.id != targetUid) {
-                        _selectedCustomerIds.add(c.id);
-                      }
-                    } else {
-                      _selectedCustomerIds.remove(targetUid);
-                      _selectedCustomerIds.remove(c.id);
-                    }
-                    _hasChanges = true;
-                  });
-                },
-              );
-            }),
-          ],
+              },
+            );
+          }),
         ],
-      ),
+      ],
     );
   }
 
   Widget _destinationSection() {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.borderMd,
-        border: Border.all(color: AppColors.surfaceBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Destination Link',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          DropdownButtonFormField<NotificationDestinationType>(
-            initialValue: _destinationType,
+    return _formCard(
+      title: 'In-App Destination Link',
+      icon: PhosphorIcons.link(),
+      children: [
+        DropdownButtonFormField<NotificationDestinationType>(
+          initialValue: _destinationType,
+          dropdownColor: AppColors.surfaceLight,
+          style: _fieldStyle,
+          decoration: _dec('Select destination'),
+          items: NotificationDestinationType.values.map((d) {
+            return DropdownMenuItem(value: d, child: Text(d.label));
+          }).toList(),
+          onChanged: (v) {
+            if (v != null) {
+              setState(() {
+                _destinationType = v;
+                _selectedEntityId = null;
+                _hasChanges = true;
+              });
+            }
+          },
+        ),
+        if (_destinationType == NotificationDestinationType.design) ...[
+          const SizedBox(height: AppSpacing.sm),
+          DropdownButtonFormField<String>(
+            initialValue: _selectedEntityId,
+            isExpanded: true,
             dropdownColor: AppColors.surfaceLight,
             style: _fieldStyle,
-            decoration: _dec('Select destination'),
-            items: NotificationDestinationType.values.map((d) {
-              return DropdownMenuItem(value: d, child: Text(d.label));
+            decoration: _dec('Select Design'),
+            items: _availableDesigns.map((d) {
+              return DropdownMenuItem(
+                value: d.id,
+                child: Text(d.name, overflow: TextOverflow.ellipsis),
+              );
             }).toList(),
-            onChanged: (v) {
-              if (v != null) {
-                setState(() {
-                  _destinationType = v;
-                  _selectedEntityId = null;
-                  _hasChanges = true;
-                });
-              }
-            },
+            onChanged: (v) => setState(() {
+              _selectedEntityId = v;
+              _hasChanges = true;
+            }),
           ),
-          if (_destinationType == NotificationDestinationType.design) ...[
-            const SizedBox(height: AppSpacing.sm),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedEntityId,
-              isExpanded: true,
-              dropdownColor: AppColors.surfaceLight,
-              style: _fieldStyle,
-              decoration: _dec('Select Design'),
-              items: _availableDesigns.map((d) {
-                return DropdownMenuItem(
-                  value: d.id,
-                  child: Text(d.name, overflow: TextOverflow.ellipsis),
-                );
-              }).toList(),
-              onChanged: (v) => setState(() {
-                _selectedEntityId = v;
-                _hasChanges = true;
-              }),
-            ),
-          ],
-          if (_destinationType == NotificationDestinationType.section) ...[
-            const SizedBox(height: AppSpacing.sm),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedEntityId,
-              isExpanded: true,
-              dropdownColor: AppColors.surfaceLight,
-              style: _fieldStyle,
-              decoration: _dec('Select Section'),
-              items: _availableSections.map((s) {
-                return DropdownMenuItem(
-                  value: s.id,
-                  child: Text(s.title, overflow: TextOverflow.ellipsis),
-                );
-              }).toList(),
-              onChanged: (v) => setState(() {
-                _selectedEntityId = v;
-                _hasChanges = true;
-              }),
-            ),
-          ],
-          if (_destinationType ==
-              NotificationDestinationType.stitchingOrder) ...[
-            const SizedBox(height: AppSpacing.sm),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedEntityId,
-              isExpanded: true,
-              dropdownColor: AppColors.surfaceLight,
-              style: _fieldStyle,
-              decoration: _dec('Select Stitching Order'),
-              items: _availableOrders.map((o) {
-                return DropdownMenuItem(
-                  value: o.id,
-                  child: Text(
-                    '${o.orderNumber} (Cust #${o.customerId})',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }).toList(),
-              onChanged: (v) => setState(() {
-                _selectedEntityId = v;
-                _hasChanges = true;
-              }),
-            ),
-          ],
         ],
-      ),
+        if (_destinationType == NotificationDestinationType.section) ...[
+          const SizedBox(height: AppSpacing.sm),
+          DropdownButtonFormField<String>(
+            initialValue: _selectedEntityId,
+            isExpanded: true,
+            dropdownColor: AppColors.surfaceLight,
+            style: _fieldStyle,
+            decoration: _dec('Select Section'),
+            items: _availableSections.map((s) {
+              return DropdownMenuItem(
+                value: s.id,
+                child: Text(s.title, overflow: TextOverflow.ellipsis),
+              );
+            }).toList(),
+            onChanged: (v) => setState(() {
+              _selectedEntityId = v;
+              _hasChanges = true;
+            }),
+          ),
+        ],
+        if (_destinationType ==
+            NotificationDestinationType.stitchingOrder) ...[
+          const SizedBox(height: AppSpacing.sm),
+          DropdownButtonFormField<String>(
+            initialValue: _selectedEntityId,
+            isExpanded: true,
+            dropdownColor: AppColors.surfaceLight,
+            style: _fieldStyle,
+            decoration: _dec('Select Stitching Order'),
+            items: _availableOrders.map((o) {
+              return DropdownMenuItem(
+                value: o.id,
+                child: Text(
+                  '${o.orderNumber} (${o.displayRequestName})',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              );
+            }).toList(),
+            onChanged: (v) => setState(() {
+              _selectedEntityId = v;
+              _hasChanges = true;
+            }),
+          ),
+        ],
+      ],
     );
   }
 
   Widget _deliveryModeSection() {
+    return _formCard(
+      title: 'Delivery Schedule',
+      icon: PhosphorIcons.clock(),
+      children: [
+        RadioListTile<DeliveryMode>(
+          value: DeliveryMode.publishNow,
+          groupValue: _deliveryMode,
+          title: Text(
+            'Publish Immediately',
+            style: GoogleFonts.montserrat(
+              color: AppColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          activeColor: AppColors.primary,
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          onChanged: (v) => setState(() {
+            _deliveryMode = v!;
+            _hasChanges = true;
+          }),
+        ),
+        RadioListTile<DeliveryMode>(
+          value: DeliveryMode.schedule,
+          groupValue: _deliveryMode,
+          title: Text(
+            'Schedule for Future Date/Time',
+            style: GoogleFonts.montserrat(
+              color: AppColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          activeColor: AppColors.primary,
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          onChanged: (v) => setState(() {
+            _deliveryMode = v!;
+            _hasChanges = true;
+          }),
+        ),
+        if (_deliveryMode == DeliveryMode.schedule) ...[
+          Padding(
+            padding: const EdgeInsets.only(left: 32, top: 4, bottom: 8),
+            child: Row(
+              children: [
+                PhosphorIcon(
+                  PhosphorIcons.calendarBlank(),
+                  size: 16,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _scheduledAt == null
+                      ? 'No schedule date set'
+                      : 'Scheduled: ${_scheduledAt!.day}/${_scheduledAt!.month}/${_scheduledAt!.year}',
+                  style: GoogleFonts.montserrat(
+                    color: AppColors.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate:
+                          _scheduledAt ??
+                          DateTime.now().add(const Duration(days: 1)),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 180)),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _scheduledAt = picked;
+                        _hasChanges = true;
+                      });
+                    }
+                  },
+                  child: Text(
+                    'Pick Date',
+                    style: GoogleFonts.montserrat(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        RadioListTile<DeliveryMode>(
+          value: DeliveryMode.saveDraft,
+          groupValue: _deliveryMode,
+          title: Text(
+            'Save as Draft',
+            style: GoogleFonts.montserrat(
+              color: AppColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          activeColor: AppColors.primary,
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          onChanged: (v) => setState(() {
+            _deliveryMode = v!;
+            _hasChanges = true;
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _formCard({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: AppRadius.borderMd,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.surfaceBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Delivery Mode',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          RadioListTile<DeliveryMode>(
-            value: DeliveryMode.publishNow,
-            groupValue: _deliveryMode,
-            title: const Text(
-              'Publish Immediately',
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
-            ),
-            activeColor: AppColors.primary,
-            dense: true,
-            onChanged: (v) => setState(() {
-              _deliveryMode = v!;
-              _hasChanges = true;
-            }),
-          ),
-          RadioListTile<DeliveryMode>(
-            value: DeliveryMode.schedule,
-            groupValue: _deliveryMode,
-            title: const Text(
-              'Schedule for Future Date/Time',
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
-            ),
-            activeColor: AppColors.primary,
-            dense: true,
-            onChanged: (v) => setState(() {
-              _deliveryMode = v!;
-              _hasChanges = true;
-            }),
-          ),
-          if (_deliveryMode == DeliveryMode.schedule) ...[
-            Padding(
-              padding: const EdgeInsets.only(left: 36),
-              child: Row(
-                children: [
-                  Text(
-                    _scheduledAt == null
-                        ? 'No schedule date set'
-                        : 'Scheduled: ${_scheduledAt!.day}/${_scheduledAt!.month}/${_scheduledAt!.year}',
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate:
-                            _scheduledAt ??
-                            DateTime.now().add(const Duration(days: 1)),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 180)),
-                      );
-                      if (picked != null) {
-                        setState(() {
-                          _scheduledAt = picked;
-                          _hasChanges = true;
-                        });
-                      }
-                    },
-                    child: const Text('Pick Schedule Date'),
-                  ),
-                ],
+          Row(
+            children: [
+              PhosphorIcon(icon, size: 18, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: GoogleFonts.montserrat(
+                  color: AppColors.primary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-          ],
-          RadioListTile<DeliveryMode>(
-            value: DeliveryMode.saveDraft,
-            groupValue: _deliveryMode,
-            title: const Text(
-              'Save as Draft',
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
-            ),
-            activeColor: AppColors.primary,
-            dense: true,
-            onChanged: (v) => setState(() {
-              _deliveryMode = v!;
-              _hasChanges = true;
-            }),
+            ],
           ),
+          const SizedBox(height: AppSpacing.md),
+          ...children,
         ],
       ),
     );
