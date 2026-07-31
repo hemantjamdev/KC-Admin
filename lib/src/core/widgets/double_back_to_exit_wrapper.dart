@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
-import '../../app/app_routes.dart';
 import 'app_toast.dart';
 
 /// Wraps root/shell screens to prevent immediate exit on back press.
@@ -41,13 +39,6 @@ class _DoubleBackToExitWrapperState extends State<DoubleBackToExitWrapper> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-
-        // If on a non-home shell tab (e.g. Profile, Products, Insights), navigate to Home tab
-        if (widget.currentTabIndex != null && widget.currentTabIndex! > 0) {
-          _lastBackPressTime = null;
-          context.go(AppRoutes.adminHome);
-          return;
-        }
 
         final now = DateTime.now();
 
