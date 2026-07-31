@@ -460,7 +460,6 @@ class __CustomerReminderBottomSheetState
   late final TextEditingController _titleController;
   late final TextEditingController _bodyController;
   final _formKey = GlobalKey<FormState>();
-  bool _isSending = false;
 
   @override
   void initState() {
@@ -524,8 +523,6 @@ class __CustomerReminderBottomSheetState
 
     if (confirmed != true) return;
 
-    setState(() => _isSending = true);
-
     try {
       final targetUid =
           (widget.customer.firebaseUid != null &&
@@ -565,7 +562,6 @@ class __CustomerReminderBottomSheetState
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isSending = false);
       AppToast.show(
         context,
         'Failed to send reminder: $e',
@@ -736,7 +732,7 @@ class __CustomerReminderBottomSheetState
                     : null,
               ),
               const SizedBox(height: 24),
-              _isSending
+              ref.watch(adminNotificationMutationProvider).isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : AppButton(
                       text: 'Send Reminder Notification',
