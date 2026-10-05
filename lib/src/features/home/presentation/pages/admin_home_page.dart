@@ -16,7 +16,7 @@ import '../../../stitching/presentation/pages/admin_stitching_order_details_page
 
 import '../../../../core/widgets/network_listener_wrapper.dart';
 
-/// Kapada Creation Admin — Bespoke Stitching Dashboard.
+/// Kapada Creation Admin — Custom Stitching Dashboard.
 class AdminHomePage extends ConsumerWidget {
   const AdminHomePage({super.key});
 
@@ -197,7 +197,9 @@ class _AtelierHeaderSliverDelegate extends SliverPersistentHeaderDelegate {
                   if (progress < 0.5) const SizedBox(height: 2),
                   // Greeting line – original size 22, shrinks to 18 when pinned
                   Text(
-                    progress < 0.7 ? '$timeGreeting,' : '$timeGreeting, $formattedName',
+                    progress < 0.7
+                        ? '$timeGreeting,'
+                        : '$timeGreeting, $formattedName',
                     style: GoogleFonts.playfairDisplay(
                       fontSize: 22 - (4 * progress),
                       fontWeight: FontWeight.w700,
@@ -210,7 +212,9 @@ class _AtelierHeaderSliverDelegate extends SliverPersistentHeaderDelegate {
                   if (progress < 0.7) ...[
                     const SizedBox(height: 2),
                     Opacity(
-                      opacity: progress < 0.5 ? 1.0 : (1.0 - ((progress - 0.5) / 0.2)).clamp(0.0, 1.0),
+                      opacity: progress < 0.5
+                          ? 1.0
+                          : (1.0 - ((progress - 0.5) / 0.2)).clamp(0.0, 1.0),
                       child: Text(
                         formattedName,
                         style: GoogleFonts.playfairDisplay(
@@ -316,7 +320,8 @@ class _AtelierHeaderSliverDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _AtelierHeaderSliverDelegate oldDelegate) {
-    return oldDelegate.adminName != adminName || oldDelegate.photoUrl != photoUrl;
+    return oldDelegate.adminName != adminName ||
+        oldDelegate.photoUrl != photoUrl;
   }
 }
 
@@ -926,90 +931,91 @@ class _ActivityItemTile extends StatelessWidget {
               child: Row(
                 children: [
                   // Left accent stripe indicator matching category color
-                  Container(
-                    width: 4.5,
-                    color: item.color,
-                  ),
+                  Container(width: 4.5, color: item.color),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                       child: Row(
                         children: [
-                      Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: item.color.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: Icon(item.icon, size: 20, color: item.color),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Row(
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: item.color.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                item.icon,
+                                size: 20,
+                                color: item.color,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Expanded(
-                                  child: Text(
-                                    item.title,
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.textPrimary,
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        item.title,
+                                        style: GoogleFonts.montserrat(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      timeAgo,
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w500,
+                                        color: AppColors.textMuted,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 6),
+                                const SizedBox(height: 3),
                                 Text(
-                                  timeAgo,
+                                  item.subtitle,
                                   style: GoogleFonts.montserrat(
-                                    fontSize: 10.5,
+                                    fontSize: 11,
                                     fontWeight: FontWeight.w500,
                                     color: AppColors.textMuted,
+                                    height: 1.2,
                                   ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 3),
-                            Text(
-                              item.subtitle,
-                              style: GoogleFonts.montserrat(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textMuted,
-                                height: 1.2,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 6),
+                          PhosphorIcon(
+                            PhosphorIcons.caretRight(),
+                            size: 14,
+                            color: AppColors.textMuted.withValues(alpha: 0.5),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 6),
-                      PhosphorIcon(
-                        PhosphorIcons.caretRight(),
-                        size: 14,
-                        color: AppColors.textMuted.withValues(alpha: 0.5),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
-    ),
-  ),
-);
-}
+    );
+  }
 
   String _formatTimeAgo(DateTime dt) {
     final diff = DateTime.now().difference(dt);
@@ -1070,7 +1076,11 @@ void _showFullScreenImageDialog(
           Align(
             alignment: Alignment.topRight,
             child: IconButton(
-              icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
+              icon: const Icon(
+                Icons.close_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
               onPressed: () => Navigator.pop(dialogCtx),
             ),
           ),
@@ -1084,17 +1094,23 @@ void _showFullScreenImageDialog(
                 child: Image.network(
                   imageUrl,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (_, _, _) => Container(
                     padding: const EdgeInsets.all(32),
                     color: AppColors.surface,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.broken_image_rounded, size: 48, color: AppColors.textMuted),
+                        const Icon(
+                          Icons.broken_image_rounded,
+                          size: 48,
+                          color: AppColors.textMuted,
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           'Failed to load image',
-                          style: GoogleFonts.montserrat(color: AppColors.textMuted),
+                          style: GoogleFonts.montserrat(
+                            color: AppColors.textMuted,
+                          ),
                         ),
                       ],
                     ),

@@ -119,9 +119,12 @@ class AdminNotificationPreviewPage extends StatelessWidget {
   Widget _buildPreviewCard({required bool isRead}) {
     final icon = switch (notification.type) {
       NotificationType.general => PhosphorIcons.bell(),
-      NotificationType.stitchingUpdate => PhosphorIcons.scissors(),
+      NotificationType.stitchingUpdate ||
+      NotificationType.stitchingStatusUpdated =>
+        PhosphorIcons.scissors(),
       NotificationType.designUpdate => PhosphorIcons.tShirt(),
       NotificationType.boutiqueAnnouncement => PhosphorIcons.megaphone(),
+      NotificationType.newStitchingRequest => PhosphorIcons.needle(),
     };
 
     return Container(

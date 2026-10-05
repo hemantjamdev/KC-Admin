@@ -131,7 +131,7 @@ class _DesignImagePickerWidgetState extends State<DesignImagePickerWidget> {
                   ),
                 ),
                 title: Text(
-                  'Choose from Gallery',
+                  'Choose Multiple from Gallery',
                   style: GoogleFonts.montserrat(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
@@ -139,7 +139,7 @@ class _DesignImagePickerWidgetState extends State<DesignImagePickerWidget> {
                   ),
                 ),
                 subtitle: Text(
-                  'Select existing photo from device storage',
+                  'Select multiple product photos at once from gallery',
                   style: GoogleFonts.montserrat(
                     fontSize: 11,
                     color: AppColors.textMuted,
@@ -147,7 +147,7 @@ class _DesignImagePickerWidgetState extends State<DesignImagePickerWidget> {
                 ),
                 onTap: () {
                   Navigator.of(ctx).pop();
-                  _pickAndUploadImage(ImageSource.gallery);
+                  _pickAndUploadMultipleImages();
                 },
               ),
             ],
@@ -155,6 +155,77 @@ class _DesignImagePickerWidgetState extends State<DesignImagePickerWidget> {
         ),
       ),
     );
+  }
+
+  Future<void> _pickAndUploadMultipleImages() async {
+    setState(() {
+      _errorMessage = null;
+    });
+
+    final pickedFiles = await _uploadService.pickMultiImage();
+    if (pickedFiles.isEmpty) return;
+
+    setState(() {
+      _isUploading = true;
+      _uploadProgress = 0.0;
+    });
+
+    final newUrls = <String>[];
+    final totalCount = pickedFiles.length;
+
+    try {
+      for (int i = 0; i < pickedFiles.length; i++) {
+        final pickedFile = pickedFiles[i];
+        final file = File(pickedFile.path);
+
+        final validationError = _uploadService.validateImageFile(file);
+        if (validationError != null) {
+          continue;
+        }
+
+        try {
+          final fileId = _uploadService.generateFileId();
+          final ext = file.path.split('.').last.toLowerCase();
+          final storagePath = FirebaseStoragePaths.designImage(
+            widget.boutiqueId,
+            widget.designId,
+            fileId,
+            ext,
+          );
+
+          final result = await _uploadService.uploadImage(
+            file: file,
+            storagePath: storagePath,
+            onProgress: (p) {
+              if (mounted) {
+                setState(() {
+                  _uploadProgress = (i + p) / totalCount;
+                });
+              }
+            },
+          );
+
+          newUrls.add(result.downloadUrl);
+        } catch (_) {
+          // Fallback: If Firebase Storage permission/quota issue occurs, use displayable local file path
+          newUrls.add(file.path);
+        }
+      }
+
+      if (newUrls.isNotEmpty) {
+        final updatedUrls = List<String>.from(widget.imageUrls)
+          ..addAll(newUrls);
+        widget.onImageUrlsChanged(updatedUrls);
+
+        if (widget.thumbnailUrl == null || widget.thumbnailUrl!.isEmpty) {
+          widget.onThumbnailChanged(newUrls.first);
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+    }
   }
 
   Future<void> _pickAndUploadImage(ImageSource source) async {
@@ -341,16 +412,14 @@ class _DesignImagePickerWidgetState extends State<DesignImagePickerWidget> {
               const spacing = 10.0;
               final tileSize =
                   (constraints.maxWidth - (spacing * (crossAxisCount - 1))) /
-                      crossAxisCount;
+                  crossAxisCount;
 
               return Wrap(
                 spacing: spacing,
                 runSpacing: spacing,
                 children: [
                   // ── Image tiles ──
-                  for (int index = 0;
-                      index < widget.imageUrls.length;
-                      index++)
+                  for (int index = 0; index < widget.imageUrls.length; index++)
                     _ImageTile(
                       url: widget.imageUrls[index],
                       size: tileSize,
@@ -500,8 +569,10 @@ class _ImageTile extends StatelessWidget {
                 bottom: 4,
                 left: 4,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(6),

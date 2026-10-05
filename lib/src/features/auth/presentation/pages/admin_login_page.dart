@@ -85,7 +85,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
+                horizontal: AppSpacing.md,
                 vertical: AppSpacing.lg,
               ),
               child: ConstrainedBox(
@@ -134,7 +134,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 50),
+                    const SizedBox(height: 40),
 
                     // Login Card Container
                     Container(

@@ -44,10 +44,12 @@ void main() {
     expect(find.text('Test message for success'), findsOneWidget);
 
     final container = tester.widget<Container>(
-      find.ancestor(
-        of: find.text('Test message for success'),
-        matching: find.byType(Container),
-      ).first,
+      find
+          .ancestor(
+            of: find.text('Test message for success'),
+            matching: find.byType(Container),
+          )
+          .first,
     );
 
     final decoration = container.decoration as BoxDecoration;
@@ -68,10 +70,12 @@ void main() {
     expect(find.text('Test message for error'), findsOneWidget);
 
     final container = tester.widget<Container>(
-      find.ancestor(
-        of: find.text('Test message for error'),
-        matching: find.byType(Container),
-      ).first,
+      find
+          .ancestor(
+            of: find.text('Test message for error'),
+            matching: find.byType(Container),
+          )
+          .first,
     );
 
     final decoration = container.decoration as BoxDecoration;
@@ -92,10 +96,12 @@ void main() {
     expect(find.text('Test message for warning'), findsOneWidget);
 
     final container = tester.widget<Container>(
-      find.ancestor(
-        of: find.text('Test message for warning'),
-        matching: find.byType(Container),
-      ).first,
+      find
+          .ancestor(
+            of: find.text('Test message for warning'),
+            matching: find.byType(Container),
+          )
+          .first,
     );
 
     final decoration = container.decoration as BoxDecoration;
@@ -116,10 +122,12 @@ void main() {
     expect(find.text('Test message for info'), findsOneWidget);
 
     final container = tester.widget<Container>(
-      find.ancestor(
-        of: find.text('Test message for info'),
-        matching: find.byType(Container),
-      ).first,
+      find
+          .ancestor(
+            of: find.text('Test message for info'),
+            matching: find.byType(Container),
+          )
+          .first,
     );
 
     final decoration = container.decoration as BoxDecoration;

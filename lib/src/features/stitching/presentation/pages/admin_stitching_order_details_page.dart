@@ -6,6 +6,7 @@ import '../../../../app/app_routes.dart';
 import '../../../../core/widgets/admin_app_bar.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/slide_to_action_button.dart';
+import '../../../../core/widgets/sticky_note_card.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/navigation/navigation_extensions.dart';
@@ -38,10 +39,8 @@ class AdminStitchingOrderDetailsPage extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AdminStitchingOrderDetailsPage(
-        order: order,
-        isBottomSheet: true,
-      ),
+      builder: (context) =>
+          AdminStitchingOrderDetailsPage(order: order, isBottomSheet: true),
     );
   }
 
@@ -72,7 +71,9 @@ class _AdminStitchingOrderDetailsPageState
     } catch (_) {}
   }
 
-  Future<void> _handleStatusTransition(StitchingOrderStatus targetStatus) async {
+  Future<void> _handleStatusTransition(
+    StitchingOrderStatus targetStatus,
+  ) async {
     final success = await ref
         .read(stitchingStatusMutationProvider.notifier)
         .updateStatus(
@@ -86,7 +87,9 @@ class _AdminStitchingOrderDetailsPageState
       setState(() {
         _order = _order.copyWith(
           status: targetStatus,
-          completedAt: targetStatus == StitchingOrderStatus.completed ? now : _order.completedAt,
+          completedAt: targetStatus == StitchingOrderStatus.completed
+              ? now
+              : _order.completedAt,
           updatedAt: now,
         );
       });
@@ -105,17 +108,29 @@ class _AdminStitchingOrderDetailsPageState
 
   String _monthName(int month) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return months[(month - 1).clamp(0, 11)];
   }
 
   Widget _buildBottomBar() {
-    final isMutating = ref
-        .watch(stitchingStatusMutationProvider)
-        .requests[_order.id]
-        ?.status == MutationStatus.loading;
+    final isMutating =
+        ref
+            .watch(stitchingStatusMutationProvider)
+            .requests[_order.id]
+            ?.status ==
+        MutationStatus.loading;
 
     if (_order.status == StitchingOrderStatus.completed) {
       final completedDate = _order.completedAt ?? _order.updatedAt;
@@ -171,35 +186,42 @@ class _AdminStitchingOrderDetailsPageState
       );
     }
 
-    final (label, targetStatus, sliderColor, trackColor, textColor, iconColor, icon) =
-        switch (_order.status) {
+    final (
+      label,
+      targetStatus,
+      sliderColor,
+      trackColor,
+      textColor,
+      iconColor,
+      icon,
+    ) = switch (_order.status) {
       StitchingOrderStatus.requested => (
-          'Slide to Accept Request',
-          StitchingOrderStatus.accepted,
-          Colors.white,
-          const Color(0xFF1B4D3E),
-          Colors.white,
-          const Color(0xFF1B4D3E),
-          PhosphorIcons.handshake(PhosphorIconsStyle.bold),
-        ),
+        'Slide to Accept Request',
+        StitchingOrderStatus.accepted,
+        Colors.white,
+        const Color(0xFF1B4D3E),
+        Colors.white,
+        const Color(0xFF1B4D3E),
+        PhosphorIcons.handshake(PhosphorIconsStyle.bold),
+      ),
       StitchingOrderStatus.accepted => (
-          'Slide to Mark Completed',
-          StitchingOrderStatus.completed,
-          const Color(0xFF10B981),
-          const Color(0xFF0F382C),
-          Colors.white,
-          Colors.white,
-          PhosphorIcons.check(PhosphorIconsStyle.bold),
-        ),
+        'Slide to Mark Completed',
+        StitchingOrderStatus.completed,
+        const Color(0xFF10B981),
+        const Color(0xFF0F382C),
+        Colors.white,
+        Colors.white,
+        PhosphorIcons.check(PhosphorIconsStyle.bold),
+      ),
       StitchingOrderStatus.completed => (
-          '',
-          StitchingOrderStatus.completed,
-          AppColors.primary,
-          AppColors.surface,
-          AppColors.textPrimary,
-          Colors.white,
-          PhosphorIcons.check(),
-        ),
+        '',
+        StitchingOrderStatus.completed,
+        AppColors.primary,
+        AppColors.surface,
+        AppColors.textPrimary,
+        Colors.white,
+        PhosphorIcons.check(),
+      ),
     };
 
     return Container(
@@ -303,9 +325,18 @@ class _AdminStitchingOrderDetailsPageState
                 title: 'Customer Details',
                 icon: PhosphorIcons.user(),
                 children: [
-                  _infoRow('Name', _customer?.displayName ?? _order.customerName ?? 'Customer'),
-                  _infoRow('Email', _customer?.email ?? _order.customerEmail ?? 'Not provided'),
-                  _infoRow('Phone', _customer?.phone ?? _order.customerPhone ?? 'Not provided'),
+                  _infoRow(
+                    'Name',
+                    _customer?.displayName ?? _order.customerName ?? 'Customer',
+                  ),
+                  _infoRow(
+                    'Email',
+                    _customer?.email ?? _order.customerEmail ?? 'Not provided',
+                  ),
+                  _infoRow(
+                    'Phone',
+                    _customer?.phone ?? _order.customerPhone ?? 'Not provided',
+                  ),
                 ],
               ),
 
@@ -314,7 +345,8 @@ class _AdminStitchingOrderDetailsPageState
               // Design References Card (Only rendered if attached)
               if (_order.designReferences.isNotEmpty) ...[
                 _sectionCard(
-                  title: 'Design References (${_order.designReferences.length})',
+                  title:
+                      'Design References (${_order.designReferences.length})',
                   icon: PhosphorIcons.tShirt(),
                   children: _order.designReferences.map((d) {
                     return Padding(
@@ -350,7 +382,9 @@ class _AdminStitchingOrderDetailsPageState
                                   ),
                                 ),
                                 Text(
-                                  d.isCustom ? 'Custom Design' : 'Catalogue Design',
+                                  d.isCustom
+                                      ? 'Custom Design'
+                                      : 'Catalogue Design',
                                   style: GoogleFonts.montserrat(
                                     color: AppColors.textMuted,
                                     fontSize: 11,
@@ -360,7 +394,10 @@ class _AdminStitchingOrderDetailsPageState
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.surfaceLight,
                               borderRadius: BorderRadius.circular(8),
@@ -383,25 +420,48 @@ class _AdminStitchingOrderDetailsPageState
               ],
 
               // Measurements Card
-              if (_order.measurementSummary != null && !_order.measurementSummary!.isEmpty) ...[
+              if (_order.measurementSummary != null &&
+                  !_order.measurementSummary!.isEmpty) ...[
                 _sectionCard(
-                  title: 'Body & Garment Measurements (${_order.measurementSummary!.unit})',
+                  title:
+                      'Body & Garment Measurements (${_order.measurementSummary!.unit})',
                   icon: PhosphorIcons.ruler(),
                   children: [
                     if (_order.measurementSummary!.chest != null)
-                      _infoRow('Chest', '${_order.measurementSummary!.chest} ${_order.measurementSummary!.unit}'),
+                      _infoRow(
+                        'Chest',
+                        '${_order.measurementSummary!.chest} ${_order.measurementSummary!.unit}',
+                      ),
                     if (_order.measurementSummary!.waist != null)
-                      _infoRow('Waist', '${_order.measurementSummary!.waist} ${_order.measurementSummary!.unit}'),
+                      _infoRow(
+                        'Waist',
+                        '${_order.measurementSummary!.waist} ${_order.measurementSummary!.unit}',
+                      ),
                     if (_order.measurementSummary!.hip != null)
-                      _infoRow('Hip', '${_order.measurementSummary!.hip} ${_order.measurementSummary!.unit}'),
+                      _infoRow(
+                        'Hip',
+                        '${_order.measurementSummary!.hip} ${_order.measurementSummary!.unit}',
+                      ),
                     if (_order.measurementSummary!.shoulder != null)
-                      _infoRow('Shoulder', '${_order.measurementSummary!.shoulder} ${_order.measurementSummary!.unit}'),
+                      _infoRow(
+                        'Shoulder',
+                        '${_order.measurementSummary!.shoulder} ${_order.measurementSummary!.unit}',
+                      ),
                     if (_order.measurementSummary!.sleeveLength != null)
-                      _infoRow('Sleeve Length', '${_order.measurementSummary!.sleeveLength} ${_order.measurementSummary!.unit}'),
+                      _infoRow(
+                        'Sleeve Length',
+                        '${_order.measurementSummary!.sleeveLength} ${_order.measurementSummary!.unit}',
+                      ),
                     if (_order.measurementSummary!.garmentLength != null)
-                      _infoRow('Garment Length', '${_order.measurementSummary!.garmentLength} ${_order.measurementSummary!.unit}'),
+                      _infoRow(
+                        'Garment Length',
+                        '${_order.measurementSummary!.garmentLength} ${_order.measurementSummary!.unit}',
+                      ),
                     if (_order.measurementSummary!.inseam != null)
-                      _infoRow('Inseam', '${_order.measurementSummary!.inseam} ${_order.measurementSummary!.unit}'),
+                      _infoRow(
+                        'Inseam',
+                        '${_order.measurementSummary!.inseam} ${_order.measurementSummary!.unit}',
+                      ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -409,20 +469,7 @@ class _AdminStitchingOrderDetailsPageState
 
               // Notes Card
               if (_order.notes != null && _order.notes!.isNotEmpty) ...[
-                _sectionCard(
-                  title: 'Notes',
-                  icon: PhosphorIcons.notePencil(),
-                  children: [
-                    Text(
-                      _order.notes!,
-                      style: GoogleFonts.montserrat(
-                        color: AppColors.textPrimary,
-                        fontSize: 13,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
+                StickyNoteCard(note: _order.notes!),
                 const SizedBox(height: AppSpacing.md),
               ],
 
@@ -481,7 +528,9 @@ class _AdminStitchingOrderDetailsPageState
               decoration: const BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                border: Border(bottom: BorderSide(color: AppColors.surfaceBorder)),
+                border: Border(
+                  bottom: BorderSide(color: AppColors.surfaceBorder),
+                ),
               ),
               child: Column(
                 children: [

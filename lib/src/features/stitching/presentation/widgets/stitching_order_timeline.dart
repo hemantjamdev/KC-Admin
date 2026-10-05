@@ -65,11 +65,10 @@ class StitchingOrderTimeline extends StatelessWidget {
                       height: 24,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isLast ? AppColors.primary : AppColors.primary.withValues(alpha: 0.15),
-                        border: Border.all(
-                          color: AppColors.primary,
-                          width: 2,
-                        ),
+                        color: isLast
+                            ? AppColors.primary
+                            : AppColors.primary.withValues(alpha: 0.15),
+                        border: Border.all(color: AppColors.primary, width: 2),
                       ),
                       child: Center(
                         child: isLast

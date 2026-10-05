@@ -68,17 +68,19 @@ final designListProvider = StreamProvider<List<DesignModel>>((ref) {
 });
 
 final paginatedDesignsProvider =
-    StateNotifierProvider<PaginatedDesignsNotifier, PaginatedState<DesignModel>>(
-  (ref) {
-    return PaginatedDesignsNotifier(
-      repository: ref.watch(designRepositoryProvider),
-    );
-  },
-);
+    StateNotifierProvider<
+      PaginatedDesignsNotifier,
+      PaginatedState<DesignModel>
+    >((ref) {
+      return PaginatedDesignsNotifier(
+        repository: ref.watch(designRepositoryProvider),
+      );
+    });
 
-class PaginatedDesignsNotifier extends StateNotifier<PaginatedState<DesignModel>> {
+class PaginatedDesignsNotifier
+    extends StateNotifier<PaginatedState<DesignModel>> {
   PaginatedDesignsNotifier({required this.repository})
-      : super(const PaginatedState()) {
+    : super(const PaginatedState()) {
     fetchInitial();
   }
 
@@ -90,7 +92,13 @@ class PaginatedDesignsNotifier extends StateNotifier<PaginatedState<DesignModel>
     _currentCategoryId = categoryId;
     _currentQuery = query.trim();
 
-    state = state.copyWith(isLoading: true, errorMessage: null, items: [], lastDocId: null, hasMore: true);
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+      items: [],
+      lastDocId: null,
+      hasMore: true,
+    );
 
     try {
       final res = await repository.fetchPaginatedDesigns(
@@ -101,11 +109,14 @@ class PaginatedDesignsNotifier extends StateNotifier<PaginatedState<DesignModel>
       var filtered = res.items;
       if (_currentQuery.isNotEmpty) {
         final q = _currentQuery.toLowerCase();
-        filtered = filtered.where((d) =>
-          d.name.toLowerCase().contains(q) ||
-          d.tags.any((t) => t.toLowerCase().contains(q)) ||
-          d.searchKeywords.any((k) => k.toLowerCase().contains(q))
-        ).toList();
+        filtered = filtered
+            .where(
+              (d) =>
+                  d.name.toLowerCase().contains(q) ||
+                  d.tags.any((t) => t.toLowerCase().contains(q)) ||
+                  d.searchKeywords.any((k) => k.toLowerCase().contains(q)),
+            )
+            .toList();
       }
 
       state = state.copyWith(
@@ -134,11 +145,14 @@ class PaginatedDesignsNotifier extends StateNotifier<PaginatedState<DesignModel>
       var filtered = res.items;
       if (_currentQuery.isNotEmpty) {
         final q = _currentQuery.toLowerCase();
-        filtered = filtered.where((d) =>
-          d.name.toLowerCase().contains(q) ||
-          d.tags.any((t) => t.toLowerCase().contains(q)) ||
-          d.searchKeywords.any((k) => k.toLowerCase().contains(q))
-        ).toList();
+        filtered = filtered
+            .where(
+              (d) =>
+                  d.name.toLowerCase().contains(q) ||
+                  d.tags.any((t) => t.toLowerCase().contains(q)) ||
+                  d.searchKeywords.any((k) => k.toLowerCase().contains(q)),
+            )
+            .toList();
       }
 
       state = state.copyWith(

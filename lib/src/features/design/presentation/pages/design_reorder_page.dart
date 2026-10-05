@@ -39,7 +39,10 @@ class _DesignReorderPageState extends ConsumerState<DesignReorderPage> {
 
   Future<void> _initData(String boutiqueId) async {
     try {
-      _categories = await ref.read(categoryRepositoryProvider).watchCategories(boutiqueId).first;
+      _categories = await ref
+          .read(categoryRepositoryProvider)
+          .watchCategories(boutiqueId)
+          .first;
     } catch (_) {
       _categories = [];
     }
@@ -58,7 +61,11 @@ class _DesignReorderPageState extends ConsumerState<DesignReorderPage> {
         _reorderableList = List.from(all);
       } else {
         _reorderableList = all
-            .where((d) => d.categoryId == _selectedCategoryId)
+            .where(
+              (d) =>
+                  d.categoryId == _selectedCategoryId ||
+                  d.categoryIds.contains(_selectedCategoryId),
+            )
             .toList();
       }
     });

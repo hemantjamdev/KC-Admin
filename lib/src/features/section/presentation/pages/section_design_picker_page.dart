@@ -106,7 +106,9 @@ class _SectionDesignPickerPageState
     final availableDesigns = allDesigns.where((d) => d.isActive).toList();
 
     final filtered = availableDesigns.where((d) {
-      if (_selectedCategoryId != null && d.categoryId != _selectedCategoryId) {
+      if (_selectedCategoryId != null &&
+          d.categoryId != _selectedCategoryId &&
+          !d.categoryIds.contains(_selectedCategoryId)) {
         return false;
       }
       if (_searchController.text.isNotEmpty) {

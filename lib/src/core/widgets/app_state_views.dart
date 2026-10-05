@@ -494,7 +494,10 @@ class AppErrorState extends StatelessWidget {
                   ),
                   elevation: 0,
                 ),
-                icon: PhosphorIcon(PhosphorIcons.arrowsCounterClockwise(), size: 18),
+                icon: PhosphorIcon(
+                  PhosphorIcons.arrowsCounterClockwise(),
+                  size: 18,
+                ),
                 label: Text(
                   'Try Again',
                   style: GoogleFonts.montserrat(

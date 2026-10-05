@@ -9,6 +9,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/firebase_providers.dart';
 import '../../../../core/widgets/double_back_to_exit_wrapper.dart';
 import '../../../notification/application/providers/notification_providers.dart';
+import '../../../notification/presentation/services/admin_notification_router.dart';
+import '../../../notification/domain/models/notification_payload_model.dart';
 
 /// Persistent bottom navigation shell for the Kapada Creation Admin app.
 /// Wraps all 5 main tabs: Home, Products, Add (FAB), Insights, Profile.
@@ -48,9 +50,26 @@ class _AdminShellPageState extends ConsumerState<AdminShellPage> {
     if (_initializedAdminFcmId != adminId) {
       _initializedAdminFcmId = adminId;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref
-            .read(adminFirebaseMessagingServiceProvider)
-            .initialize(adminId: adminId, firebaseUid: user?.uid);
+        ref.read(adminFirebaseMessagingServiceProvider).initialize(
+              adminId: adminId,
+              firebaseUid: user?.uid,
+              onTapHandler: (notifId, payloadMap) {
+                if (!mounted) return;
+                final route = payloadMap['route'] as String? ??
+                    payloadMap['relatedEntityType'] as String? ??
+                    'adminHome';
+                final targetId = payloadMap['targetId'] as String? ??
+                    payloadMap['relatedEntityId'] as String?;
+                final payload = NotificationPayloadModel(
+                  notificationId: notifId,
+                  type: payloadMap['type'] as String? ?? 'general',
+                  route: route,
+                  targetId: targetId,
+                  rawData: payloadMap,
+                );
+                AdminNotificationRouter.handleNotificationTap(context, payload);
+              },
+            );
       });
     }
 
@@ -193,7 +212,11 @@ class _NavItem extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              PhosphorIcon(isActive ? activeIcon : icon, size: 22, color: color),
+              PhosphorIcon(
+                isActive ? activeIcon : icon,
+                size: 22,
+                color: color,
+              ),
               const SizedBox(height: 3),
               Text(
                 label,

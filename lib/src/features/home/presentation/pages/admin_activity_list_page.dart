@@ -51,10 +51,9 @@ class _AdminActivityListPageState extends ConsumerState<AdminActivityListPage> {
   void _updateFilter({AdminActivityCategory? category, String? query}) {
     final cat = category ?? _selectedCategory;
     final q = query ?? _searchQuery;
-    ref.read(paginatedActivityNotifierProvider.notifier).fetchInitial(
-          category: cat,
-          query: q,
-        );
+    ref
+        .read(paginatedActivityNotifierProvider.notifier)
+        .fetchInitial(category: cat, query: q);
   }
 
   @override
@@ -221,43 +220,43 @@ class _AdminActivityListPageState extends ConsumerState<AdminActivityListPage> {
                           ),
                         )
                       : items.isEmpty
-                          ? ListView(
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              children: [
-                                SizedBox(
-                                  height:
-                                      MediaQuery.of(context).size.height * 0.5,
-                                  child: _buildEmptyState(),
-                                ),
-                              ],
-                            )
-                          : ListView.builder(
-                              controller: _scrollController,
-                              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                              physics: const AlwaysScrollableScrollPhysics(
-                                parent: BouncingScrollPhysics(),
-                              ),
-                              itemCount:
-                                  items.length + (activityState.isLoadingMore ? 1 : 0),
-                              itemBuilder: (context, index) {
-                                if (index == items.length) {
-                                  return const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 16),
-                                    child: Center(
-                                      child: SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }
-                                return _ActivityCardTile(item: items[index]);
-                              },
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.5,
+                              child: _buildEmptyState(),
                             ),
+                          ],
+                        )
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                          physics: const AlwaysScrollableScrollPhysics(
+                            parent: BouncingScrollPhysics(),
+                          ),
+                          itemCount:
+                              items.length +
+                              (activityState.isLoadingMore ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == items.length) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                            return _ActivityCardTile(item: items[index]);
+                          },
+                        ),
                 ),
               ),
             ],
@@ -363,10 +362,7 @@ class _ActivityCardTile extends StatelessWidget {
               child: Row(
                 children: [
                   // Left accent stripe indicator matching category color
-                  Container(
-                    width: 4.5,
-                    color: item.color,
-                  ),
+                  Container(width: 4.5, color: item.color),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
@@ -380,7 +376,11 @@ class _ActivityCardTile extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Center(
-                              child: Icon(item.icon, size: 20, color: item.color),
+                              child: Icon(
+                                item.icon,
+                                size: 20,
+                                color: item.color,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),

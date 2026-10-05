@@ -244,7 +244,10 @@ class _AdminSectionListPageState extends ConsumerState<AdminSectionListPage> {
           ),
           actions: [
             IconButton(
-              icon: PhosphorIcon(PhosphorIcons.sortAscending(), color: AppColors.primary),
+              icon: PhosphorIcon(
+                PhosphorIcons.sortAscending(),
+                color: AppColors.primary,
+              ),
               tooltip: 'Reorder',
               onPressed: () => context.push(AppRoutes.adminSectionReorder),
             ),
@@ -471,7 +474,9 @@ class _AdminSectionListPageState extends ConsumerState<AdminSectionListPage> {
         _searchController.text.isNotEmpty ||
         ref.watch(sectionFilterProvider).typeFilter != null;
     return AppEmptyState(
-      icon: hasFilter ? PhosphorIcons.magnifyingGlass() : PhosphorIcons.squaresFour(),
+      icon: hasFilter
+          ? PhosphorIcons.magnifyingGlass()
+          : PhosphorIcons.squaresFour(),
       title: hasFilter ? 'No Matching Sections' : 'No Sections Found',
       message: hasFilter
           ? 'No sections match the selected search or filters.'

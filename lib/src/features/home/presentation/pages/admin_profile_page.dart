@@ -11,7 +11,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../auth/application/providers/admin_profile_providers.dart';
 import '../../../auth/application/providers/auth_providers.dart';
-import '../../../shop_profile/domain/models/shop_profile_model.dart';
+import '../../../shop_profile/presentation/widgets/store_info_card.dart';
 
 /// Admin Profile screen — account details, studio profile, settings, logout.
 class AdminProfilePage extends ConsumerWidget {
@@ -83,17 +83,25 @@ class AdminProfilePage extends ConsumerWidget {
                           GestureDetector(
                             onTap: () {
                               if (photoUrl != null && photoUrl.isNotEmpty) {
-                                _showFullScreenImageDialog(context, photoUrl, displayName);
+                                _showFullScreenImageDialog(
+                                  context,
+                                  photoUrl,
+                                  displayName,
+                                );
                               }
                             },
                             child: Container(
                               width: 58,
                               height: 58,
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.12),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.12,
+                                ),
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: AppColors.primary.withValues(alpha: 0.2),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.2,
+                                  ),
                                 ),
                                 image: photoUrl != null && photoUrl.isNotEmpty
                                     ? DecorationImage(
@@ -133,10 +141,15 @@ class AdminProfilePage extends ConsumerWidget {
                                 decoration: BoxDecoration(
                                   color: AppColors.primary,
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 1.5),
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 1.5,
+                                  ),
                                 ),
                                 child: PhosphorIcon(
-                                  PhosphorIcons.pencilSimple(PhosphorIconsStyle.bold),
+                                  PhosphorIcons.pencilSimple(
+                                    PhosphorIconsStyle.bold,
+                                  ),
                                   color: Colors.white,
                                   size: 11,
                                 ),
@@ -152,7 +165,9 @@ class AdminProfilePage extends ConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              displayName.isNotEmpty ? displayName : 'Admin User',
+                              displayName.isNotEmpty
+                                  ? displayName
+                                  : 'Admin User',
                               style: GoogleFonts.montserrat(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w700,
@@ -163,7 +178,9 @@ class AdminProfilePage extends ConsumerWidget {
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              email.isNotEmpty ? email : 'admin@kapadacreation.com',
+                              email.isNotEmpty
+                                  ? email
+                                  : 'admin@kapadacreation.com',
                               style: GoogleFonts.montserrat(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
@@ -183,266 +200,64 @@ class AdminProfilePage extends ConsumerWidget {
 
             const SliverToBoxAdapter(child: SizedBox(height: 14)),
 
-            // ── Shop / Studio Profile Card (Compact Live Preview Style) ──
+            // ── Shop / Studio Profile Card (Live Customer View Style) ──
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F2), // Warm cream card surface
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: const Color(0xFFEBE4D8),
-                      width: 1.2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header bar
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              PhosphorIcon(
-                                PhosphorIcons.sparkle(PhosphorIconsStyle.fill),
-                                size: 13,
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            PhosphorIcon(
+                              PhosphorIcons.sparkle(PhosphorIconsStyle.fill),
+                              size: 13,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'STUDIO LIVE PREVIEW',
+                              style: GoogleFonts.playfairDisplay(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
                                 color: AppColors.primary,
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                'KAPADA CREATION INFO',
-                                style: GoogleFonts.playfairDisplay(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.primary,
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                            ],
-                          ),
-                          GestureDetector(
-                            onTap: () =>
-                                context.push(AppRoutes.adminShopProfileEdit),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  Text(
-                                    'Edit Details',
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 13.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 3),
-                                  PhosphorIcon(
-                                    PhosphorIcons.arrowRight(),
-                                    size: 13,
-                                    color: AppColors.primary,
-                                  ),
-                                ],
+                                letterSpacing: 0.8,
                               ),
                             ),
+                          ],
+                        ),
+                        TextButton.icon(
+                          onPressed: () =>
+                              context.push(AppRoutes.adminShopProfileEdit),
+                          icon: PhosphorIcon(
+                            PhosphorIcons.pencilSimple(PhosphorIconsStyle.bold),
+                            size: 13,
+                            color: AppColors.primary,
                           ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Main Card Content Row
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // 1. Primary Details Column (Maximized Width)
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  shopProfile.name.isNotEmpty
-                                      ? shopProfile.name
-                                      : 'Kapada Creation',
-                                  style: GoogleFonts.playfairDisplay(
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  'Est. 2015',
-                                  style: GoogleFonts.montserrat(
-                                    fontSize: 12.5,
-                                    fontStyle: FontStyle.italic,
-                                    color: AppColors.textMuted,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  shopProfile.subtitle.isNotEmpty
-                                      ? shopProfile.subtitle
-                                      : 'Luxury Bespoke Designer Apparel & Custom Tailoring',
-                                  style: GoogleFonts.montserrat(
-                                    fontSize: 13.5,
-                                    color: AppColors.textMuted,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 4),
-                                if (shopProfile.address != null &&
-                                    shopProfile.address!.isNotEmpty)
-                                  Row(
-                                    children: [
-                                      PhosphorIcon(
-                                        PhosphorIcons.mapPin(),
-                                        size: 14,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                      const SizedBox(width: 3),
-                                      Expanded(
-                                        child: Text(
-                                          shopProfile.address!,
-                                          style: GoogleFonts.montserrat(
-                                            fontSize: 13,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                if (shopProfile.phone != null &&
-                                    shopProfile.phone!.isNotEmpty) ...[
-                                  const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      PhosphorIcon(
-                                        PhosphorIcons.phone(),
-                                        size: 13,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        shopProfile.phone!,
-                                        style: GoogleFonts.montserrat(
-                                          fontSize: 13,
-                                          color: AppColors.textPrimary,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                                const SizedBox(height: 2),
-                                GestureDetector(
-                                  onTap: () => _showWorkingHoursBottomSheet(
-                                    context,
-                                    shopProfile,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      PhosphorIcon(
-                                        PhosphorIcons.clock(),
-                                        size: 13,
-                                        color: AppColors.primary,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Working Hours',
-                                        style: GoogleFonts.montserrat(
-                                          fontSize: 13,
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 3),
-                                      PhosphorIcon(
-                                        PhosphorIcons.info(PhosphorIconsStyle.fill),
-                                        size: 15,
-                                        color: const Color(0xFFD97706),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                          label: Text(
+                            'Edit Info',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
                             ),
                           ),
-
-                          const SizedBox(width: 12),
-
-                          // 2. Right Feature Aesthetic Image Thumbnail
-                          GestureDetector(
-                            onTap: () {
-                              if (shopProfile.logoUrl != null &&
-                                  shopProfile.logoUrl!.isNotEmpty) {
-                                _showFullScreenImageDialog(
-                                  context,
-                                  shopProfile.logoUrl!,
-                                  shopProfile.name,
-                                );
-                              }
-                            },
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(14),
-                              child: (shopProfile.logoUrl != null &&
-                                      shopProfile.logoUrl!.isNotEmpty)
-                                  ? Image.network(
-                                      shopProfile.logoUrl!,
-                                      width: 78,
-                                      height: 96,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) =>
-                                          Container(
-                                        width: 78,
-                                        height: 96,
-                                        color: AppColors.primary
-                                            .withValues(alpha: 0.1),
-                                        child: Icon(
-                                          PhosphorIcons.storefront(),
-                                          color: AppColors.primary,
-                                          size: 32,
-                                        ),
-                                      ),
-                                    )
-                                  : Container(
-                                      width: 78,
-                                      height: 96,
-                                      color: AppColors.primary
-                                          .withValues(alpha: 0.1),
-                                      child: Icon(
-                                        PhosphorIcons.storefront(),
-                                        color: AppColors.primary,
-                                        size: 32,
-                                      ),
-                                    ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
                             ),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    StoreInfoCard(shopProfile: shopProfile),
+                  ],
                 ),
               ),
             ),
@@ -469,7 +284,8 @@ class AdminProfilePage extends ConsumerWidget {
                     _SettingsTile(
                       icon: PhosphorIcons.squaresFour(PhosphorIconsStyle.bold),
                       title: 'Category Manager',
-                      subtitle: 'Organise apparel categories & catalog collections',
+                      subtitle:
+                          'Organise apparel categories & catalog collections',
                       onTap: () => context.push(AppRoutes.adminCategoryList),
                     ),
                     _SettingsTile(
@@ -481,7 +297,8 @@ class AdminProfilePage extends ConsumerWidget {
                     _SettingsTile(
                       icon: PhosphorIcons.bellRinging(PhosphorIconsStyle.bold),
                       title: 'Push Notifications',
-                      subtitle: 'Broadcast notifications & announcements to clients',
+                      subtitle:
+                          'Broadcast notifications & announcements to clients',
                       onTap: () =>
                           context.push(AppRoutes.adminNotificationList),
                     ),
@@ -513,7 +330,9 @@ class AdminProfilePage extends ConsumerWidget {
                                 style: GoogleFonts.montserrat(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w500,
-                                  color: AppColors.textMuted.withValues(alpha: 0.7),
+                                  color: AppColors.textMuted.withValues(
+                                    alpha: 0.7,
+                                  ),
                                 ),
                               ),
                             ],
@@ -650,7 +469,8 @@ class _AdminProfileEditForm extends ConsumerStatefulWidget {
   final String? currentPhotoUrl;
 
   @override
-  ConsumerState<_AdminProfileEditForm> createState() => _AdminProfileEditFormState();
+  ConsumerState<_AdminProfileEditForm> createState() =>
+      _AdminProfileEditFormState();
 }
 
 class _AdminProfileEditFormState extends ConsumerState<_AdminProfileEditForm> {
@@ -686,23 +506,34 @@ class _AdminProfileEditFormState extends ConsumerState<_AdminProfileEditForm> {
   Future<void> _saveProfile() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      AppToast.show(context, 'Display Name cannot be empty.', type: ToastType.error);
+      AppToast.show(
+        context,
+        'Display Name cannot be empty.',
+        type: ToastType.error,
+      );
       return;
     }
 
     setState(() => _isSaving = true);
     try {
-      await ref.read(adminProfileUpdateProvider.notifier).updateProfile(
-            displayName: name,
-            avatarFile: _selectedAvatarFile,
-          );
+      await ref
+          .read(adminProfileUpdateProvider.notifier)
+          .updateProfile(displayName: name, avatarFile: _selectedAvatarFile);
       if (mounted) {
         Navigator.pop(context);
-        AppToast.show(context, 'Admin Profile updated successfully!', type: ToastType.success);
+        AppToast.show(
+          context,
+          'Admin Profile updated successfully!',
+          type: ToastType.success,
+        );
       }
     } catch (e) {
       if (mounted) {
-        AppToast.show(context, 'Failed to update profile: $e', type: ToastType.error);
+        AppToast.show(
+          context,
+          'Failed to update profile: $e',
+          type: ToastType.error,
+        );
       }
     } finally {
       if (mounted) {
@@ -767,24 +598,24 @@ class _AdminProfileEditFormState extends ConsumerState<_AdminProfileEditForm> {
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.primary,
-                        width: 2.5,
-                      ),
+                      border: Border.all(color: AppColors.primary, width: 2.5),
                       image: _selectedAvatarFile != null
                           ? DecorationImage(
                               image: FileImage(_selectedAvatarFile!),
                               fit: BoxFit.cover,
                             )
-                          : widget.currentPhotoUrl != null && widget.currentPhotoUrl!.isNotEmpty
-                              ? DecorationImage(
-                                  image: NetworkImage(widget.currentPhotoUrl!),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
+                          : widget.currentPhotoUrl != null &&
+                                widget.currentPhotoUrl!.isNotEmpty
+                          ? DecorationImage(
+                              image: NetworkImage(widget.currentPhotoUrl!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
                     ),
-                    child: _selectedAvatarFile == null &&
-                            (widget.currentPhotoUrl == null || widget.currentPhotoUrl!.isEmpty)
+                    child:
+                        _selectedAvatarFile == null &&
+                            (widget.currentPhotoUrl == null ||
+                                widget.currentPhotoUrl!.isEmpty)
                         ? Center(
                             child: Text(
                               widget.currentName.isNotEmpty
@@ -847,7 +678,10 @@ class _AdminProfileEditFormState extends ConsumerState<_AdminProfileEditForm> {
                 hintText: 'Enter Admin Display Name',
                 filled: true,
                 fillColor: AppColors.background,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: const BorderSide(color: AppColors.surfaceBorder),
@@ -858,7 +692,10 @@ class _AdminProfileEditFormState extends ConsumerState<_AdminProfileEditForm> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
                 ),
               ),
             ),
@@ -904,165 +741,6 @@ class _AdminProfileEditFormState extends ConsumerState<_AdminProfileEditForm> {
   }
 }
 
-void _showWorkingHoursBottomSheet(
-  BuildContext ctx,
-  ShopProfileModel shopProfile,
-) {
-    final opHours =
-        shopProfile.operatingHours ?? OperatingHoursModel.defaultSchedule;
-    final isOpenNow = opHours.isCurrentlyOpen();
-
-    showModalBottomSheet(
-      context: ctx,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetCtx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top handle indicator
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceBorder,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Title + Live Status Badge
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Studio Working Hours',
-                            style: GoogleFonts.playfairDisplay(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            shopProfile.name.isNotEmpty
-                                ? shopProfile.name
-                                : 'Kapada Creation Studio',
-                            style: GoogleFonts.montserrat(
-                              fontSize: 12,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isOpenNow
-                            ? const Color(0xFF2E7D32).withValues(alpha: 0.12)
-                            : const Color(0xFFDC2626).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isOpenNow
-                              ? const Color(0xFF2E7D32).withValues(alpha: 0.3)
-                              : const Color(0xFFDC2626).withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isOpenNow
-                                  ? const Color(0xFF2E7D32)
-                                  : const Color(0xFFDC2626),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            isOpenNow ? 'OPEN NOW' : 'CLOSED NOW',
-                            style: GoogleFonts.montserrat(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: isOpenNow
-                                  ? const Color(0xFF2E7D32)
-                                  : const Color(0xFFDC2626),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-                const Divider(height: 1, color: AppColors.surfaceBorder),
-                const SizedBox(height: 12),
-
-                // 7 Days List Schedule
-                ...OperatingHoursModel.allWeekDays.map((day) {
-                  final sched = opHours.dailySchedules[day] ??
-                      DayOperatingSchedule(day: day, isOpen: day != 'Sunday');
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          day,
-                          style: GoogleFonts.montserrat(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: sched.isOpen
-                                ? AppColors.textPrimary
-                                : AppColors.textMuted,
-                          ),
-                        ),
-                        Text(
-                          sched.isOpen
-                              ? '${sched.openTime} - ${sched.closeTime}'
-                              : 'Closed',
-                          style: GoogleFonts.montserrat(
-                            fontSize: 12.5,
-                            fontWeight: sched.isOpen
-                                ? FontWeight.w600
-                                : FontWeight.w500,
-                            color: sched.isOpen
-                                ? AppColors.primary
-                                : const Color(0xFFDC2626),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
 // ── Settings Tile ─────────────────────────────────────────────────────────────
 
 class _SettingsTile extends StatelessWidget {
@@ -1097,13 +775,7 @@ class _SettingsTile extends StatelessWidget {
             color: AppColors.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Center(
-            child: Icon(
-              icon,
-              size: 20,
-              color: AppColors.primary,
-            ),
-          ),
+          child: Center(child: Icon(icon, size: 20, color: AppColors.primary)),
         ),
         title: Text(
           title,
@@ -1149,7 +821,11 @@ void _showFullScreenImageDialog(
           Align(
             alignment: Alignment.topRight,
             child: IconButton(
-              icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
+              icon: const Icon(
+                Icons.close_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
               onPressed: () => Navigator.pop(dialogCtx),
             ),
           ),
@@ -1163,17 +839,23 @@ void _showFullScreenImageDialog(
                 child: Image.network(
                   imageUrl,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (_, _, _) => Container(
                     padding: const EdgeInsets.all(32),
                     color: AppColors.surface,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.broken_image_rounded, size: 48, color: AppColors.textMuted),
+                        const Icon(
+                          Icons.broken_image_rounded,
+                          size: 48,
+                          color: AppColors.textMuted,
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           'Failed to load image',
-                          style: GoogleFonts.montserrat(color: AppColors.textMuted),
+                          style: GoogleFonts.montserrat(
+                            color: AppColors.textMuted,
+                          ),
                         ),
                       ],
                     ),

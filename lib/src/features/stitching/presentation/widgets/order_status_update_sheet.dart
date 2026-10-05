@@ -74,15 +74,18 @@ class _OrderStatusUpdateSheetState
   Future<void> _submit() async {
     if (_selectedStatus == widget.order.status) return;
 
+    final rawNote = _noteController.text.trim();
+    final sanitizedNote = rawNote.isNotEmpty
+        ? (rawNote.length > 200 ? rawNote.substring(0, 200) : rawNote)
+        : null;
+
     final success = await ref
         .read(stitchingStatusMutationProvider.notifier)
         .updateStatus(
           order: widget.order,
           newStatus: _selectedStatus,
           updatedBy: widget.updatedBy,
-          note: _noteController.text.trim().isNotEmpty
-              ? _noteController.text.trim()
-              : null,
+          note: sanitizedNote,
         );
 
     if (success && mounted) {
@@ -238,7 +241,7 @@ class _OrderStatusUpdateSheetState
               ],
               const SizedBox(height: AppSpacing.md),
               const Text(
-                'Status Note (Optional)',
+                'Status Note (Optional - Max 200 chars)',
                 style: TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 13,
@@ -248,6 +251,7 @@ class _OrderStatusUpdateSheetState
               const SizedBox(height: AppSpacing.xs),
               TextField(
                 controller: _noteController,
+                maxLength: 200,
                 enabled: !isSubmitting,
                 style: const TextStyle(
                   color: AppColors.textPrimary,
@@ -256,7 +260,8 @@ class _OrderStatusUpdateSheetState
                 cursorColor: AppColors.primary,
                 maxLines: 2,
                 decoration: const InputDecoration(
-                  hintText: 'e.g. Fabric cutting done by master tailor',
+                  hintText:
+                      'e.g. Fabric cutting done by master tailor (Max 200 chars)',
                   hintStyle: TextStyle(color: AppColors.textHint, fontSize: 13),
                   filled: true,
                   fillColor: AppColors.background,

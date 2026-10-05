@@ -201,7 +201,7 @@ final allActivityFeedProvider = Provider<List<AdminActivityItem>>((ref) {
     }
 
     final matchedDesign = designMap[designId];
-    final designName = matchedDesign?.name ?? 'Bespoke Item';
+    final designName = matchedDesign?.name ?? 'Stitching Item';
 
     items.add(
       AdminActivityItem(
@@ -243,7 +243,9 @@ final allActivityFeedProvider = Provider<List<AdminActivityItem>>((ref) {
       AdminActivityItem(
         id: 'notif_${n.id}',
         title: n.title,
-        subtitle: n.body.isNotEmpty ? n.body : 'Broadcast notification published',
+        subtitle: n.body.isNotEmpty
+            ? n.body
+            : 'Broadcast notification published',
         timestamp: n.createdAt,
         category: AdminActivityCategory.notification,
         icon: PhosphorIcons.bellRinging(PhosphorIconsStyle.fill),
@@ -365,8 +367,10 @@ class PaginatedActivityNotifier
   }
 }
 
-final paginatedActivityNotifierProvider = StateNotifierProvider<
-    PaginatedActivityNotifier,
-    PaginatedState<AdminActivityItem>>((ref) {
-  return PaginatedActivityNotifier(ref);
-});
+final paginatedActivityNotifierProvider =
+    StateNotifierProvider<
+      PaginatedActivityNotifier,
+      PaginatedState<AdminActivityItem>
+    >((ref) {
+      return PaginatedActivityNotifier(ref);
+    });

@@ -131,10 +131,17 @@ final notificationListProvider = StreamProvider<List<NotificationModel>>((ref) {
   return ref.watch(notificationRepositoryProvider).watchAdminNotifications();
 });
 
-/// Count of notifications that are pending or unread.
+final adminReadNotificationIdsProvider = StreamProvider<Set<String>>((ref) {
+  final user = ref.watch(firebaseAuthStateProvider).valueOrNull;
+  if (user == null || user.uid.isEmpty) return Stream.value(<String>{});
+  return ref.watch(notificationRepositoryProvider).watchReadNotificationIds(user.uid);
+});
+
+/// Count of notifications that are unread by this admin.
 final adminUnreadNotificationCountProvider = Provider<int>((ref) {
   final list = ref.watch(notificationListProvider).valueOrNull ?? [];
-  return list.where((n) => n.status == NotificationStatus.draft).length;
+  final readIds = ref.watch(adminReadNotificationIdsProvider).valueOrNull ?? {};
+  return list.where((n) => !readIds.contains(n.id)).length;
 });
 
 // ─────────────────────────────────────────────
@@ -142,17 +149,19 @@ final adminUnreadNotificationCountProvider = Provider<int>((ref) {
 // ─────────────────────────────────────────────
 
 final paginatedNotificationsProvider =
-    StateNotifierProvider<PaginatedNotificationsNotifier, PaginatedState<NotificationModel>>(
-  (ref) {
-    return PaginatedNotificationsNotifier(
-      repository: ref.watch(notificationRepositoryProvider),
-    );
-  },
-);
+    StateNotifierProvider<
+      PaginatedNotificationsNotifier,
+      PaginatedState<NotificationModel>
+    >((ref) {
+      return PaginatedNotificationsNotifier(
+        repository: ref.watch(notificationRepositoryProvider),
+      );
+    });
 
-class PaginatedNotificationsNotifier extends StateNotifier<PaginatedState<NotificationModel>> {
+class PaginatedNotificationsNotifier
+    extends StateNotifier<PaginatedState<NotificationModel>> {
   PaginatedNotificationsNotifier({required this.repository})
-      : super(const PaginatedState()) {
+    : super(const PaginatedState()) {
     fetchInitial();
   }
 
@@ -162,7 +171,13 @@ class PaginatedNotificationsNotifier extends StateNotifier<PaginatedState<Notifi
   Future<void> fetchInitial({String query = ''}) async {
     _currentQuery = query.trim();
 
-    state = state.copyWith(isLoading: true, errorMessage: null, items: [], lastDocId: null, hasMore: true);
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+      items: [],
+      lastDocId: null,
+      hasMore: true,
+    );
 
     try {
       final res = await repository.fetchPaginatedNotifications(limit: 20);
@@ -170,10 +185,13 @@ class PaginatedNotificationsNotifier extends StateNotifier<PaginatedState<Notifi
       var filtered = res.items;
       if (_currentQuery.isNotEmpty) {
         final q = _currentQuery.toLowerCase();
-        filtered = filtered.where((n) =>
-          n.title.toLowerCase().contains(q) ||
-          n.body.toLowerCase().contains(q)
-        ).toList();
+        filtered = filtered
+            .where(
+              (n) =>
+                  n.title.toLowerCase().contains(q) ||
+                  n.body.toLowerCase().contains(q),
+            )
+            .toList();
       }
 
       state = state.copyWith(
@@ -201,10 +219,13 @@ class PaginatedNotificationsNotifier extends StateNotifier<PaginatedState<Notifi
       var filtered = res.items;
       if (_currentQuery.isNotEmpty) {
         final q = _currentQuery.toLowerCase();
-        filtered = filtered.where((n) =>
-          n.title.toLowerCase().contains(q) ||
-          n.body.toLowerCase().contains(q)
-        ).toList();
+        filtered = filtered
+            .where(
+              (n) =>
+                  n.title.toLowerCase().contains(q) ||
+                  n.body.toLowerCase().contains(q),
+            )
+            .toList();
       }
 
       state = state.copyWith(

@@ -19,6 +19,7 @@ class DesignModel {
     required this.isActive,
     required this.createdAt,
     required this.updatedAt,
+    this.categoryIds = const [],
     this.price = 0.0,
     this.colors = const [],
     this.sizes = const [],
@@ -29,6 +30,7 @@ class DesignModel {
   final String id;
   final String boutiqueId;
   final String categoryId;
+  final List<String> categoryIds;
   final String name;
   final String slug;
   final String? shortDescription;
@@ -61,6 +63,7 @@ class DesignModel {
     String? id,
     String? boutiqueId,
     String? categoryId,
+    List<String>? categoryIds,
     String? name,
     String? slug,
     String? shortDescription,
@@ -86,6 +89,7 @@ class DesignModel {
       id: id ?? this.id,
       boutiqueId: boutiqueId ?? this.boutiqueId,
       categoryId: categoryId ?? this.categoryId,
+      categoryIds: categoryIds ?? this.categoryIds,
       name: name ?? this.name,
       slug: slug ?? this.slug,
       shortDescription: clearShortDescription

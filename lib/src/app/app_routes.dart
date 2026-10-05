@@ -177,9 +177,8 @@ GoRouter createAppRouter(ProviderContainer container) {
       ),
       GoRoute(
         path: AppRoutes.adminCategoryProducts,
-        builder: (context, state) => AdminCategoryProductsPage(
-          category: state.extra as CategoryModel,
-        ),
+        builder: (context, state) =>
+            AdminCategoryProductsPage(category: state.extra as CategoryModel),
       ),
 
       // ── Design / Product management ────────────────────────────

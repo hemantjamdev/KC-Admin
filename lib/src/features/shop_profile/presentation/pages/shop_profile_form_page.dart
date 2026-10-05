@@ -12,6 +12,7 @@ import '../../../../core/navigation/navigation_extensions.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../application/providers/shop_profile_providers.dart';
 import '../../domain/models/shop_profile_model.dart';
+import '../widgets/store_info_card.dart';
 
 /// Form screen to edit the single Kapada Creation studio profile details.
 class ShopProfileFormPage extends ConsumerStatefulWidget {
@@ -29,12 +30,14 @@ class _ShopProfileFormPageState extends ConsumerState<ShopProfileFormPage> {
   late final TextEditingController _phoneController;
   late final TextEditingController _emailController;
   late final TextEditingController _addressController;
+  late final TextEditingController _establishedYearController;
 
   final _nameFocusNode = FocusNode();
   final _subtitleFocusNode = FocusNode();
   final _addressFocusNode = FocusNode();
   final _phoneFocusNode = FocusNode();
   final _emailFocusNode = FocusNode();
+  final _establishedYearFocusNode = FocusNode();
 
   String? _logoUrl;
 
@@ -55,6 +58,9 @@ class _ShopProfileFormPageState extends ConsumerState<ShopProfileFormPage> {
     _phoneController = TextEditingController(text: profile.phone ?? '');
     _emailController = TextEditingController(text: profile.email ?? '');
     _addressController = TextEditingController(text: profile.address ?? '');
+    _establishedYearController = TextEditingController(
+      text: profile.establishedYear ?? '2022',
+    );
     _logoUrl = profile.logoUrl;
 
     // Init per-day operating schedules
@@ -80,11 +86,13 @@ class _ShopProfileFormPageState extends ConsumerState<ShopProfileFormPage> {
     _addressFocusNode.dispose();
     _phoneFocusNode.dispose();
     _emailFocusNode.dispose();
+    _establishedYearFocusNode.dispose();
     _nameController.dispose();
     _subtitleController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
     _addressController.dispose();
+    _establishedYearController.dispose();
     super.dispose();
   }
 
@@ -135,6 +143,7 @@ class _ShopProfileFormPageState extends ConsumerState<ShopProfileFormPage> {
         phone: _phoneController.text.trim(),
         email: _emailController.text.trim(),
         address: _addressController.text.trim(),
+        establishedYear: _establishedYearController.text.trim(),
         openingHours: opHoursModel.summary,
         operatingHours: opHoursModel,
         logoUrl: _logoUrl,
@@ -204,219 +213,91 @@ class _ShopProfileFormPageState extends ConsumerState<ShopProfileFormPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ── LIVE CUSTOMER VIEW PREVIEW CARD ─────────────────
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F2),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: const Color(0xFFEBE4D8),
-                        width: 1.2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              PhosphorIcon(
+                                PhosphorIcons.sparkle(PhosphorIconsStyle.fill),
+                                size: 13,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                'KAPADA CREATION INFO',
+                                style: GoogleFonts.playfairDisplay(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
                               children: [
                                 PhosphorIcon(
-                                  PhosphorIcons.sparkle(
-                                    PhosphorIconsStyle.fill,
-                                  ),
-                                  size: 13,
+                                  PhosphorIcons.eye(),
+                                  size: 11,
                                   color: AppColors.primary,
                                 ),
-                                const SizedBox(width: 5),
+                                const SizedBox(width: 4),
                                 Text(
-                                  'KAPADA CREATION INFO',
-                                  style: GoogleFonts.playfairDisplay(
-                                    fontSize: 11,
+                                  'Live Preview',
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: AppColors.primary,
-                                    letterSpacing: 0.8,
                                   ),
                                 ),
                               ],
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  PhosphorIcon(
-                                    PhosphorIcons.eye(),
-                                    size: 11,
-                                    color: AppColors.primary,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Live Preview',
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      StoreInfoCard(
+                        shopProfile: ShopProfileModel(
+                          id: 'preview',
+                          name: _nameController.text.trim().isNotEmpty
+                              ? _nameController.text.trim()
+                              : 'Kapada Creation',
+                          subtitle: _subtitleController.text.trim().isNotEmpty
+                              ? _subtitleController.text.trim()
+                              : 'Luxury Designer Apparel & Custom Tailoring',
+                          address: _addressController.text.trim().isNotEmpty
+                              ? _addressController.text.trim()
+                              : 'Main Market, M.G. Road, Jaipur',
+                          phone: _phoneController.text.trim().isNotEmpty
+                              ? _phoneController.text.trim()
+                              : '+91 98765 43210',
+                          establishedYear:
+                              _establishedYearController.text.trim().isNotEmpty
+                              ? _establishedYearController.text.trim()
+                              : '2022',
+                          logoUrl: _logoUrl,
+                          openingHours: OperatingHoursModel(
+                            dailySchedules: _dailySchedules,
+                          ).summary,
+                          operatingHours: OperatingHoursModel(
+                            dailySchedules: _dailySchedules,
+                          ),
                         ),
-                        const SizedBox(height: 8),
-
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _nameController.text.trim().isNotEmpty
-                                        ? _nameController.text.trim()
-                                        : 'Kapada Creation',
-                                    style: GoogleFonts.playfairDisplay(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    'Est. 2015',
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 11.5,
-                                      fontStyle: FontStyle.italic,
-                                      color: AppColors.textMuted,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    _subtitleController.text.trim().isNotEmpty
-                                        ? _subtitleController.text.trim()
-                                        : 'Luxury Bespoke Designer Apparel & Custom Tailoring',
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 12.5,
-                                      color: AppColors.textMuted,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      PhosphorIcon(
-                                        PhosphorIcons.mapPin(),
-                                        size: 13,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                      const SizedBox(width: 3),
-                                      Expanded(
-                                        child: Text(
-                                          _addressController.text
-                                                  .trim()
-                                                  .isNotEmpty
-                                              ? _addressController.text.trim()
-                                              : 'Main Market, M.G. Road, Jaipur, Rajasthan 302001',
-                                          style: GoogleFonts.montserrat(
-                                            fontSize: 12,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      PhosphorIcon(
-                                        PhosphorIcons.phone(),
-                                        size: 12,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        _phoneController.text.trim().isNotEmpty
-                                            ? _phoneController.text.trim()
-                                            : '+91 98765 43210',
-                                        style: GoogleFonts.montserrat(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: AppColors.textPrimary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 2),
-                                  GestureDetector(
-                                    onTap: () => _showWorkingHoursBottomSheet(
-                                      context,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        PhosphorIcon(
-                                          PhosphorIcons.clock(),
-                                          size: 12,
-                                          color: AppColors.primary,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Working Hours',
-                                          style: GoogleFonts.montserrat(
-                                            fontSize: 12,
-                                            color: AppColors.primary,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 3),
-                                        PhosphorIcon(
-                                          PhosphorIcons.info(PhosphorIconsStyle.fill),
-                                          size: 14,
-                                          color: const Color(0xFFD97706),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: _logoUrl != null && _logoUrl!.isNotEmpty
-                                  ? Image.network(
-                                      _logoUrl!,
-                                      width: 58,
-                                      height: 72,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
-                                          _fallbackImage(),
-                                    )
-                                  : _fallbackImage(),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
 
                   const SizedBox(height: 16),
@@ -507,7 +388,7 @@ class _ShopProfileFormPageState extends ConsumerState<ShopProfileFormPage> {
                     onFieldSubmitted: (_) =>
                         FocusScope.of(context).requestFocus(_addressFocusNode),
                     decoration: const InputDecoration(
-                      hintText: 'e.g. Luxury Bespoke Designer Apparel',
+                      hintText: 'e.g. Luxury Designer Apparel',
                       counterText: '',
                     ),
                   ),
@@ -542,12 +423,39 @@ class _ShopProfileFormPageState extends ConsumerState<ShopProfileFormPage> {
                     maxLength: 150,
                     inputFormatters: [LengthLimitingTextInputFormatter(150)],
                     textInputAction: TextInputAction.next,
-                    onFieldSubmitted: (_) =>
-                        FocusScope.of(context).requestFocus(_phoneFocusNode),
+                    onFieldSubmitted: (_) => FocusScope.of(
+                      context,
+                    ).requestFocus(_establishedYearFocusNode),
                     maxLines: 2,
                     decoration: const InputDecoration(
                       hintText:
                           'e.g. Main Market, M.G. Road, Jaipur, Rajasthan 302001',
+                      counterText: '',
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ── ESTABLISHED YEAR / SINCE YEAR ──────────────────
+                  Text(
+                    'Established Year (Since)',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _establishedYearController,
+                    focusNode: _establishedYearFocusNode,
+                    maxLength: 20,
+                    inputFormatters: [LengthLimitingTextInputFormatter(20)],
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) =>
+                        FocusScope.of(context).requestFocus(_phoneFocusNode),
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. 2022',
                       counterText: '',
                     ),
                   ),
@@ -603,47 +511,47 @@ class _ShopProfileFormPageState extends ConsumerState<ShopProfileFormPage> {
                   // ── PER-DAY CUSTOM WORKING HOURS ENGINE ─────────────
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            PhosphorIcon(
-                              PhosphorIcons.clock(PhosphorIconsStyle.fill),
-                              size: 16,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Studio Working Hours (Per Day)',
-                              style: GoogleFonts.montserrat(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Toggle open days & customize individual timings per day',
-                          style: GoogleFonts.montserrat(
-                            fontSize: 10.5,
-                            color: AppColors.textMuted,
+                    children: [
+                      Row(
+                        children: [
+                          PhosphorIcon(
+                            PhosphorIcons.clock(PhosphorIconsStyle.fill),
+                            size: 16,
+                            color: AppColors.primary,
                           ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Studio Working Hours (Per Day)',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Toggle open days & customize individual timings per day',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 10.5,
+                          color: AppColors.textMuted,
                         ),
-                        const SizedBox(height: 12),
+                      ),
+                      const SizedBox(height: 12),
 
-                        // List of all 7 days with custom time pickers
-                        ...OperatingHoursModel.allWeekDays.map((day) {
-                          final sched =
-                              _dailySchedules[day] ??
-                              DayOperatingSchedule(
-                                day: day,
-                                isOpen: day != 'Sunday',
-                              );
-                          return _buildDayScheduleTile(day, sched);
-                        }),
-                      ],
-                    ),
+                      // List of all 7 days with custom time pickers
+                      ...OperatingHoursModel.allWeekDays.map((day) {
+                        final sched =
+                            _dailySchedules[day] ??
+                            DayOperatingSchedule(
+                              day: day,
+                              isOpen: day != 'Sunday',
+                            );
+                        return _buildDayScheduleTile(day, sched);
+                      }),
+                    ],
+                  ),
 
                   const SizedBox(height: 32),
                   SizedBox(
@@ -682,15 +590,6 @@ class _ShopProfileFormPageState extends ConsumerState<ShopProfileFormPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _fallbackImage() {
-    return Image.network(
-      'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=500&auto=format&fit=crop&q=60',
-      width: 58,
-      height: 72,
-      fit: BoxFit.cover,
     );
   }
 
@@ -1111,160 +1010,5 @@ class _ShopProfileFormPageState extends ConsumerState<ShopProfileFormPage> {
         );
       }
     }
-  }
-
-  void _showWorkingHoursBottomSheet(BuildContext ctx) {
-    final opHours = _buildOperatingHoursModel();
-    final isOpenNow = opHours.isCurrentlyOpen();
-
-    showModalBottomSheet(
-      context: ctx,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetCtx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top handle indicator
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceBorder,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Title + Live Status Badge
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Studio Working Hours',
-                            style: GoogleFonts.playfairDisplay(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _nameController.text.trim().isNotEmpty
-                                ? _nameController.text.trim()
-                                : 'Kapada Creation Studio',
-                            style: GoogleFonts.montserrat(
-                              fontSize: 12,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isOpenNow
-                            ? const Color(0xFF2E7D32).withValues(alpha: 0.12)
-                            : const Color(0xFFDC2626).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isOpenNow
-                              ? const Color(0xFF2E7D32).withValues(alpha: 0.3)
-                              : const Color(0xFFDC2626).withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isOpenNow
-                                  ? const Color(0xFF2E7D32)
-                                  : const Color(0xFFDC2626),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            isOpenNow ? 'OPEN NOW' : 'CLOSED NOW',
-                            style: GoogleFonts.montserrat(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: isOpenNow
-                                  ? const Color(0xFF2E7D32)
-                                  : const Color(0xFFDC2626),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-                const Divider(height: 1, color: AppColors.surfaceBorder),
-                const SizedBox(height: 12),
-
-                // 7 Days List Schedule
-                ...OperatingHoursModel.allWeekDays.map((day) {
-                  final sched = _dailySchedules[day] ??
-                      DayOperatingSchedule(day: day, isOpen: day != 'Sunday');
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          day,
-                          style: GoogleFonts.montserrat(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: sched.isOpen
-                                ? AppColors.textPrimary
-                                : AppColors.textMuted,
-                          ),
-                        ),
-                        Text(
-                          sched.isOpen
-                              ? '${sched.openTime} - ${sched.closeTime}'
-                              : 'Closed',
-                          style: GoogleFonts.montserrat(
-                            fontSize: 12.5,
-                            fontWeight: sched.isOpen
-                                ? FontWeight.w600
-                                : FontWeight.w500,
-                            color: sched.isOpen
-                                ? AppColors.primary
-                                : const Color(0xFFDC2626),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 }

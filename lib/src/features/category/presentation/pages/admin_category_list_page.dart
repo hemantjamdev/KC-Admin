@@ -362,33 +362,52 @@ class _AdminCategoryListPageState extends ConsumerState<AdminCategoryListPage> {
                     ),
 
                     Expanded(
-                      child: visible.isEmpty
-                          ? _buildEmptyState()
-                          : ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(
-                                AppSpacing.lg,
-                                0,
-                                AppSpacing.lg,
-                                AppSpacing.xxl + AppSpacing.xl,
+                      child: RefreshIndicator(
+                        color: AppColors.primary,
+                        onRefresh: () async {
+                          ref.invalidate(categoryListProvider);
+                          await ref.read(categoryListProvider.future);
+                        },
+                        child: visible.isEmpty
+                            ? SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(
+                                  parent: BouncingScrollPhysics(),
+                                ),
+                                child: Container(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.5,
+                                  alignment: Alignment.center,
+                                  child: _buildEmptyState(),
+                                ),
+                              )
+                            : ListView.separated(
+                                padding: const EdgeInsets.fromLTRB(
+                                  AppSpacing.lg,
+                                  0,
+                                  AppSpacing.lg,
+                                  AppSpacing.xxl + AppSpacing.xl,
+                                ),
+                                physics: const AlwaysScrollableScrollPhysics(
+                                  parent: BouncingScrollPhysics(),
+                                ),
+                                itemCount: visible.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(height: AppSpacing.sm),
+                                itemBuilder: (context, index) {
+                                  return _CategoryRow(
+                                    category: visible[index],
+                                    onEdit: () => context.push(
+                                      AppRoutes.adminCategoryEdit,
+                                      extra: visible[index],
+                                    ),
+                                    onToggleStatus: () =>
+                                        _confirmToggleStatus(visible[index]),
+                                    onDelete: () =>
+                                        _confirmDelete(visible[index]),
+                                  );
+                                },
                               ),
-                              physics: const BouncingScrollPhysics(),
-                              itemCount: visible.length,
-                              separatorBuilder: (_, _) =>
-                                  const SizedBox(height: AppSpacing.sm),
-                              itemBuilder: (context, index) {
-                                return _CategoryRow(
-                                  category: visible[index],
-                                  onEdit: () => context.push(
-                                    AppRoutes.adminCategoryEdit,
-                                    extra: visible[index],
-                                  ),
-                                  onToggleStatus: () =>
-                                      _confirmToggleStatus(visible[index]),
-                                  onDelete: () =>
-                                      _confirmDelete(visible[index]),
-                                );
-                              },
-                            ),
+                      ),
                     ),
                   ],
                 ),
@@ -435,14 +454,23 @@ class _CategoryRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final designsAsync = ref.watch(designListProvider);
-    final count = designsAsync.valueOrNull?.where((d) {
-          return d.categoryId == category.id ||
+    final count =
+        designsAsync.valueOrNull?.where((d) {
+          final catIdMatch =
+              d.categoryId == category.id ||
               d.categoryId.toLowerCase() == category.slug.toLowerCase();
+          final catIdsMatch =
+              d.categoryIds.contains(category.id) ||
+              d.categoryIds.any(
+                (id) => id.toLowerCase() == category.slug.toLowerCase(),
+              );
+          return catIdMatch || catIdsMatch;
         }).length ??
         0;
 
     return InkWell(
-      onTap: () => context.push(AppRoutes.adminCategoryProducts, extra: category),
+      onTap: () =>
+          context.push(AppRoutes.adminCategoryProducts, extra: category),
       borderRadius: AppRadius.borderLg,
       child: Container(
         decoration: BoxDecoration(
@@ -465,8 +493,8 @@ class _CategoryRow extends ConsumerWidget {
                   color: category.isSystem
                       ? AppColors.primary.withValues(alpha: 0.12)
                       : (category.isActive
-                          ? AppColors.accentGlow
-                          : AppColors.surfaceBorder),
+                            ? AppColors.accentGlow
+                            : AppColors.surfaceBorder),
                   borderRadius: AppRadius.borderMd,
                 ),
                 child: Center(
@@ -476,8 +504,8 @@ class _CategoryRow extends ConsumerWidget {
                       color: category.isSystem
                           ? AppColors.primary
                           : (category.isActive
-                              ? AppColors.primary
-                              : AppColors.textMuted),
+                                ? AppColors.primary
+                                : AppColors.textMuted),
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),

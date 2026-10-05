@@ -46,7 +46,10 @@ class _AdminDesignListPageState extends ConsumerState<AdminDesignListPage> {
 
   Future<void> _initData(String boutiqueId) async {
     try {
-      _categories = await ref.read(categoryRepositoryProvider).watchCategories(boutiqueId).first;
+      _categories = await ref
+          .read(categoryRepositoryProvider)
+          .watchCategories(boutiqueId)
+          .first;
     } catch (_) {
       _categories = [];
     }
@@ -220,7 +223,10 @@ class _AdminDesignListPageState extends ConsumerState<AdminDesignListPage> {
           ),
           actions: [
             IconButton(
-              icon: PhosphorIcon(PhosphorIcons.sortAscending(), color: AppColors.primary),
+              icon: PhosphorIcon(
+                PhosphorIcons.sortAscending(),
+                color: AppColors.primary,
+              ),
               tooltip: 'Reorder',
               onPressed: () => context.push(AppRoutes.adminDesignReorder),
             ),
@@ -297,7 +303,9 @@ class _AdminDesignListPageState extends ConsumerState<AdminDesignListPage> {
                                     onPressed: () {
                                       _searchController.clear();
                                       ref
-                                          .read(paginatedDesignsProvider.notifier)
+                                          .read(
+                                            paginatedDesignsProvider.notifier,
+                                          )
                                           .fetchInitial(
                                             categoryId: ref
                                                 .read(designFilterProvider)
@@ -425,7 +433,9 @@ class _AdminDesignListPageState extends ConsumerState<AdminDesignListPage> {
                                           .read(designFilterProvider.notifier)
                                           .filterByCategory(v);
                                       ref
-                                          .read(paginatedDesignsProvider.notifier)
+                                          .read(
+                                            paginatedDesignsProvider.notifier,
+                                          )
                                           .fetchInitial(
                                             categoryId: v,
                                             query: _searchController.text,
@@ -451,7 +461,8 @@ class _AdminDesignListPageState extends ConsumerState<AdminDesignListPage> {
                       },
                       child: paginatedState.isLoading && visible.isEmpty
                           ? const AppLoadingState(type: AppLoadingType.list)
-                          : paginatedState.errorMessage != null && visible.isEmpty
+                          : paginatedState.errorMessage != null &&
+                                visible.isEmpty
                           ? AppErrorState(
                               message: 'Failed to load designs list.',
                               onRetry: () => ref
@@ -471,7 +482,8 @@ class _AdminDesignListPageState extends ConsumerState<AdminDesignListPage> {
                               physics: const BouncingScrollPhysics(
                                 parent: AlwaysScrollableScrollPhysics(),
                               ),
-                              itemCount: visible.length +
+                              itemCount:
+                                  visible.length +
                                   (paginatedState.isLoadingMore ? 1 : 0),
                               separatorBuilder: (ctx, i) =>
                                   const SizedBox(height: AppSpacing.sm),
@@ -529,7 +541,9 @@ class _AdminDesignListPageState extends ConsumerState<AdminDesignListPage> {
         ref.watch(designFilterProvider).availabilityFilter !=
             AvailabilityFilter.all;
     return AppEmptyState(
-      icon: hasSearch ? PhosphorIcons.magnifyingGlass() : PhosphorIcons.tShirt(),
+      icon: hasSearch
+          ? PhosphorIcons.magnifyingGlass()
+          : PhosphorIcons.tShirt(),
       title: hasSearch ? 'No Matching Designs' : 'No Designs Found',
       message: hasSearch
           ? 'No designs match the selected search or filters.'
@@ -766,7 +780,10 @@ class _DesignRow extends StatelessWidget {
                         size: 18,
                       ),
                       const SizedBox(width: AppSpacing.sm),
-                      const Text('Delete', style: TextStyle(color: AppColors.error)),
+                      const Text(
+                        'Delete',
+                        style: TextStyle(color: AppColors.error),
+                      ),
                     ],
                   ),
                 ),

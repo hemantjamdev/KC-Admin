@@ -4,7 +4,9 @@ enum NotificationType {
   general,
   stitchingUpdate,
   designUpdate,
-  boutiqueAnnouncement;
+  boutiqueAnnouncement,
+  newStitchingRequest,
+  stitchingStatusUpdated;
 
   String get label {
     return switch (this) {
@@ -12,6 +14,8 @@ enum NotificationType {
       NotificationType.stitchingUpdate => 'Stitching Update',
       NotificationType.designUpdate => 'Design Update',
       NotificationType.boutiqueAnnouncement => 'Boutique Announcement',
+      NotificationType.newStitchingRequest => 'New Stitching Request',
+      NotificationType.stitchingStatusUpdated => 'Stitching Status Update',
     };
   }
 }
@@ -19,13 +23,15 @@ enum NotificationType {
 enum NotificationAudienceType {
   allBoutiqueCustomers,
   branchCustomers,
-  selectedCustomers;
+  selectedCustomers,
+  admins;
 
   String get label {
     return switch (this) {
       NotificationAudienceType.allBoutiqueCustomers => 'All Boutique Customers',
       NotificationAudienceType.branchCustomers => 'Branch Customers',
       NotificationAudienceType.selectedCustomers => 'Selected Customers',
+      NotificationAudienceType.admins => 'Admins',
     };
   }
 }

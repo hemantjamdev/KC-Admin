@@ -68,80 +68,80 @@ class _AdminSplashPageState extends ConsumerState<AdminSplashPage>
     return Scaffold(
       backgroundColor: deepGreen,
       body: SafeArea(
-            child: Center(
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Admin Logo Badge
-                      Container(
-                        width: 130,
-                        height: 130,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(28),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.25),
-                              blurRadius: 30,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
+        child: Center(
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Admin Logo Badge
+                  Container(
+                    width: 130,
+                    height: 130,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          blurRadius: 30,
+                          offset: const Offset(0, 10),
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: Image.asset(
-                            'assets/images/app_icon.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.asset(
+                        'assets/images/app_icon.png',
+                        fit: BoxFit.contain,
                       ),
-                      const SizedBox(height: 32),
-
-                      // Brand Title
-                      Text(
-                        'KAPADA CREATION',
-                        style: GoogleFonts.playfairDisplay(
-                          color: AppColors.background,
-                          fontSize: 26,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 3.5,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // Tagline
-                      Text(
-                        '“We care what you wear”',
-                        style: GoogleFonts.montserrat(
-                          color: softGold,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          fontStyle: FontStyle.italic,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 48),
-
-                      // Loading progress indicator
-                      const SizedBox(
-                        width: 36,
-                        height: 2,
-                        child: LinearProgressIndicator(
-                          color: softGold,
-                          backgroundColor: Color(0x33FFFFFF),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 32),
+
+                  // Brand Title
+                  Text(
+                    'KAPADA CREATION',
+                    style: GoogleFonts.playfairDisplay(
+                      color: AppColors.background,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 3.5,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Tagline
+                  Text(
+                    '“We care what you wear”',
+                    style: GoogleFonts.montserrat(
+                      color: softGold,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      fontStyle: FontStyle.italic,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+
+                  // Loading progress indicator
+                  const SizedBox(
+                    width: 36,
+                    height: 2,
+                    child: LinearProgressIndicator(
+                      color: softGold,
+                      backgroundColor: Color(0x33FFFFFF),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        );
+        ),
+      ),
+    );
   }
 }

@@ -186,7 +186,7 @@ Future<void> main() async {
         'designName': 'Royal Velvet Zardozi Lehenga',
         'quantity': 1,
         'notes': 'Custom heavy blouse padding requested',
-      }
+      },
     ],
     'measurementSummary': {
       'chest': 36.0,
@@ -216,7 +216,7 @@ Future<void> main() async {
         'designName': 'Pure Kanjeevaram Gold Silk Saree',
         'quantity': 1,
         'notes': 'Designer matching blouse stitching',
-      }
+      },
     ],
     'notes': 'In cutting and stitching stage at Central Studio.',
     'createdAt': FieldValue.serverTimestamp(),
@@ -236,10 +236,10 @@ Future<void> main() async {
     'designReferences': [
       {
         'designId': null,
-        'designName': 'Bespoke Anarkali Suit',
+        'designName': 'Designer Anarkali Suit',
         'quantity': 1,
         'notes': 'Handcrafted dupatta border',
-      }
+      },
     ],
     'notes': 'Quality check passed & handed over to customer.',
     'createdAt': FieldValue.serverTimestamp(),

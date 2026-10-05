@@ -310,11 +310,15 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage> {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.surfaceBorder),
+                        borderSide: const BorderSide(
+                          color: AppColors.surfaceBorder,
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.surfaceBorder),
+                        borderSide: const BorderSide(
+                          color: AppColors.surfaceBorder,
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -355,7 +359,8 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage> {
                       color: AppColors.textPrimary,
                     ),
                     decoration: InputDecoration(
-                      hintText: 'Brief summary of what this category contains...',
+                      hintText:
+                          'Brief summary of what this category contains...',
                       hintStyle: GoogleFonts.montserrat(
                         fontSize: 13.5,
                         color: AppColors.textHint,
@@ -365,11 +370,15 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage> {
                       contentPadding: const EdgeInsets.all(16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.surfaceBorder),
+                        borderSide: const BorderSide(
+                          color: AppColors.surfaceBorder,
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.surfaceBorder),
+                        borderSide: const BorderSide(
+                          color: AppColors.surfaceBorder,
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -385,7 +394,10 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage> {
 
                   // Active Switch
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(12),
@@ -435,7 +447,9 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage> {
 
                   // Submit Action Button
                   AppButton(
-                    text: widget.isEditMode ? 'Save Category' : 'Create Category',
+                    text: widget.isEditMode
+                        ? 'Save Category'
+                        : 'Create Category',
                     isLoading: _isSaving,
                     onPressed: _save,
                   ),

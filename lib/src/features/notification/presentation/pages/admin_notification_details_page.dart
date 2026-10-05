@@ -6,6 +6,7 @@ import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/navigation/navigation_extensions.dart';
 import '../../domain/models/notification_model.dart';
+import '../navigation/notification_destination_resolver.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Clean Admin Notification Details Page — displays notification details.
@@ -151,9 +152,51 @@ class _AdminNotificationDetailsPageState
                         'Published At',
                         _formatDate(_notification.publishedAt),
                       ),
+                    if (_notification.relatedEntityType != null &&
+                        _notification.relatedEntityType != NotificationDestinationType.none)
+                      _infoRow(
+                        'Destination',
+                        _notification.relatedEntityType!.label,
+                      ),
                   ],
                 ),
               ),
+
+              if (_notification.relatedEntityType != null &&
+                  _notification.relatedEntityType != NotificationDestinationType.none) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.background,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    icon: PhosphorIcon(PhosphorIcons.arrowSquareOut(), size: 18),
+                    label: Text(
+                      'View ${_notification.relatedEntityType!.label}',
+                      style: GoogleFonts.montserrat(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    onPressed: () {
+                      if (widget.isBottomSheet) {
+                        Navigator.of(context).pop();
+                      }
+                      NotificationDestinationResolver.navigateToDestination(
+                        context,
+                        _notification,
+                        authenticatedCustomerId: null,
+                      );
+                    },
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 28),
             ],
@@ -177,7 +220,9 @@ class _AdminNotificationDetailsPageState
               decoration: const BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                border: Border(bottom: BorderSide(color: AppColors.surfaceBorder)),
+                border: Border(
+                  bottom: BorderSide(color: AppColors.surfaceBorder),
+                ),
               ),
               child: Column(
                 children: [

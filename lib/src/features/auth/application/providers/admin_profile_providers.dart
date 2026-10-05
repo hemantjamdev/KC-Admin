@@ -15,8 +15,8 @@ import '../../../shop_profile/domain/models/shop_profile_model.dart';
 /// State notifier to track admin user updates
 final adminProfileUpdateProvider =
     StateNotifierProvider<AdminProfileNotifier, AsyncValue<void>>((ref) {
-  return AdminProfileNotifier(ref);
-});
+      return AdminProfileNotifier(ref);
+    });
 
 class AdminProfileNotifier extends StateNotifier<AsyncValue<void>> {
   AdminProfileNotifier(this.ref) : super(const AsyncValue.data(null));
@@ -69,16 +69,18 @@ class AdminProfileNotifier extends StateNotifier<AsyncValue<void>> {
           'updatedAt': FieldValue.serverTimestamp(),
         };
 
-        await firestore.collection('admins').doc(user.uid).set(
-          payload,
-          SetOptions(merge: true),
-        );
-        await firestore.collection('users').doc(user.uid).set(
-          payload,
-          SetOptions(merge: true),
-        );
+        await firestore
+            .collection('admins')
+            .doc(user.uid)
+            .set(payload, SetOptions(merge: true));
+        await firestore
+            .collection('users')
+            .doc(user.uid)
+            .set(payload, SetOptions(merge: true));
       } catch (e) {
-        debugPrint('[AdminProfileNotifier] Firestore sync permission notice: $e');
+        debugPrint(
+          '[AdminProfileNotifier] Firestore sync permission notice: $e',
+        );
       }
 
       // 4. Reload user & refresh Riverpod providers
@@ -96,7 +98,7 @@ class AdminProfileNotifier extends StateNotifier<AsyncValue<void>> {
 
 /// Returns the current authenticated admin [User].
 final adminCurrentUserProvider = Provider<User?>((ref) {
-  return ref.watch(firebaseAuthProvider).currentUser;
+  return ref.watch(firebaseAuthStateProvider).value;
 });
 
 /// Returns the display name of the current admin.

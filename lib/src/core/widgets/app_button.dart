@@ -76,7 +76,7 @@ class AppButton extends StatelessWidget {
             gradient: isDisabled
                 ? null
                 : const LinearGradient(
-                    colors: [AppColors.primaryLight, AppColors.primary],
+                    colors: [AppColors.primary, AppColors.primary],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -151,7 +151,14 @@ class AppButton extends StatelessWidget {
     }
 
     if (isFullWidth) {
-      return SizedBox(width: double.infinity, child: buttonWidget);
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.hasBoundedWidth) {
+            return SizedBox(width: double.infinity, child: buttonWidget);
+          }
+          return buttonWidget;
+        },
+      );
     }
 
     return buttonWidget;

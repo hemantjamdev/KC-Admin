@@ -21,6 +21,10 @@ Future<void> adminFirebaseMessagingBackgroundHandler(
   }
 }
 
+/// Delegate for handling notification tap navigation in Admin.
+typedef AdminNotificationTapHandler =
+    void Function(String notificationId, Map<String, dynamic> payload);
+
 /// Service handling FCM messaging initialization, permissions, and tokens for KC-Admin.
 class AdminFirebaseMessagingService {
   AdminFirebaseMessagingService({
@@ -38,6 +42,7 @@ class AdminFirebaseMessagingService {
   final FlutterLocalNotificationsPlugin _localNotifications;
 
   String? _currentToken;
+  AdminNotificationTapHandler? _onTapHandler;
   bool _isInitialized = false;
 
   String? get currentToken => _currentToken;
@@ -81,7 +86,10 @@ class AdminFirebaseMessagingService {
   Future<void> initialize({
     required String adminId,
     String? firebaseUid,
+    AdminNotificationTapHandler? onTapHandler,
   }) async {
+    _onTapHandler = onTapHandler;
+
     if (_isInitialized) {
       if (adminId.isNotEmpty) {
         await _registerTokenForUser(adminId: adminId, firebaseUid: firebaseUid);
@@ -108,7 +116,21 @@ class AdminFirebaseMessagingService {
         iOS: darwinSettings,
       );
 
-      await _localNotifications.initialize(initSettings);
+      await _localNotifications.initialize(
+        initSettings,
+        onDidReceiveNotificationResponse: (response) {
+          final payloadStr = response.payload;
+          if (payloadStr != null &&
+              payloadStr.isNotEmpty &&
+              _onTapHandler != null) {
+            try {
+              final map = jsonDecode(payloadStr) as Map<String, dynamic>;
+              final notifId = map['notificationId'] as String? ?? '';
+              _onTapHandler!(notifId, map);
+            } catch (_) {}
+          }
+        },
+      );
 
       final androidImplementation = _localNotifications
           .resolvePlatformSpecificImplementation<
@@ -169,11 +191,26 @@ class AdminFirebaseMessagingService {
         }
       });
 
+      // Handle notification taps from terminated and background states
+      final initialMessage = await _messaging.getInitialMessage();
+      if (initialMessage != null) {
+        _handleMessageTap(initialMessage);
+      }
+
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageTap);
+
       _isInitialized = true;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[AdminFirebaseMessagingService] Initialization error: $e');
       }
+    }
+  }
+
+  void _handleMessageTap(RemoteMessage message) {
+    final notificationId = message.data['notificationId'] as String? ?? '';
+    if (_onTapHandler != null) {
+      _onTapHandler!(notificationId, message.data);
     }
   }
 

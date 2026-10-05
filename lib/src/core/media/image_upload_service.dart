@@ -37,6 +37,15 @@ class ImageUploadService {
     );
   }
 
+  /// Pick multiple images from gallery.
+  Future<List<XFile>> pickMultiImage() async {
+    return await _picker.pickMultiImage(
+      maxWidth: 1920,
+      maxHeight: 1920,
+      imageQuality: 85,
+    );
+  }
+
   /// Validates file size and format.
   String? validateImageFile(File file) {
     final length = file.lengthSync();

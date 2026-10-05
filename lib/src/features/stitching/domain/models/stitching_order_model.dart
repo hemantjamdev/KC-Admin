@@ -9,8 +9,13 @@ enum StitchingOrderStatus {
     if (raw == null || raw.isEmpty) return StitchingOrderStatus.requested;
     final normalized = raw.toLowerCase().trim();
     return switch (normalized) {
-      'requested' || 'received' || 'measurements' => StitchingOrderStatus.requested,
-      'accepted' || 'cutting' || 'stitching' || 'qualitycheck' => StitchingOrderStatus.accepted,
+      'requested' ||
+      'received' ||
+      'measurements' => StitchingOrderStatus.requested,
+      'accepted' ||
+      'cutting' ||
+      'stitching' ||
+      'qualitycheck' => StitchingOrderStatus.accepted,
       'completed' || 'ready' => StitchingOrderStatus.completed,
       _ => StitchingOrderStatus.requested,
     };

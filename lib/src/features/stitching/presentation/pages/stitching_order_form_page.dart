@@ -98,8 +98,9 @@ class _StitchingOrderFormPageState
 
   Future<void> _loadCustomers() async {
     try {
-      final list =
-          await ref.read(customerRepositoryProvider).getCustomersForAdmin();
+      final list = await ref
+          .read(customerRepositoryProvider)
+          .getCustomersForAdmin();
       if (!mounted) return;
       setState(() {
         _availableCustomers = list;
@@ -161,7 +162,8 @@ class _StitchingOrderFormPageState
     final minDate = now.add(const Duration(days: 3));
     final maxDate = now.add(const Duration(days: 30));
 
-    final initialDate = _pickupDate != null &&
+    final initialDate =
+        _pickupDate != null &&
             _pickupDate!.isAfter(minDate.subtract(const Duration(days: 1))) &&
             _pickupDate!.isBefore(maxDate.add(const Duration(days: 1)))
         ? _pickupDate!
@@ -222,7 +224,8 @@ class _StitchingOrderFormPageState
       final repo = ref.read(stitchingRepositoryProvider);
       final customer = _availableCustomers.firstWhere(
         (c) => (c.firebaseUid ?? c.id) == _selectedCustomerId,
-        orElse: () => widget.preselectedCustomer ??
+        orElse: () =>
+            widget.preselectedCustomer ??
             CustomerModel(
               id: _selectedCustomerId!,
               displayName: 'Customer',
@@ -240,11 +243,12 @@ class _StitchingOrderFormPageState
 
       final requestName = _nameController.text.trim();
       final remarkNotes = _notesController.text.trim();
+      final sanitizedNotes = remarkNotes.length > 200
+          ? remarkNotes.substring(0, 200)
+          : remarkNotes;
 
       final orderModel = StitchingOrderModel(
-        id: widget.isEditMode
-            ? widget.existingOrder!.id
-            : const Uuid().v4(),
+        id: widget.isEditMode ? widget.existingOrder!.id : const Uuid().v4(),
         boutiqueId: 'boutique_01',
         branchId: 'branch_01',
         customerId: _selectedCustomerId!,
@@ -264,7 +268,7 @@ class _StitchingOrderFormPageState
             notes: _selectedCategory,
           ),
         ],
-        notes: remarkNotes.isNotEmpty ? remarkNotes : null,
+        notes: sanitizedNotes.isNotEmpty ? sanitizedNotes : null,
         expectedReadyAt: _pickupDate,
         createdAt: widget.isEditMode
             ? widget.existingOrder!.createdAt
@@ -282,6 +286,10 @@ class _StitchingOrderFormPageState
           createdBy: 'Admin',
         );
       }
+
+      ref.invalidate(adminOrderListProvider);
+      ref.invalidate(stitchingStatusCountsProvider);
+      await ref.read(paginatedStitchingOrdersProvider.notifier).refresh();
 
       if (!mounted) return;
 
@@ -513,8 +521,9 @@ class _StitchingOrderFormPageState
                                 decoration: BoxDecoration(
                                   color: AppColors.surfaceLight,
                                   borderRadius: AppRadius.borderMd,
-                                  border:
-                                      Border.all(color: AppColors.borderSoft),
+                                  border: Border.all(
+                                    color: AppColors.borderSoft,
+                                  ),
                                 ),
                                 child: Row(
                                   children: [
@@ -560,6 +569,7 @@ class _StitchingOrderFormPageState
                             const SizedBox(height: 6),
                             TextFormField(
                               controller: _notesController,
+                              maxLength: 200,
                               maxLines: 4,
                               style: GoogleFonts.montserrat(
                                 fontSize: 13,
@@ -567,7 +577,7 @@ class _StitchingOrderFormPageState
                               ),
                               decoration: InputDecoration(
                                 hintText:
-                                    'Add custom latkan preference, lining material, urgent event details...',
+                                    'Add custom latkan preference, lining material, urgent event details (Max 200 chars)...',
                                 hintStyle: GoogleFonts.montserrat(
                                   color: AppColors.textMuted,
                                   fontSize: 12,
@@ -639,8 +649,9 @@ class _StitchingOrderFormPageState
           CircleAvatar(
             radius: 20,
             backgroundColor: AppColors.surfaceLight,
-            backgroundImage:
-                pc.photoUrl != null ? NetworkImage(pc.photoUrl!) : null,
+            backgroundImage: pc.photoUrl != null
+                ? NetworkImage(pc.photoUrl!)
+                : null,
             child: pc.photoUrl == null
                 ? Text(
                     initials,
@@ -681,13 +692,15 @@ class _StitchingOrderFormPageState
       );
     }
 
-    final selectedCust = _availableCustomers.any(
-      (c) => (c.firebaseUid ?? c.id) == _selectedCustomerId,
-    )
+    final selectedCust =
+        _availableCustomers.any(
+          (c) => (c.firebaseUid ?? c.id) == _selectedCustomerId,
+        )
         ? _selectedCustomerId
         : (_availableCustomers.isNotEmpty
-            ? (_availableCustomers.first.firebaseUid ?? _availableCustomers.first.id)
-            : null);
+              ? (_availableCustomers.first.firebaseUid ??
+                    _availableCustomers.first.id)
+              : null);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -722,9 +735,7 @@ class _StitchingOrderFormPageState
             ),
             border: OutlineInputBorder(
               borderRadius: AppRadius.borderMd,
-              borderSide: const BorderSide(
-                color: AppColors.borderSoft,
-              ),
+              borderSide: const BorderSide(color: AppColors.borderSoft),
             ),
           ),
           items: _availableCustomers.map((cust) {

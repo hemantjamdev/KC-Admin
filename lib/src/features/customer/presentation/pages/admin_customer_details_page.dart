@@ -81,10 +81,8 @@ class AdminCustomerDetailsPage extends ConsumerWidget {
               fontSize: 13,
             ),
           ),
-          onPressed: () => context.push(
-            AppRoutes.adminStitchingOrderAdd,
-            extra: customer,
-          ),
+          onPressed: () =>
+              context.push(AppRoutes.adminStitchingOrderAdd, extra: customer),
         ),
         body: SafeArea(
           child: SingleChildScrollView(
@@ -157,7 +155,8 @@ class AdminCustomerDetailsPage extends ConsumerWidget {
                                 fontSize: 12.5,
                               ),
                             ),
-                            onPressed: () => _showSendReminderSheet(context, customer),
+                            onPressed: () =>
+                                _showSendReminderSheet(context, customer),
                           ),
                         ],
                       ),
@@ -283,9 +282,9 @@ class AdminCustomerDetailsPage extends ConsumerWidget {
                                 return InkWell(
                                   onTap: () =>
                                       AdminStitchingOrderDetailsPage.showAsBottomSheet(
-                                    context,
-                                    order: order,
-                                  ),
+                                        context,
+                                        order: order,
+                                      ),
                                   borderRadius: AppRadius.borderMd,
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
@@ -303,18 +302,23 @@ class AdminCustomerDetailsPage extends ConsumerWidget {
                                                   Expanded(
                                                     child: Text(
                                                       order.displayRequestName,
-                                                      style: GoogleFonts.montserrat(
-                                                        color: AppColors.textPrimary,
-                                                        fontWeight: FontWeight.bold,
-                                                        fontSize: 14,
-                                                      ),
+                                                      style:
+                                                          GoogleFonts.montserrat(
+                                                            color: AppColors
+                                                                .textPrimary,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            fontSize: 14,
+                                                          ),
                                                       maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
                                                     ),
                                                   ),
                                                   const SizedBox(width: 8),
                                                   StitchingStatusChip(
-                                                    label: order.status.adminLabel,
+                                                    label:
+                                                        order.status.adminLabel,
                                                     color: stitchingStatusColor(
                                                       order.status.name,
                                                     ),
@@ -464,9 +468,7 @@ class __CustomerReminderBottomSheetState
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(
-      text: 'Stitching Order Reminder',
-    );
+    _titleController = TextEditingController(text: 'Stitching Order Reminder');
     _bodyController = TextEditingController(
       text:
           'Hello ${widget.customer.displayName}, this is a gentle reminder regarding your stitching request at Kapada Creation. Please check your order status in the app or contact our boutique for details.',
@@ -526,9 +528,9 @@ class __CustomerReminderBottomSheetState
     try {
       final targetUid =
           (widget.customer.firebaseUid != null &&
-                  widget.customer.firebaseUid!.isNotEmpty)
-              ? widget.customer.firebaseUid!
-              : widget.customer.id;
+              widget.customer.firebaseUid!.isNotEmpty)
+          ? widget.customer.firebaseUid!
+          : widget.customer.id;
 
       final customerIds = <String>{targetUid, widget.customer.id}.toList();
 
@@ -584,166 +586,166 @@ class __CustomerReminderBottomSheetState
           ),
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceBorder,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: PhosphorIcon(
-                      PhosphorIcons.bellRinging(),
-                      color: AppColors.primary,
-                      size: 20,
+                      color: AppColors.surfaceBorder,
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Send Stitching Reminder',
-                          style: GoogleFonts.playfairDisplay(
-                            color: AppColors.textPrimary,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: PhosphorIcon(
+                        PhosphorIcons.bellRinging(),
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Send Stitching Reminder',
+                            style: GoogleFonts.playfairDisplay(
+                              color: AppColors.textPrimary,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        Text(
-                          'To: ${widget.customer.displayName}',
-                          style: GoogleFonts.montserrat(
-                            color: AppColors.textMuted,
-                            fontSize: 12,
+                          Text(
+                            'To: ${widget.customer.displayName}',
+                            style: GoogleFonts.montserrat(
+                              color: AppColors.textMuted,
+                              fontSize: 12,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Notification Title *',
-                style: GoogleFonts.montserrat(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+                  ],
                 ),
-              ),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _titleController,
-                style: GoogleFonts.montserrat(
-                  color: AppColors.textPrimary,
-                  fontSize: 14,
-                ),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: AppColors.surface,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.surfaceBorder,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.surfaceBorder,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.primary,
-                      width: 1.5,
-                    ),
+                const SizedBox(height: 20),
+                Text(
+                  'Notification Title *',
+                  style: GoogleFonts.montserrat(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                validator: (v) => v == null || v.trim().isEmpty
-                    ? 'Title is required'
-                    : null,
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Reminder Message *',
-                style: GoogleFonts.montserrat(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _bodyController,
-                maxLines: 3,
-                style: GoogleFonts.montserrat(
-                  color: AppColors.textPrimary,
-                  fontSize: 13,
-                ),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: AppColors.surface,
-                  contentPadding: const EdgeInsets.all(14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.surfaceBorder,
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: _titleController,
+                  style: GoogleFonts.montserrat(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                  ),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppColors.surfaceBorder,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppColors.surfaceBorder,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
                     ),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.surfaceBorder,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.primary,
-                      width: 1.5,
-                    ),
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Title is required'
+                      : null,
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Reminder Message *',
+                  style: GoogleFonts.montserrat(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                validator: (v) => v == null || v.trim().isEmpty
-                    ? 'Message is required'
-                    : null,
-              ),
-              const SizedBox(height: 24),
-              ref.watch(adminNotificationMutationProvider).isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : AppButton(
-                      text: 'Send Reminder Notification',
-                      icon: PhosphorIcons.paperPlaneRight(),
-                      onPressed: _sendReminder,
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: _bodyController,
+                  maxLines: 3,
+                  style: GoogleFonts.montserrat(
+                    color: AppColors.textPrimary,
+                    fontSize: 13,
+                  ),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    contentPadding: const EdgeInsets.all(14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppColors.surfaceBorder,
+                      ),
                     ),
-            ],
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppColors.surfaceBorder,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Message is required'
+                      : null,
+                ),
+                const SizedBox(height: 24),
+                ref.watch(adminNotificationMutationProvider).isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : AppButton(
+                        text: 'Send Reminder Notification',
+                        icon: PhosphorIcons.paperPlaneRight(),
+                        onPressed: _sendReminder,
+                      ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

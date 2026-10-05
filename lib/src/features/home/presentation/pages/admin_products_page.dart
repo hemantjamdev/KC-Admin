@@ -77,9 +77,7 @@ class _AdminProductsPageState extends ConsumerState<AdminProductsPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: Text(
               'DELETE',
               style: GoogleFonts.montserrat(
@@ -137,9 +135,7 @@ class _AdminProductsPageState extends ConsumerState<AdminProductsPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             child: Text(
               'CONFIRM',
               style: GoogleFonts.montserrat(
@@ -263,9 +259,7 @@ class _AdminProductsPageState extends ConsumerState<AdminProductsPage> {
                         color: AppColors.textHint,
                       ),
                       prefixIcon: Icon(
-                        PhosphorIcons.magnifyingGlass(
-                          PhosphorIconsStyle.bold,
-                        ),
+                        PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.bold),
                         color: AppColors.textMuted,
                         size: 18,
                       ),
@@ -323,7 +317,7 @@ class _AdminProductsPageState extends ConsumerState<AdminProductsPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       scrollDirection: Axis.horizontal,
                       itemCount: categories.length + 1,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
                       itemBuilder: (context, index) {
                         if (index == 0) {
                           final isSelected = _selectedCategoryId == null;
@@ -442,7 +436,9 @@ class _AdminProductsPageState extends ConsumerState<AdminProductsPage> {
                                 child: Row(
                                   children: [
                                     Icon(
-                                      PhosphorIcons.rows(PhosphorIconsStyle.bold),
+                                      PhosphorIcons.rows(
+                                        PhosphorIconsStyle.bold,
+                                      ),
                                       size: 14,
                                       color: _isRowView
                                           ? Colors.white
@@ -535,8 +531,8 @@ class _AdminProductsPageState extends ConsumerState<AdminProductsPage> {
                   hasScrollBody: false,
                   child: AppEmptyState(
                     icon: PhosphorIcons.tShirt(),
-                    title: _searchQuery.isNotEmpty ||
-                            _selectedCategoryId != null
+                    title:
+                        _searchQuery.isNotEmpty || _selectedCategoryId != null
                         ? 'No Matching Products'
                         : 'No Products in Catalogue',
                     message: _searchQuery.isNotEmpty
@@ -549,9 +545,8 @@ class _AdminProductsPageState extends ConsumerState<AdminProductsPage> {
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
                   sliver: SliverList.separated(
                     itemCount: filteredDesigns.length,
-                    separatorBuilder: (context, index) => SizedBox(
-                      height: _isRowView ? 12 : 18,
-                    ),
+                    separatorBuilder: (context, index) =>
+                        SizedBox(height: _isRowView ? 12 : 18),
                     itemBuilder: (context, index) {
                       final design = filteredDesigns[index];
                       final category = categories
@@ -773,7 +768,7 @@ class _ProductRowCard extends StatelessWidget {
                         ? Image.network(
                             imageUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                            errorBuilder: (_, _, _) => _imagePlaceholder(),
                           )
                         : _imagePlaceholder(),
                   ),
@@ -962,7 +957,9 @@ class _ProductRowCard extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.08),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.08,
+                                ),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -1069,7 +1066,7 @@ class _ProductLargeBannerCard extends StatelessWidget {
                       ? Image.network(
                           imageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _bannerPlaceholder(),
+                          errorBuilder: (_, _, _) => _bannerPlaceholder(),
                         )
                       : _bannerPlaceholder(),
                 ),
@@ -1185,7 +1182,9 @@ class _ProductLargeBannerCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                  const StitchDivider(margin: EdgeInsets.symmetric(vertical: 8)),
+                  const StitchDivider(
+                    margin: EdgeInsets.symmetric(vertical: 8),
+                  ),
                   Row(
                     children: [
                       Icon(
@@ -1397,7 +1396,9 @@ class _ProductDetailsSheetState extends ConsumerState<_ProductDetailsSheet> {
                       ),
                     ],
                   ),
-                  const StitchDivider(margin: EdgeInsets.symmetric(vertical: 12)),
+                  const StitchDivider(
+                    margin: EdgeInsets.symmetric(vertical: 12),
+                  ),
 
                   // Stock Status Toggle Switch Card
                   Container(
@@ -1479,7 +1480,9 @@ class _ProductDetailsSheetState extends ConsumerState<_ProductDetailsSheet> {
                     ),
                   ),
 
-                  const StitchDivider(margin: EdgeInsets.symmetric(vertical: 12)),
+                  const StitchDivider(
+                    margin: EdgeInsets.symmetric(vertical: 12),
+                  ),
 
                   // Likes & Favs Stats
                   Row(
@@ -1513,7 +1516,9 @@ class _ProductDetailsSheetState extends ConsumerState<_ProductDetailsSheet> {
                       ),
                     ],
                   ),
-                  const StitchDivider(margin: EdgeInsets.symmetric(vertical: 12)),
+                  const StitchDivider(
+                    margin: EdgeInsets.symmetric(vertical: 12),
+                  ),
 
                   if (design.description != null &&
                       design.description!.isNotEmpty) ...[

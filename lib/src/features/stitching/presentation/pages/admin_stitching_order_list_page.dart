@@ -6,9 +6,10 @@ import 'package:intl/intl.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/navigation/navigation_extensions.dart';
 import '../../../../core/widgets/admin_app_bar.dart';
+import '../../../../core/navigation/navigation_extensions.dart';
 import '../../../../core/widgets/app_state_views.dart';
+import '../../../../core/widgets/sticky_note_card.dart';
 import '../../../../core/widgets/stitch_divider.dart';
 import '../../../customer/data/repositories/customer_repository_impl.dart';
 import '../../../customer/domain/models/customer_model.dart';
@@ -66,6 +67,17 @@ class _AdminStitchingOrderListPageState
 
   @override
   Widget build(BuildContext context) {
+    // Real-time listener: Listen to live Firestore changes in stitchingOrders stream
+    ref.listen<AsyncValue<List<StitchingOrderModel>>>(adminOrderListProvider, (
+      previous,
+      next,
+    ) {
+      if (next.hasValue) {
+        ref.invalidate(stitchingStatusCountsProvider);
+        ref.read(paginatedStitchingOrdersProvider.notifier).refresh();
+      }
+    });
+
     final paginatedState = ref.watch(paginatedStitchingOrdersProvider);
     final countsAsync = ref.watch(stitchingStatusCountsProvider);
     final filter = ref.watch(orderFilterProvider);
@@ -95,7 +107,7 @@ class _AdminStitchingOrderListPageState
               fontSize: 13,
             ),
           ),
-          onPressed: () => context.push(AppRoutes.adminStitchingOrderAdd),
+          onPressed: () => context.push(AppRoutes.adminCustomerList),
         ),
         body: SafeArea(
           child: RefreshIndicator(
@@ -299,13 +311,14 @@ class _AdminStitchingOrderListPageState
                               customer: customer,
                               onTapDetails: () =>
                                   AdminStitchingOrderDetailsPage.showAsBottomSheet(
-                                context,
-                                order: order,
-                              ),
+                                    context,
+                                    order: order,
+                                  ),
                             ),
                           );
                         },
-                        childCount: orders.length +
+                        childCount:
+                            orders.length +
                             (paginatedState.isLoadingMore ? 1 : 0),
                       ),
                     ),
@@ -318,15 +331,15 @@ class _AdminStitchingOrderListPageState
     );
   }
 
-String _formatCompactNumber(int number) {
-  if (number < 1000) return '$number';
-  if (number < 1000000) {
-    final double k = number / 1000.0;
-    return k % 1 == 0 ? '${k.toInt()}k' : '${k.toStringAsFixed(1)}k';
+  String _formatCompactNumber(int number) {
+    if (number < 1000) return '$number';
+    if (number < 1000000) {
+      final double k = number / 1000.0;
+      return k % 1 == 0 ? '${k.toInt()}k' : '${k.toStringAsFixed(1)}k';
+    }
+    final double m = number / 1000000.0;
+    return m % 1 == 0 ? '${m.toInt()}m' : '${m.toStringAsFixed(1)}m';
   }
-  final double m = number / 1000000.0;
-  return m % 1 == 0 ? '${m.toInt()}m' : '${m.toStringAsFixed(1)}m';
-}
 
   Widget _buildKpiHeaderFromCounts(
     ({int total, int requested, int accepted, int completed}) counts,
@@ -457,10 +470,9 @@ String _formatCompactNumber(int number) {
 
   void _selectStatusFilter(StitchingOrderStatus? status) {
     ref.read(orderFilterProvider.notifier).filterByStatus(status);
-    ref.read(paginatedStitchingOrdersProvider.notifier).fetchInitial(
-      status: status,
-      query: _searchController.text,
-    );
+    ref
+        .read(paginatedStitchingOrdersProvider.notifier)
+        .fetchInitial(status: status, query: _searchController.text);
   }
 
   Widget _kpiStatColumn(String label, String count, VoidCallback onTap) {
@@ -556,10 +568,7 @@ class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return Container(
-      color: AppColors.background,
-      child: child,
-    );
+    return Container(color: AppColors.background, child: child);
   }
 
   @override
@@ -600,8 +609,8 @@ class _OrderCardTile extends StatelessWidget {
     final statusColor = isCompleted
         ? const Color(0xFF2E7D32)
         : isAccepted
-            ? const Color(0xFF1565C0)
-            : const Color(0xFFE65100);
+        ? const Color(0xFF1565C0)
+        : const Color(0xFFE65100);
 
     final statusLabel = order.status.adminLabel;
 
@@ -613,23 +622,26 @@ class _OrderCardTile extends StatelessWidget {
     final customerName = (rawName != null && rawName.isNotEmpty)
         ? rawName
         : (order.customerName != null && order.customerName!.isNotEmpty
-            ? order.customerName!
-            : 'Customer #${order.customerId.substring(0, order.customerId.length.clamp(0, 6))}');
+              ? order.customerName!
+              : 'Customer #${order.customerId.substring(0, order.customerId.length.clamp(0, 6))}');
 
-    final customerPhone = (customer?.phone != null && customer!.phone!.isNotEmpty)
+    final customerPhone =
+        (customer?.phone != null && customer!.phone!.isNotEmpty)
         ? customer!.phone!
         : (order.customerPhone != null && order.customerPhone!.isNotEmpty
-            ? order.customerPhone!
-            : null);
+              ? order.customerPhone!
+              : null);
 
-    final customerEmail = (customer?.email != null && customer!.email!.isNotEmpty)
+    final customerEmail =
+        (customer?.email != null && customer!.email!.isNotEmpty)
         ? customer!.email!
         : (order.customerEmail != null && order.customerEmail!.isNotEmpty
-            ? order.customerEmail!
-            : null);
+              ? order.customerEmail!
+              : null);
 
-    final firstChar =
-        customerName.isNotEmpty ? customerName[0].toUpperCase() : 'C';
+    final firstChar = customerName.isNotEmpty
+        ? customerName[0].toUpperCase()
+        : 'C';
 
     return GestureDetector(
       onTap: onTapDetails,
@@ -652,11 +664,13 @@ class _OrderCardTile extends StatelessWidget {
                 CircleAvatar(
                   radius: 22,
                   backgroundColor: statusColor.withValues(alpha: 0.12),
-                  backgroundImage: (customer?.photoUrl != null &&
+                  backgroundImage:
+                      (customer?.photoUrl != null &&
                           customer!.photoUrl!.isNotEmpty)
                       ? NetworkImage(customer!.photoUrl!)
                       : null,
-                  child: (customer?.photoUrl == null ||
+                  child:
+                      (customer?.photoUrl == null ||
                           customer!.photoUrl!.isEmpty)
                       ? Text(
                           firstChar,
@@ -832,6 +846,11 @@ class _OrderCardTile extends StatelessWidget {
                 ],
               ],
             ),
+
+            if (order.notes != null && order.notes!.isNotEmpty) ...[
+              StickyNoteCard(note: order.notes!),
+              const SizedBox(height: 10),
+            ],
 
             const SizedBox(height: 12),
 

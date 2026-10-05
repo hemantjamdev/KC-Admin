@@ -21,21 +21,41 @@ class NotificationFirestoreRepository {
     return _firestore.collection(FirestorePaths.notifications).snapshots().map((
       snapshot,
     ) {
-      final list = snapshot.docs.map(_fromFirestore).toList();
+      final list = snapshot.docs.map(_fromFirestore).where(_isAdminVisible).toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
     });
   }
 
+  static bool _isAdminVisible(NotificationModel n) {
+    // Exclude private customer-only order status updates
+    final isCustomerOrderUpdate =
+        n.audienceType == NotificationAudienceType.selectedCustomers &&
+        (n.type == NotificationType.stitchingUpdate ||
+            n.type == NotificationType.stitchingStatusUpdated);
+    if (isCustomerOrderUpdate) {
+      return false;
+    }
+
+    // Show Admin-targeted alerts (e.g. new stitching requests)
+    final isAdminAlert = n.audienceType == NotificationAudienceType.admins ||
+        n.type == NotificationType.newStitchingRequest;
+
+    // Show store broadcast announcements created for customers
+    final isBroadcastAnnouncement =
+        n.audienceType == NotificationAudienceType.allBoutiqueCustomers ||
+        n.audienceType == NotificationAudienceType.branchCustomers ||
+        n.status == NotificationStatus.draft;
+
+    return isAdminAlert || isBroadcastAnnouncement;
+  }
+
   Future<({List<NotificationModel> items, String? lastDocId, bool hasMore})>
-  fetchPaginatedNotifications({
-    int limit = 20,
-    String? startAfterId,
-  }) async {
+  fetchPaginatedNotifications({int limit = 20, String? startAfterId}) async {
     Query<Map<String, dynamic>> query = _firestore
         .collection(FirestorePaths.notifications)
         .orderBy('createdAt', descending: true)
-        .limit(limit + 1);
+        .limit(limit * 2);
 
     if (startAfterId != null && startAfterId.isNotEmpty) {
       final lastDoc = await _firestore
@@ -48,12 +68,10 @@ class NotificationFirestoreRepository {
     }
 
     final snapshot = await query.get();
-    final docs = snapshot.docs;
-    final hasMore = docs.length > limit;
-
-    final resultDocs = hasMore ? docs.take(limit).toList() : docs;
-    final items = resultDocs.map(_fromFirestore).toList();
-    final lastDocId = resultDocs.isNotEmpty ? resultDocs.last.id : null;
+    final allParsed = snapshot.docs.map(_fromFirestore).where(_isAdminVisible).toList();
+    final hasMore = allParsed.length > limit;
+    final items = hasMore ? allParsed.take(limit).toList() : allParsed;
+    final lastDocId = snapshot.docs.isNotEmpty ? snapshot.docs.last.id : null;
 
     return (items: items, lastDocId: lastDocId, hasMore: hasMore);
   }
@@ -105,6 +123,20 @@ class NotificationFirestoreRepository {
         }, SetOptions(merge: true));
   }
 
+  Stream<Set<String>> watchReadNotificationIds(String uid) {
+    if (uid.isEmpty) return Stream.value(<String>{});
+    return _firestore
+        .collection(FirestorePaths.notificationReads)
+        .where('uid', isEqualTo: uid)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => doc.data()['notificationId'] as String? ?? '')
+              .where((id) => id.isNotEmpty)
+              .toSet();
+        });
+  }
+
   NotificationModel _fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
     final typeStr = data['type'] as String? ?? 'general';
@@ -120,11 +152,13 @@ class NotificationFirestoreRepository {
     );
 
     final audienceStr =
-        data['audienceType'] as String? ?? 'allBoutiqueCustomers';
-    final audience = NotificationAudienceType.values.firstWhere(
-      (a) => a.name == audienceStr,
-      orElse: () => NotificationAudienceType.allBoutiqueCustomers,
-    );
+        data['audienceType'] as String? ?? data['audience'] as String? ?? 'allBoutiqueCustomers';
+    final audience = (audienceStr == 'admins' || audienceStr == 'admin')
+        ? NotificationAudienceType.admins
+        : NotificationAudienceType.values.firstWhere(
+            (a) => a.name == audienceStr,
+            orElse: () => NotificationAudienceType.allBoutiqueCustomers,
+          );
 
     final relTypeStr = data['relatedEntityType'] as String?;
     NotificationDestinationType? relatedEntityType;
@@ -158,6 +192,9 @@ class NotificationFirestoreRepository {
     final expiresAtRaw = data['expiresAt'];
     final expiresAt = expiresAtRaw is Timestamp ? expiresAtRaw.toDate() : null;
 
+    final rawCustomerIds =
+        data['customerIds'] as List? ?? data['targetCustomerUids'] as List? ?? [];
+
     return NotificationModel(
       id: data['id'] as String? ?? doc.id,
       boutiqueId: data['boutiqueId'] as String? ?? '',
@@ -166,7 +203,7 @@ class NotificationFirestoreRepository {
       body: data['body'] as String? ?? '',
       type: type,
       audienceType: audience,
-      customerIds: List<String>.from(data['customerIds'] as List? ?? []),
+      customerIds: List<String>.from(rawCustomerIds),
       relatedEntityType: relatedEntityType,
       relatedEntityId: data['relatedEntityId'] as String?,
       status: status,

@@ -14,10 +14,7 @@ import '../../domain/models/category_model.dart';
 /// Screen displaying products assigned to a specific category.
 /// Allows removing products from the category with a confirmation dialog.
 class AdminCategoryProductsPage extends ConsumerWidget {
-  const AdminCategoryProductsPage({
-    super.key,
-    required this.category,
-  });
+  const AdminCategoryProductsPage({super.key, required this.category});
 
   final CategoryModel category;
 
@@ -67,8 +64,23 @@ class AdminCategoryProductsPage extends ConsumerWidget {
     );
 
     if (confirmed == true && context.mounted) {
+      final updatedCategoryIds = product.categoryIds
+          .where(
+            (id) =>
+                id != category.id &&
+                id.toLowerCase() != category.slug.toLowerCase(),
+          )
+          .toList();
+
+      final isPrimaryMatch =
+          product.categoryId == category.id ||
+          product.categoryId.toLowerCase() == category.slug.toLowerCase();
+
       final updatedProduct = product.copyWith(
-        categoryId: '',
+        categoryId: isPrimaryMatch
+            ? (updatedCategoryIds.isNotEmpty ? updatedCategoryIds.first : '')
+            : product.categoryId,
+        categoryIds: updatedCategoryIds,
         updatedAt: DateTime.now(),
       );
       await ref.read(designMutationProvider.notifier).update(updatedProduct);
@@ -129,10 +141,17 @@ class AdminCategoryProductsPage extends ConsumerWidget {
             onRetry: () => ref.invalidate(designListProvider),
           ),
           data: (allDesigns) {
-            // Filter designs matching category ID or category slug
+            // Filter designs matching category ID or category slug in categoryId / categoryIds
             final categoryProducts = allDesigns.where((d) {
-              return d.categoryId == category.id ||
+              final catIdMatch =
+                  d.categoryId == category.id ||
                   d.categoryId.toLowerCase() == category.slug.toLowerCase();
+              final catIdsMatch =
+                  d.categoryIds.contains(category.id) ||
+                  d.categoryIds.any(
+                    (id) => id.toLowerCase() == category.slug.toLowerCase(),
+                  );
+              return catIdMatch || catIdsMatch;
             }).toList();
 
             if (categoryProducts.isEmpty) {
@@ -148,8 +167,11 @@ class AdminCategoryProductsPage extends ConsumerWidget {
               separatorBuilder: (ctx, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final product = categoryProducts[index];
-                final image = product.thumbnailUrl ??
-                    (product.imageUrls.isNotEmpty ? product.imageUrls.first : null);
+                final image =
+                    product.thumbnailUrl ??
+                    (product.imageUrls.isNotEmpty
+                        ? product.imageUrls.first
+                        : null);
 
                 return Container(
                   padding: const EdgeInsets.all(12),
@@ -179,7 +201,9 @@ class AdminCategoryProductsPage extends ConsumerWidget {
                                 errorBuilder: (ctx, err, stack) => Container(
                                   width: 60,
                                   height: 60,
-                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
                                   child: Icon(
                                     PhosphorIcons.tShirt(),
                                     color: AppColors.primary,
@@ -242,11 +266,8 @@ class AdminCategoryProductsPage extends ConsumerWidget {
 
                       // Remove Action Button
                       IconButton(
-                        onPressed: () => _confirmRemoveProduct(
-                          context,
-                          ref,
-                          product,
-                        ),
+                        onPressed: () =>
+                            _confirmRemoveProduct(context, ref, product),
                         icon: PhosphorIcon(
                           PhosphorIcons.trash(PhosphorIconsStyle.bold),
                           color: AppColors.error,

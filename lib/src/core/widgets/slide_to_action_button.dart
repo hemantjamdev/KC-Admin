@@ -112,9 +112,12 @@ class _SlideToActionButtonState extends State<SlideToActionButton> {
                             });
                             widget.onSlideComplete();
                             // Reset slider position after trigger
-                            Future.delayed(const Duration(milliseconds: 600), () {
-                              if (mounted) setState(() => _dragValue = 0.0);
-                            });
+                            Future.delayed(
+                              const Duration(milliseconds: 600),
+                              () {
+                                if (mounted) setState(() => _dragValue = 0.0);
+                              },
+                            );
                           } else {
                             setState(() {
                               _dragValue = 0.0;
@@ -138,7 +141,8 @@ class _SlideToActionButtonState extends State<SlideToActionButton> {
                     ),
                     child: Center(
                       child: PhosphorIcon(
-                        widget.icon ?? PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
+                        widget.icon ??
+                            PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
                         size: 24,
                         color: widget.iconColor ?? Colors.white,
                       ),

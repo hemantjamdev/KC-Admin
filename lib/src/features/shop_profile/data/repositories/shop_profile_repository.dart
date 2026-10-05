@@ -37,7 +37,9 @@ class ShopProfileRepository {
           return model;
         })
         .handleError((error) {
-          debugPrint('[ShopProfileRepository] watchShopProfile stream error: $error');
+          debugPrint(
+            '[ShopProfileRepository] watchShopProfile stream error: $error',
+          );
           return _cachedProfile;
         });
   }
@@ -81,7 +83,9 @@ class ShopProfileRepository {
             .set(data, SetOptions(merge: true));
       }
     } catch (e, st) {
-      debugPrint('[ShopProfileRepository] Firestore write warning/permission error: $e\n$st');
+      debugPrint(
+        '[ShopProfileRepository] Firestore write warning/permission error: $e\n$st',
+      );
       // Local state is preserved in _cachedProfile, so app UI remains updated.
     }
   }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -40,7 +39,7 @@ class _DesignFormPageState extends ConsumerState<DesignFormPage> {
   late FocusNode _priceFocusNode;
   late FocusNode _descFocusNode;
 
-  String? _selectedCategoryId;
+  Set<String> _selectedCategoryIds = {};
   List<String> _imageUrls = [];
   List<String> _selectedColors = [];
   List<String> _selectedSizes = [];
@@ -77,7 +76,11 @@ class _DesignFormPageState extends ConsumerState<DesignFormPage> {
     _descFocusNode = FocusNode();
 
     if (d != null) {
-      _selectedCategoryId = d.categoryId;
+      _selectedCategoryIds = Set<String>.from(
+        d.categoryIds.isNotEmpty
+            ? d.categoryIds
+            : (d.categoryId.isNotEmpty ? [d.categoryId] : []),
+      );
       _imageUrls = List.from(d.imageUrls);
       if (d.thumbnailUrl != null &&
           d.thumbnailUrl!.isNotEmpty &&
@@ -102,7 +105,6 @@ class _DesignFormPageState extends ConsumerState<DesignFormPage> {
 
     super.dispose();
   }
-
 
   Future<bool> _onWillPop() async {
     if (!_hasChanges) return true;
@@ -226,7 +228,7 @@ class _DesignFormPageState extends ConsumerState<DesignFormPage> {
       ref.invalidate(categoryListProvider);
       if (result is String) {
         setState(() {
-          _selectedCategoryId = result;
+          _selectedCategoryIds.add(result);
           _hasChanges = true;
         });
       }
@@ -242,189 +244,221 @@ class _DesignFormPageState extends ConsumerState<DesignFormPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.45,
-          minChildSize: 0.3,
-          maxChildSize: 0.7,
-          builder: (_, scrollController) {
-            return SafeArea(
-              top: false,
-              child: Column(
-                children: [
-                  // Handle bar
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12, bottom: 8),
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceBorder,
-                        borderRadius: BorderRadius.circular(2),
+        return StatefulBuilder(
+          builder: (ctx, modalSetState) {
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.45,
+              minChildSize: 0.3,
+              maxChildSize: 0.7,
+              builder: (_, scrollController) {
+                return SafeArea(
+                  top: false,
+                  child: Column(
+                    children: [
+                      // Handle bar
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12, bottom: 8),
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceBorder,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  // Header
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Select Category',
-                          style: GoogleFonts.playfairDisplay(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${categories.length} categories available',
-                          style: GoogleFonts.montserrat(
-                            fontSize: 12,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1, color: AppColors.surfaceBorder),
-                  // List
-                  Expanded(
-                    child: categories.isEmpty
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    PhosphorIcons.folderOpen(
-                                      PhosphorIconsStyle.regular,
-                                    ),
-                                    size: 40,
-                                    color: AppColors.textMuted,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'No active categories',
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textMuted,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  OutlinedButton.icon(
-                                    onPressed: () {
-                                      Navigator.of(ctx).pop();
-                                      _navigateToCreateCategoryPage();
-                                    },
-                                    icon: Icon(
-                                      PhosphorIcons.plus(
-                                        PhosphorIconsStyle.bold,
-                                      ),
-                                      size: 16,
-                                    ),
-                                    label: const Text('Add Category'),
-                                  ),
-                                ],
+                      // Header
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Select Category',
+                              style: GoogleFonts.playfairDisplay(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
                               ),
                             ),
-                          )
-                        : ListView.separated(
-                            controller: scrollController,
-                            itemCount: categories.length + 1,
-                            separatorBuilder: (_, __) => const Divider(
-                              height: 1,
-                              indent: 20,
-                              endIndent: 20,
-                              color: AppColors.surfaceBorder,
+                            const SizedBox(height: 2),
+                            Text(
+                              '${categories.length} categories available',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 12,
+                                color: AppColors.textMuted,
+                              ),
                             ),
-                            itemBuilder: (context, index) {
-                              if (index == categories.length) {
-                                return ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor:
-                                        AppColors.primary.withValues(alpha: 0.1),
-                                    child: Icon(
-                                      PhosphorIcons.plus(
-                                        PhosphorIconsStyle.bold,
-                                      ),
-                                      size: 18,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                  title: Text(
-                                    'Create New Category',
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                  onTap: () {
-                                    Navigator.of(ctx).pop();
-                                    _navigateToCreateCategoryPage();
-                                  },
-                                );
-                              }
-
-                              final cat = categories[index];
-                              final isSelected = cat.id == _selectedCategoryId;
-
-                              return ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: isSelected
-                                      ? AppColors.primary
-                                      : AppColors.surfaceBorder,
-                                  child: Icon(
-                                    PhosphorIcons.tag(
-                                      isSelected
-                                          ? PhosphorIconsStyle.fill
-                                          : PhosphorIconsStyle.regular,
-                                    ),
-                                    size: 18,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : AppColors.textMuted,
-                                  ),
-                                ),
-                                title: Text(
-                                  cat.name,
-                                  style: GoogleFonts.montserrat(
-                                    fontSize: 14,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
-                                    color: isSelected
-                                        ? AppColors.primary
-                                        : AppColors.textPrimary,
-                                  ),
-                                ),
-                                trailing: isSelected
-                                    ? Icon(
-                                        PhosphorIcons.checkCircle(
-                                          PhosphorIconsStyle.fill,
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1, color: AppColors.surfaceBorder),
+                      // List
+                      Expanded(
+                        child: categories.isEmpty
+                            ? Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        PhosphorIcons.folderOpen(
+                                          PhosphorIconsStyle.regular,
                                         ),
-                                        color: AppColors.primary,
-                                        size: 22,
-                                      )
-                                    : null,
-                                onTap: () {
-                                  setState(() {
-                                    _selectedCategoryId = cat.id;
-                                    _hasChanges = true;
-                                  });
-                                  Navigator.of(ctx).pop();
+                                        size: 40,
+                                        color: AppColors.textMuted,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'No active categories',
+                                        style: GoogleFonts.montserrat(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.textMuted,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      OutlinedButton.icon(
+                                        onPressed: () {
+                                          Navigator.of(ctx).pop();
+                                          _navigateToCreateCategoryPage();
+                                        },
+                                        icon: Icon(
+                                          PhosphorIcons.plus(
+                                            PhosphorIconsStyle.bold,
+                                          ),
+                                          size: 16,
+                                        ),
+                                        label: const Text('Add Category'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : ListView.separated(
+                                controller: scrollController,
+                                itemCount: categories.length + 1,
+                                separatorBuilder: (_, _) => const Divider(
+                                  height: 1,
+                                  indent: 20,
+                                  endIndent: 20,
+                                  color: AppColors.surfaceBorder,
+                                ),
+                                itemBuilder: (context, index) {
+                                  if (index == categories.length) {
+                                    return ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: AppColors.primary
+                                            .withValues(alpha: 0.1),
+                                        child: Icon(
+                                          PhosphorIcons.plus(
+                                            PhosphorIconsStyle.bold,
+                                          ),
+                                          size: 18,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                      title: Text(
+                                        'Create New Category',
+                                        style: GoogleFonts.montserrat(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                      onTap: () {
+                                        Navigator.of(ctx).pop();
+                                        _navigateToCreateCategoryPage();
+                                      },
+                                    );
+                                  }
+
+                                  final cat = categories[index];
+                                  final isSelected = _selectedCategoryIds
+                                      .contains(cat.id);
+
+                                  return CheckboxListTile(
+                                    value: isSelected,
+                                    activeColor: AppColors.primary,
+                                    checkColor: Colors.white,
+                                    checkboxShape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    secondary: CircleAvatar(
+                                      backgroundColor: isSelected
+                                          ? AppColors.primary.withValues(
+                                              alpha: 0.12,
+                                            )
+                                          : AppColors.surfaceBorder,
+                                      child: Icon(
+                                        PhosphorIcons.tag(
+                                          isSelected
+                                              ? PhosphorIconsStyle.fill
+                                              : PhosphorIconsStyle.regular,
+                                        ),
+                                        size: 18,
+                                        color: isSelected
+                                            ? AppColors.primary
+                                            : AppColors.textMuted,
+                                      ),
+                                    ),
+                                    title: Text(
+                                      cat.name,
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 14,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                        color: isSelected
+                                            ? AppColors.primary
+                                            : AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    onChanged: (checked) {
+                                      modalSetState(() {
+                                        if (checked == true) {
+                                          _selectedCategoryIds.add(cat.id);
+                                        } else {
+                                          _selectedCategoryIds.remove(cat.id);
+                                        }
+                                      });
+                                      setState(() {
+                                        _hasChanges = true;
+                                      });
+                                    },
+                                  );
                                 },
-                              );
-                            },
+                              ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            child: Text(
+                              'Done (${_selectedCategoryIds.length} Selected)',
+                              style: GoogleFonts.montserrat(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             );
           },
         );
@@ -471,9 +505,7 @@ class _DesignFormPageState extends ConsumerState<DesignFormPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             child: Text(
               widget.isEditMode ? 'SAVE' : 'ADD PRODUCT',
               style: GoogleFonts.montserrat(
@@ -506,7 +538,10 @@ class _DesignFormPageState extends ConsumerState<DesignFormPage> {
         slug: widget.existingDesign!.slug.isNotEmpty
             ? widget.existingDesign!.slug
             : slug,
-        categoryId: _selectedCategoryId ?? widget.existingDesign!.categoryId,
+        categoryId: _selectedCategoryIds.isNotEmpty
+            ? _selectedCategoryIds.first
+            : '',
+        categoryIds: _selectedCategoryIds.toList(),
         description: _descController.text.trim().isEmpty
             ? null
             : _descController.text.trim(),
@@ -524,7 +559,10 @@ class _DesignFormPageState extends ConsumerState<DesignFormPage> {
       design = DesignModel(
         id: 'design_${now.millisecondsSinceEpoch}',
         boutiqueId: boutiqueId,
-        categoryId: _selectedCategoryId ?? 'uncategorized',
+        categoryId: _selectedCategoryIds.isNotEmpty
+            ? _selectedCategoryIds.first
+            : '',
+        categoryIds: _selectedCategoryIds.toList(),
         name: name,
         slug: slug,
         description: _descController.text.trim().isEmpty
@@ -561,11 +599,6 @@ class _DesignFormPageState extends ConsumerState<DesignFormPage> {
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoryListProvider);
     final categories = categoriesAsync.valueOrNull ?? [];
-
-    final selectedCategory = categories.cast<CategoryModel?>().firstWhere(
-          (c) => c?.id == _selectedCategoryId,
-          orElse: () => null,
-        );
 
     return PopScope(
       canPop: !_hasChanges,
@@ -635,7 +668,8 @@ class _DesignFormPageState extends ConsumerState<DesignFormPage> {
                 const SizedBox(height: 10),
                 DesignImagePickerWidget(
                   boutiqueId: 'boutique_01',
-                  designId: widget.existingDesign?.id ??
+                  designId:
+                      widget.existingDesign?.id ??
                       'temp_${DateTime.now().millisecondsSinceEpoch}',
                   thumbnailUrl: _thumbnailController.text.isNotEmpty
                       ? _thumbnailController.text
@@ -721,30 +755,63 @@ class _DesignFormPageState extends ConsumerState<DesignFormPage> {
                 ),
                 const SizedBox(height: 14),
 
-                // Category Selection Button
+                // Category Selection Button (Supports multiple tick mark selections)
                 GestureDetector(
                   onTap: () => _showCategoryPicker(categories),
                   child: InputDecorator(
                     decoration: InputDecoration(
-                      labelText: 'Category *',
+                      labelText: 'Categories (Optional / Select Multiple)',
                       suffixIcon: Icon(
                         PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
                         size: 16,
                         color: AppColors.textMuted,
                       ),
                     ),
-                    child: Text(
-                      selectedCategory?.name ?? 'Select Category',
-                      style: GoogleFonts.montserrat(
-                        fontSize: 14,
-                        color: selectedCategory != null
-                            ? AppColors.textPrimary
-                            : AppColors.textMuted,
-                        fontWeight: selectedCategory != null
-                            ? FontWeight.w500
-                            : FontWeight.w400,
-                      ),
-                    ),
+                    child: _selectedCategoryIds.isEmpty
+                        ? Text(
+                            'Select Categories (Tick Multiple)',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 14,
+                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          )
+                        : Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: categories
+                                .where(
+                                  (c) => _selectedCategoryIds.contains(c.id),
+                                )
+                                .map(
+                                  (c) => Chip(
+                                    visualDensity: VisualDensity.compact,
+                                    backgroundColor: AppColors.primary
+                                        .withValues(alpha: 0.12),
+                                    side: BorderSide(
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                    ),
+                                    avatar: Icon(
+                                      PhosphorIcons.check(
+                                        PhosphorIconsStyle.bold,
+                                      ),
+                                      size: 12,
+                                      color: AppColors.primary,
+                                    ),
+                                    label: Text(
+                                      c.name,
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -818,10 +885,7 @@ class _DesignFormPageState extends ConsumerState<DesignFormPage> {
                       Color c = const Color(0xFFD4AF37);
                       try {
                         c = Color(
-                          int.parse(
-                            hex.replaceFirst('#', 'FF'),
-                            radix: 16,
-                          ),
+                          int.parse(hex.replaceFirst('#', 'FF'), radix: 16),
                         );
                       } catch (_) {}
 
@@ -868,7 +932,9 @@ class _DesignFormPageState extends ConsumerState<DesignFormPage> {
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.15),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.15,
+                                      ),
                                       blurRadius: 3,
                                     ),
                                   ],
@@ -935,7 +1001,9 @@ class _DesignFormPageState extends ConsumerState<DesignFormPage> {
                           boxShadow: isSelected
                               ? [
                                   BoxShadow(
-                                    color: AppColors.primary.withValues(alpha: 0.25),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.25,
+                                    ),
                                     blurRadius: 8,
                                     offset: const Offset(0, 3),
                                   ),
@@ -998,7 +1066,9 @@ class _DesignFormPageState extends ConsumerState<DesignFormPage> {
                             ),
                           )
                         : Text(
-                            widget.isEditMode ? 'Save Changes' : 'Create Product',
+                            widget.isEditMode
+                                ? 'Save Changes'
+                                : 'Create Product',
                             style: GoogleFonts.montserrat(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,

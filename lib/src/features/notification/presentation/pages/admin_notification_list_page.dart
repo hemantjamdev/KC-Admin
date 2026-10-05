@@ -201,7 +201,9 @@ class _AdminNotificationListPageState
               Expanded(
                 child: Builder(
                   builder: (context) {
-                    final paginatedState = ref.watch(paginatedNotificationsProvider);
+                    final paginatedState = ref.watch(
+                      paginatedNotificationsProvider,
+                    );
                     final notifications = paginatedState.items;
 
                     return RefreshIndicator(
@@ -213,7 +215,8 @@ class _AdminNotificationListPageState
                       },
                       child: paginatedState.isLoading && notifications.isEmpty
                           ? const AppLoadingState(type: AppLoadingType.list)
-                          : paginatedState.errorMessage != null && notifications.isEmpty
+                          : paginatedState.errorMessage != null &&
+                                notifications.isEmpty
                           ? AppErrorState(
                               message: 'Failed to load notifications list.',
                               onRetry: () => ref
@@ -225,7 +228,8 @@ class _AdminNotificationListPageState
                               physics: const AlwaysScrollableScrollPhysics(),
                               children: [
                                 SizedBox(
-                                  height: MediaQuery.of(context).size.height * 0.45,
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.45,
                                   child: _buildEmptyState(),
                                 ),
                               ],
@@ -236,7 +240,8 @@ class _AdminNotificationListPageState
                               physics: const AlwaysScrollableScrollPhysics(
                                 parent: BouncingScrollPhysics(),
                               ),
-                              itemCount: notifications.length +
+                              itemCount:
+                                  notifications.length +
                                   (paginatedState.isLoadingMore ? 1 : 0),
                               separatorBuilder: (ctx, i) =>
                                   const SizedBox(height: 10),
@@ -257,9 +262,9 @@ class _AdminNotificationListPageState
                                   notification: notif,
                                   onTapDetails: () =>
                                       AdminNotificationDetailsPage.showAsBottomSheet(
-                                    context,
-                                    notification: notif,
-                                  ),
+                                        context,
+                                        notification: notif,
+                                      ),
                                   onEdit: () => context.push(
                                     AppRoutes.adminNotificationEdit,
                                     extra: notif,
@@ -287,9 +292,7 @@ class _AdminNotificationListPageState
     final hasFilter = _searchController.text.isNotEmpty;
 
     return AppEmptyState(
-      icon: hasFilter
-          ? PhosphorIcons.magnifyingGlass()
-          : PhosphorIcons.bell(),
+      icon: hasFilter ? PhosphorIcons.magnifyingGlass() : PhosphorIcons.bell(),
       title: hasFilter ? 'No Notifications Found' : 'No Notifications Yet',
       message: hasFilter
           ? 'No notifications match your search "$_searchQuery". Try searching with different keywords.'
@@ -325,21 +328,26 @@ class _NotificationCard extends StatelessWidget {
   (IconData, Color) _getTypeTheme(NotificationType type) {
     return switch (type) {
       NotificationType.general => (
-          PhosphorIcons.bell(PhosphorIconsStyle.bold),
-          AppColors.primary,
-        ),
-      NotificationType.stitchingUpdate => (
-          PhosphorIcons.scissors(PhosphorIconsStyle.bold),
-          const Color(0xFF10B981),
-        ),
+        PhosphorIcons.bell(PhosphorIconsStyle.bold),
+        AppColors.primary,
+      ),
+      NotificationType.stitchingUpdate ||
+      NotificationType.stitchingStatusUpdated => (
+        PhosphorIcons.scissors(PhosphorIconsStyle.bold),
+        const Color(0xFF10B981),
+      ),
       NotificationType.designUpdate => (
-          PhosphorIcons.sparkle(PhosphorIconsStyle.bold),
-          const Color(0xFF2563EB),
-        ),
+        PhosphorIcons.sparkle(PhosphorIconsStyle.bold),
+        const Color(0xFF2563EB),
+      ),
       NotificationType.boutiqueAnnouncement => (
-          PhosphorIcons.megaphone(PhosphorIconsStyle.bold),
-          const Color(0xFFD97706),
-        ),
+        PhosphorIcons.megaphone(PhosphorIconsStyle.bold),
+        const Color(0xFFD97706),
+      ),
+      NotificationType.newStitchingRequest => (
+        PhosphorIcons.needle(PhosphorIconsStyle.bold),
+        const Color(0xFFF59E0B),
+      ),
     };
   }
 
@@ -386,11 +394,7 @@ class _NotificationCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
-                    child: PhosphorIcon(
-                      typeIcon,
-                      size: 20,
-                      color: typeColor,
-                    ),
+                    child: PhosphorIcon(typeIcon, size: 20, color: typeColor),
                   ),
                 ),
                 const SizedBox(width: 12),

@@ -17,7 +17,8 @@ class AdminCustomerListPage extends ConsumerStatefulWidget {
   const AdminCustomerListPage({super.key});
 
   @override
-  ConsumerState<AdminCustomerListPage> createState() => _AdminCustomerListPageState();
+  ConsumerState<AdminCustomerListPage> createState() =>
+      _AdminCustomerListPageState();
 }
 
 class _AdminCustomerListPageState extends ConsumerState<AdminCustomerListPage> {
@@ -43,8 +44,6 @@ class _AdminCustomerListPageState extends ConsumerState<AdminCustomerListPage> {
       ref.read(paginatedCustomersProvider.notifier).fetchNextPage();
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -177,7 +176,9 @@ class _AdminCustomerListPageState extends ConsumerState<AdminCustomerListPage> {
               Expanded(
                 child: Builder(
                   builder: (context) {
-                    final paginatedState = ref.watch(paginatedCustomersProvider);
+                    final paginatedState = ref.watch(
+                      paginatedCustomersProvider,
+                    );
                     final customers = paginatedState.items;
 
                     return RefreshIndicator(
@@ -189,11 +190,13 @@ class _AdminCustomerListPageState extends ConsumerState<AdminCustomerListPage> {
                       },
                       child: paginatedState.isLoading && customers.isEmpty
                           ? const AppLoadingState(type: AppLoadingType.list)
-                          : paginatedState.errorMessage != null && customers.isEmpty
+                          : paginatedState.errorMessage != null &&
+                                customers.isEmpty
                           ? SingleChildScrollView(
                               physics: const AlwaysScrollableScrollPhysics(),
                               child: Container(
-                                height: MediaQuery.of(context).size.height * 0.6,
+                                height:
+                                    MediaQuery.of(context).size.height * 0.6,
                                 alignment: Alignment.center,
                                 child: AppErrorState(
                                   message: paginatedState.errorMessage!,
@@ -207,20 +210,26 @@ class _AdminCustomerListPageState extends ConsumerState<AdminCustomerListPage> {
                           ? SingleChildScrollView(
                               physics: const AlwaysScrollableScrollPhysics(),
                               child: Container(
-                                height: MediaQuery.of(context).size.height * 0.6,
+                                height:
+                                    MediaQuery.of(context).size.height * 0.6,
                                 alignment: Alignment.center,
                                 child: _buildEmptyState(),
                               ),
                             )
                           : ListView.separated(
                               controller: _scrollController,
+                              physics: const AlwaysScrollableScrollPhysics(
+                                parent: BouncingScrollPhysics(),
+                              ),
                               padding: const EdgeInsets.fromLTRB(
                                 AppSpacing.lg,
                                 AppSpacing.sm,
                                 AppSpacing.lg,
                                 AppSpacing.xxl + AppSpacing.xl,
                               ),
-                              itemCount: customers.length + (paginatedState.isLoadingMore ? 1 : 0),
+                              itemCount:
+                                  customers.length +
+                                  (paginatedState.isLoadingMore ? 1 : 0),
                               separatorBuilder: (ctx, i) =>
                                   const SizedBox(height: AppSpacing.md),
                               itemBuilder: (context, index) {
@@ -274,10 +283,7 @@ class _AdminCustomerListPageState extends ConsumerState<AdminCustomerListPage> {
 }
 
 class _CustomerCard extends StatelessWidget {
-  const _CustomerCard({
-    required this.customer,
-    required this.onTapDetails,
-  });
+  const _CustomerCard({required this.customer, required this.onTapDetails});
 
   final CustomerModel customer;
   final VoidCallback onTapDetails;

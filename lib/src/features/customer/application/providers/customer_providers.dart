@@ -78,17 +78,19 @@ final customerListProvider = FutureProvider<List<CustomerModel>>((ref) async {
 // ─────────────────────────────────────────────
 
 final paginatedCustomersProvider =
-    StateNotifierProvider<PaginatedCustomersNotifier, PaginatedState<CustomerModel>>(
-  (ref) {
-    return PaginatedCustomersNotifier(
-      repository: ref.watch(customerRepositoryProvider),
-    );
-  },
-);
+    StateNotifierProvider<
+      PaginatedCustomersNotifier,
+      PaginatedState<CustomerModel>
+    >((ref) {
+      return PaginatedCustomersNotifier(
+        repository: ref.watch(customerRepositoryProvider),
+      );
+    });
 
-class PaginatedCustomersNotifier extends StateNotifier<PaginatedState<CustomerModel>> {
+class PaginatedCustomersNotifier
+    extends StateNotifier<PaginatedState<CustomerModel>> {
   PaginatedCustomersNotifier({required this.repository})
-      : super(const PaginatedState()) {
+    : super(const PaginatedState()) {
     fetchInitial();
   }
 
@@ -98,7 +100,13 @@ class PaginatedCustomersNotifier extends StateNotifier<PaginatedState<CustomerMo
   Future<void> fetchInitial({String query = ''}) async {
     _currentQuery = query.trim();
 
-    state = state.copyWith(isLoading: true, errorMessage: null, items: [], lastDocId: null, hasMore: true);
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+      items: [],
+      lastDocId: null,
+      hasMore: true,
+    );
 
     try {
       final res = await repository.fetchPaginatedCustomers(limit: 20);
@@ -111,10 +119,13 @@ class PaginatedCustomersNotifier extends StateNotifier<PaginatedState<CustomerMo
         filtered = filtered.where((c) {
           final inName = c.displayName.toLowerCase().contains(q);
           final inEmail = c.email != null && c.email!.toLowerCase().contains(q);
-          final inPhone = c.phone != null &&
+          final inPhone =
+              c.phone != null &&
               (c.phone!.toLowerCase().contains(q) ||
                   (digitsOnly.isNotEmpty &&
-                      c.phone!.replaceAll(RegExp(r'\D'), '').contains(digitsOnly)));
+                      c.phone!
+                          .replaceAll(RegExp(r'\D'), '')
+                          .contains(digitsOnly)));
           return inName || inEmail || inPhone;
         }).toList();
       }
@@ -149,10 +160,13 @@ class PaginatedCustomersNotifier extends StateNotifier<PaginatedState<CustomerMo
         filtered = filtered.where((c) {
           final inName = c.displayName.toLowerCase().contains(q);
           final inEmail = c.email != null && c.email!.toLowerCase().contains(q);
-          final inPhone = c.phone != null &&
+          final inPhone =
+              c.phone != null &&
               (c.phone!.toLowerCase().contains(q) ||
                   (digitsOnly.isNotEmpty &&
-                      c.phone!.replaceAll(RegExp(r'\D'), '').contains(digitsOnly)));
+                      c.phone!
+                          .replaceAll(RegExp(r'\D'), '')
+                          .contains(digitsOnly)));
           return inName || inEmail || inPhone;
         }).toList();
       }

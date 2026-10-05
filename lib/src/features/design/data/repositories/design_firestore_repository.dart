@@ -139,10 +139,21 @@ class DesignFirestoreRepository {
         ? updatedAtRaw.toDate()
         : DateTime.now();
 
+    final rawCategoryIds = List<String>.from(
+      data['categoryIds'] as List? ?? [],
+    );
+    final singleCatId = data['categoryId'] as String? ?? '';
+    final categoryIds = rawCategoryIds.isNotEmpty
+        ? rawCategoryIds
+        : (singleCatId.isNotEmpty ? [singleCatId] : <String>[]);
+
     return DesignModel(
       id: data['id'] as String? ?? doc.id,
       boutiqueId: data['boutiqueId'] as String? ?? '',
-      categoryId: data['categoryId'] as String? ?? '',
+      categoryId: singleCatId.isNotEmpty
+          ? singleCatId
+          : (categoryIds.isNotEmpty ? categoryIds.first : ''),
+      categoryIds: categoryIds,
       name: data['name'] as String? ?? '',
       slug: data['slug'] as String? ?? '',
       shortDescription: data['shortDescription'] as String?,
@@ -171,6 +182,7 @@ class DesignFirestoreRepository {
       'id': design.id,
       'boutiqueId': design.boutiqueId,
       'categoryId': design.categoryId,
+      'categoryIds': design.categoryIds,
       'name': design.name,
       'slug': design.slug,
       'shortDescription': design.shortDescription,

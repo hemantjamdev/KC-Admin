@@ -56,10 +56,7 @@ void main() {
       );
 
       expect(order.status.adminLabel, equals('Requested'));
-      expect(
-        StitchingOrderStatus.accepted.adminLabel,
-        equals('Accepted'),
-      );
+      expect(StitchingOrderStatus.accepted.adminLabel, equals('Accepted'));
       expect(StitchingOrderStatus.completed.adminLabel, equals('Completed'));
 
       final updated = order.copyWith(status: StitchingOrderStatus.completed);

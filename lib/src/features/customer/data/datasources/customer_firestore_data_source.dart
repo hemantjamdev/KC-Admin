@@ -144,10 +144,8 @@ class CustomerFirestoreDataSource {
     }
   }
 
-  Future<({List<CustomerModel> items, String? lastDocId, bool hasMore})> fetchPaginated({
-    int limit = 20,
-    String? startAfterId,
-  }) async {
+  Future<({List<CustomerModel> items, String? lastDocId, bool hasMore})>
+  fetchPaginated({int limit = 20, String? startAfterId}) async {
     try {
       Query<Map<String, dynamic>> query = _collection
           .orderBy('createdAt', descending: true)

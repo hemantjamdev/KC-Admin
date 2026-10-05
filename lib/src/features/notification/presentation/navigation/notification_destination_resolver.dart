@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../app/app_routes.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../domain/models/notification_model.dart';
 
@@ -15,10 +17,27 @@ abstract class NotificationDestinationResolver {
 
     if (type == NotificationDestinationType.none) return;
 
-    AppToast.show(
-      context,
-      'Destination Link: ${type.label}${entityId != null ? ' (#$entityId)' : ''}',
-      type: ToastType.info,
-    );
+    switch (type) {
+      case NotificationDestinationType.stitchingOrder:
+        context.push(AppRoutes.adminStitchingOrderList);
+        break;
+      case NotificationDestinationType.customerProfile:
+        if (entityId != null && entityId.isNotEmpty) {
+          context.push(AppRoutes.adminCustomerDetails, extra: entityId);
+        } else {
+          context.push(AppRoutes.adminCustomerList);
+        }
+        break;
+      case NotificationDestinationType.design:
+        context.push(AppRoutes.adminProducts);
+        break;
+      default:
+        AppToast.show(
+          context,
+          'Destination Link: ${type.label}${entityId != null ? ' (#$entityId)' : ''}',
+          type: ToastType.info,
+        );
+        break;
+    }
   }
 }

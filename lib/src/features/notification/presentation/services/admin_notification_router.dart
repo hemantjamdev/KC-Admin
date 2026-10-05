@@ -39,7 +39,11 @@ class AdminNotificationRouter {
       case 'adminStitching':
       case 'adminStitchingDetails':
       case 'stitchingOrder':
-        context.go(AppRoutes.adminHome);
+        context.push(AppRoutes.adminStitchingOrderList);
+        break;
+      case 'adminNotifications':
+      case 'notifications':
+        context.push(AppRoutes.adminNotificationList);
         break;
       case 'adminProducts':
         context.go(AppRoutes.adminProducts);

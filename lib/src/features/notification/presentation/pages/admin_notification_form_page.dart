@@ -82,8 +82,6 @@ class _AdminNotificationFormPageState
     });
   }
 
-
-
   Future<bool> _onWillPop() async {
     if (!_hasChanges) return true;
     final confirmed = await showDialog<bool>(
@@ -379,10 +377,6 @@ class _AdminNotificationFormPageState
     );
   }
 
-
-
-
-
   Widget _formCard({
     required String title,
     required IconData icon,
@@ -476,21 +470,26 @@ class _AdminNotificationFormPageState
 
         final (typeIcon, typeColor) = switch (_type) {
           NotificationType.general => (
-              PhosphorIcons.bell(PhosphorIconsStyle.bold),
-              AppColors.primary,
-            ),
-          NotificationType.stitchingUpdate => (
-              PhosphorIcons.scissors(PhosphorIconsStyle.bold),
-              const Color(0xFF10B981),
-            ),
+            PhosphorIcons.bell(PhosphorIconsStyle.bold),
+            AppColors.primary,
+          ),
+          NotificationType.stitchingUpdate ||
+          NotificationType.stitchingStatusUpdated => (
+            PhosphorIcons.scissors(PhosphorIconsStyle.bold),
+            const Color(0xFF10B981),
+          ),
           NotificationType.designUpdate => (
-              PhosphorIcons.sparkle(PhosphorIconsStyle.bold),
-              const Color(0xFF2563EB),
-            ),
+            PhosphorIcons.sparkle(PhosphorIconsStyle.bold),
+            const Color(0xFF2563EB),
+          ),
           NotificationType.boutiqueAnnouncement => (
-              PhosphorIcons.megaphone(PhosphorIconsStyle.bold),
-              const Color(0xFFD97706),
-            ),
+            PhosphorIcons.megaphone(PhosphorIconsStyle.bold),
+            const Color(0xFFD97706),
+          ),
+          NotificationType.newStitchingRequest => (
+            PhosphorIcons.needle(PhosphorIconsStyle.bold),
+            const Color(0xFFF59E0B),
+          ),
         };
 
         return Container(
@@ -529,7 +528,10 @@ class _AdminNotificationFormPageState
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: typeColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6),

@@ -50,26 +50,31 @@ final adminOrderListProvider = StreamProvider<List<StitchingOrderModel>>((ref) {
 });
 
 /// Fast aggregate status counts for summary header (10k+ scalability)
-final stitchingStatusCountsProvider = FutureProvider<({int total, int requested, int accepted, int completed})>((ref) async {
-  return ref.watch(stitchingRepositoryProvider).fetchStatusCounts();
-});
+final stitchingStatusCountsProvider =
+    FutureProvider<({int total, int requested, int accepted, int completed})>((
+      ref,
+    ) async {
+      return ref.watch(stitchingRepositoryProvider).fetchStatusCounts();
+    });
 
 // ─────────────────────────────────────────────
 // Paginated Stitching Order Notifier
 // ─────────────────────────────────────────────
 
 final paginatedStitchingOrdersProvider =
-    StateNotifierProvider<PaginatedStitchingOrdersNotifier, PaginatedState<StitchingOrderModel>>(
-  (ref) {
-    return PaginatedStitchingOrdersNotifier(
-      repository: ref.watch(stitchingRepositoryProvider),
-    );
-  },
-);
+    StateNotifierProvider<
+      PaginatedStitchingOrdersNotifier,
+      PaginatedState<StitchingOrderModel>
+    >((ref) {
+      return PaginatedStitchingOrdersNotifier(
+        repository: ref.watch(stitchingRepositoryProvider),
+      );
+    });
 
-class PaginatedStitchingOrdersNotifier extends StateNotifier<PaginatedState<StitchingOrderModel>> {
+class PaginatedStitchingOrdersNotifier
+    extends StateNotifier<PaginatedState<StitchingOrderModel>> {
   PaginatedStitchingOrdersNotifier({required this.repository})
-      : super(const PaginatedState()) {
+    : super(const PaginatedState()) {
     fetchInitial();
   }
 
@@ -77,11 +82,20 @@ class PaginatedStitchingOrdersNotifier extends StateNotifier<PaginatedState<Stit
   StitchingOrderStatus? _currentStatus;
   String _currentQuery = '';
 
-  Future<void> fetchInitial({StitchingOrderStatus? status, String query = ''}) async {
+  Future<void> fetchInitial({
+    StitchingOrderStatus? status,
+    String query = '',
+  }) async {
     _currentStatus = status;
     _currentQuery = query.trim();
 
-    state = state.copyWith(isLoading: true, errorMessage: null, items: [], lastDocId: null, hasMore: true);
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+      items: [],
+      lastDocId: null,
+      hasMore: true,
+    );
 
     try {
       final res = await repository.fetchPaginatedOrders(
@@ -96,11 +110,16 @@ class PaginatedStitchingOrdersNotifier extends StateNotifier<PaginatedState<Stit
 
       if (_currentQuery.isNotEmpty) {
         final q = _currentQuery.toLowerCase();
-        filtered = filtered.where((o) =>
-          o.orderNumber.toLowerCase().contains(q) ||
-          o.designReferences.any((d) => d.designName.toLowerCase().contains(q)) ||
-          (o.notes?.toLowerCase().contains(q) ?? false)
-        ).toList();
+        filtered = filtered
+            .where(
+              (o) =>
+                  o.orderNumber.toLowerCase().contains(q) ||
+                  o.designReferences.any(
+                    (d) => d.designName.toLowerCase().contains(q),
+                  ) ||
+                  (o.notes?.toLowerCase().contains(q) ?? false),
+            )
+            .toList();
       }
 
       state = state.copyWith(
@@ -133,11 +152,16 @@ class PaginatedStitchingOrdersNotifier extends StateNotifier<PaginatedState<Stit
 
       if (_currentQuery.isNotEmpty) {
         final q = _currentQuery.toLowerCase();
-        filtered = filtered.where((o) =>
-          o.orderNumber.toLowerCase().contains(q) ||
-          o.designReferences.any((d) => d.designName.toLowerCase().contains(q)) ||
-          (o.notes?.toLowerCase().contains(q) ?? false)
-        ).toList();
+        filtered = filtered
+            .where(
+              (o) =>
+                  o.orderNumber.toLowerCase().contains(q) ||
+                  o.designReferences.any(
+                    (d) => d.designName.toLowerCase().contains(q),
+                  ) ||
+                  (o.notes?.toLowerCase().contains(q) ?? false),
+            )
+            .toList();
       }
 
       state = state.copyWith(
@@ -328,8 +352,9 @@ final stitchingOrderMutationProvider = stitchingMutationProvider;
 
 /// Provider to fetch timeline history for a specific stitching order from Firestore.
 final stitchingOrderHistoryProvider =
-    FutureProvider.family<List<StitchingOrderHistoryModel>, String>(
-  (ref, orderId) async {
-    return ref.watch(stitchingRepositoryProvider).fetchOrderHistory(orderId);
-  },
-);
+    FutureProvider.family<List<StitchingOrderHistoryModel>, String>((
+      ref,
+      orderId,
+    ) async {
+      return ref.watch(stitchingRepositoryProvider).fetchOrderHistory(orderId);
+    });

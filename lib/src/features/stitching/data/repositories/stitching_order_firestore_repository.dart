@@ -11,106 +11,7 @@ class StitchingOrderFirestoreRepository {
 
   final FirebaseFirestore _firestore;
 
-  static final List<StitchingOrderModel> sampleOrders = [
-    StitchingOrderModel(
-      id: 'ord_sample_01',
-      boutiqueId: 'boutique_01',
-      branchId: 'branch_01',
-      customerId: 'cust_101',
-      customerName: 'Ananya Sharma',
-      customerPhone: '+91 98765 43210',
-      customerEmail: 'ananya.sharma@example.com',
-      orderNumber: 'ORD-1001',
-      status: StitchingOrderStatus.requested,
-      requestName: 'Royal Velvet Anarkali Suit',
-      categoryName: 'Festive',
-      expectedReadyAt: DateTime.now().add(const Duration(days: 4)),
-      designReferences: const [
-        DesignReferenceModel(
-          designId: 'des_01',
-          designName: 'Royal Velvet Anarkali Suit',
-          quantity: 1,
-          notes: 'Golden zari border around sleeves & neckline',
-        ),
-      ],
-      measurementSummary: const MeasurementSummaryModel(
-        chest: 36.0,
-        waist: 30.0,
-        hip: 39.0,
-        shoulder: 14.5,
-        sleeveLength: 22.0,
-        garmentLength: 52.0,
-      ),
-      notes: 'Urgent stitching request for upcoming wedding event',
-      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-      updatedAt: DateTime.now().subtract(const Duration(hours: 2)),
-    ),
-    StitchingOrderModel(
-      id: 'ord_sample_02',
-      boutiqueId: 'boutique_01',
-      branchId: 'branch_01',
-      customerId: 'cust_102',
-      customerName: 'Priya Verma',
-      customerPhone: '+91 98123 45678',
-      customerEmail: 'priya.verma@example.com',
-      orderNumber: 'ORD-1002',
-      status: StitchingOrderStatus.accepted,
-      requestName: 'Embroidered Silk Lehenga Choli',
-      categoryName: 'Seasonal',
-      expectedReadyAt: DateTime.now().add(const Duration(days: 7)),
-      designReferences: const [
-        DesignReferenceModel(
-          designId: 'des_02',
-          designName: 'Embroidered Silk Lehenga Choli',
-          quantity: 1,
-          notes: 'Custom latkan tassels on dupatta',
-        ),
-      ],
-      measurementSummary: const MeasurementSummaryModel(
-        chest: 34.0,
-        waist: 28.0,
-        hip: 37.0,
-        shoulder: 14.0,
-        sleeveLength: 20.0,
-        garmentLength: 42.0,
-      ),
-      notes: 'Fitting confirmed during in-store visit',
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      updatedAt: DateTime.now().subtract(const Duration(hours: 5)),
-    ),
-    StitchingOrderModel(
-      id: 'ord_sample_03',
-      boutiqueId: 'boutique_01',
-      branchId: 'branch_01',
-      customerId: 'cust_103',
-      customerName: 'Kavita Singhania',
-      customerPhone: '+91 99887 76655',
-      customerEmail: 'kavita.s@example.com',
-      orderNumber: 'ORD-1003',
-      status: StitchingOrderStatus.completed,
-      requestName: 'Handloom Cotton Designer Kurti',
-      categoryName: 'New Arrival',
-      expectedReadyAt: DateTime.now().add(const Duration(days: 12)),
-      designReferences: const [
-        DesignReferenceModel(
-          designId: 'des_03',
-          designName: 'Handloom Cotton Designer Kurti',
-          quantity: 2,
-        ),
-      ],
-      measurementSummary: const MeasurementSummaryModel(
-        chest: 38.0,
-        waist: 32.0,
-        hip: 41.0,
-        shoulder: 15.0,
-        sleeveLength: 18.0,
-        garmentLength: 44.0,
-      ),
-      notes: 'Completed & packed for pickup',
-      createdAt: DateTime.now().subtract(const Duration(days: 2)),
-      updatedAt: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-  ];
+  static const List<StitchingOrderModel> sampleOrders = [];
 
   Stream<List<StitchingOrderModel>> watchAdminOrders([
     String? boutiqueId,
@@ -119,7 +20,7 @@ class StitchingOrderFirestoreRepository {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        return Stream.value(sampleOrders);
+        return Stream.value(<StitchingOrderModel>[]);
       }
     } catch (_) {}
 
@@ -131,19 +32,24 @@ class StitchingOrderFirestoreRepository {
         .snapshots()
         .map((snapshot) {
           if (snapshot.docs.isEmpty) {
-            return sampleOrders;
+            return <StitchingOrderModel>[];
           }
           final list = snapshot.docs.map(_fromFirestore).toList();
           list.sort(_compareByPickupPriority);
-          return list.isEmpty ? sampleOrders : list;
+          return list;
         })
         .handleError((error, stack) {
-          debugPrint('[StitchingRepo] watchAdminOrders stream error: $error\n$stack');
-          return sampleOrders;
+          debugPrint(
+            '[StitchingRepo] watchAdminOrders stream error: $error\n$stack',
+          );
+          return <StitchingOrderModel>[];
         });
   }
 
-  static int _compareByPickupPriority(StitchingOrderModel a, StitchingOrderModel b) {
+  static int _compareByPickupPriority(
+    StitchingOrderModel a,
+    StitchingOrderModel b,
+  ) {
     final dateA = a.expectedReadyAt;
     final dateB = b.expectedReadyAt;
 
@@ -167,7 +73,13 @@ class StitchingOrderFirestoreRepository {
     if (status != null && status.isNotEmpty && status != 'all') {
       final List<String> rawStatuses = switch (status.toLowerCase()) {
         'requested' => ['requested', 'received', 'measurements'],
-        'accepted' => ['accepted', 'cutting', 'stitching', 'qualitycheck', 'qualityCheck'],
+        'accepted' => [
+          'accepted',
+          'cutting',
+          'stitching',
+          'qualitycheck',
+          'qualityCheck',
+        ],
         'completed' => ['completed', 'ready'],
         _ => [status],
       };
@@ -178,7 +90,9 @@ class StitchingOrderFirestoreRepository {
 
     QuerySnapshot<Map<String, dynamic>> snapshot;
     try {
-      Query<Map<String, dynamic>> orderedQuery = query.orderBy('createdAt', descending: true).limit(limit + 1);
+      Query<Map<String, dynamic>> orderedQuery = query
+          .orderBy('createdAt', descending: true)
+          .limit(limit + 1);
       if (startAfterId != null && startAfterId.isNotEmpty) {
         final lastDoc = await col.doc(startAfterId).get();
         if (lastDoc.exists) {
@@ -205,12 +119,7 @@ class StitchingOrderFirestoreRepository {
     items.sort(_compareByPickupPriority);
 
     if (items.isEmpty) {
-      var filtered = sampleOrders;
-      if (status != null && status.isNotEmpty && status != 'all') {
-        final targetStatus = StitchingOrderStatus.parse(status);
-        filtered = sampleOrders.where((o) => o.status == targetStatus).toList();
-      }
-      return (items: filtered, lastDocId: null, hasMore: false);
+      return (items: <StitchingOrderModel>[], lastDocId: null, hasMore: false);
     }
 
     final lastDocId = resultDocs.isNotEmpty ? resultDocs.last.id : null;
@@ -219,7 +128,8 @@ class StitchingOrderFirestoreRepository {
   }
 
   /// Fast aggregate count query using Firestore count() aggregation (supports 10k+ docs with minimal reads).
-  Future<({int total, int requested, int accepted, int completed})> fetchStatusCounts() async {
+  Future<({int total, int requested, int accepted, int completed})>
+  fetchStatusCounts() async {
     try {
       final col = _firestore.collection(FirestorePaths.stitchingOrders);
       final totalSnap = await col.count().get();
@@ -230,7 +140,16 @@ class StitchingOrderFirestoreRepository {
           .get();
 
       final acceptedSnap = await col
-          .where('status', whereIn: ['accepted', 'cutting', 'stitching', 'qualitycheck', 'qualityCheck'])
+          .where(
+            'status',
+            whereIn: [
+              'accepted',
+              'cutting',
+              'stitching',
+              'qualitycheck',
+              'qualityCheck',
+            ],
+          )
           .count()
           .get();
 
@@ -245,12 +164,7 @@ class StitchingOrderFirestoreRepository {
       final totalCount = totalSnap.count ?? 0;
 
       if (totalCount == 0) {
-        return (
-          total: sampleOrders.length,
-          requested: sampleOrders.where((o) => o.status == StitchingOrderStatus.requested).length,
-          accepted: sampleOrders.where((o) => o.status == StitchingOrderStatus.accepted).length,
-          completed: sampleOrders.where((o) => o.status == StitchingOrderStatus.completed).length,
-        );
+        return (total: 0, requested: 0, accepted: 0, completed: 0);
       }
 
       return (
@@ -260,12 +174,7 @@ class StitchingOrderFirestoreRepository {
         completed: compCount,
       );
     } catch (_) {
-      return (
-        total: sampleOrders.length,
-        requested: sampleOrders.where((o) => o.status == StitchingOrderStatus.requested).length,
-        accepted: sampleOrders.where((o) => o.status == StitchingOrderStatus.accepted).length,
-        completed: sampleOrders.where((o) => o.status == StitchingOrderStatus.completed).length,
-      );
+      return (total: 0, requested: 0, accepted: 0, completed: 0);
     }
   }
 
@@ -311,30 +220,6 @@ class StitchingOrderFirestoreRepository {
       'status': order.status.name,
       'note': initialNote,
       'changedAt': FieldValue.serverTimestamp(),
-    });
-
-    // Automatically store notification in Firestore for both Admin & Customer apps
-    final notificationId = 'notif_${order.id}';
-    final notificationRef = _firestore
-        .collection(FirestorePaths.notifications)
-        .doc(notificationId);
-
-    batch.set(notificationRef, {
-      'id': notificationId,
-      'boutiqueId': order.boutiqueId,
-      'branchId': order.branchId,
-      'title': 'New Stitching Request #${order.orderNumber}',
-      'body': 'A new stitching request #${order.orderNumber} was placed.',
-      'type': 'stitchingUpdate',
-      'audienceType': 'selectedCustomers',
-      'customerIds': [order.customerId],
-      'relatedEntityType': 'stitchingOrder',
-      'relatedEntityId': order.id,
-      'status': 'published',
-      'publishedAt': FieldValue.serverTimestamp(),
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-      'createdBy': createdBy,
     });
 
     await batch.commit();
@@ -384,31 +269,6 @@ class StitchingOrderFirestoreRepository {
       'note': note,
       'changedAt': FieldValue.serverTimestamp(),
       'changedBy': updatedBy,
-    });
-
-    // Automatically store notification event in notifications collection
-    final notifId = 'notif_${orderId}_${now.millisecondsSinceEpoch}';
-    final notifRef = _firestore
-        .collection(FirestorePaths.notifications)
-        .doc(notifId);
-
-    final statusLabel = newStatus.name.replaceAll('_', ' ').toUpperCase();
-    batch.set(notifRef, {
-      'id': notifId,
-      'boutiqueId': 'boutique_kc_main',
-      'title': 'Stitching Order Status: $statusLabel',
-      'body':
-          'Order details updated to $statusLabel.${note != null && note.isNotEmpty ? " Note: $note" : ""}',
-      'type': 'stitchingUpdate',
-      'audienceType': 'allBoutiqueCustomers',
-      'customerIds': <String>[],
-      'relatedEntityType': 'stitchingOrder',
-      'relatedEntityId': orderId,
-      'status': 'published',
-      'publishedAt': FieldValue.serverTimestamp(),
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-      'createdBy': updatedBy,
     });
 
     await batch.commit();
@@ -464,15 +324,15 @@ class StitchingOrderFirestoreRepository {
     final createdAt = createdAtRaw is Timestamp
         ? createdAtRaw.toDate()
         : (createdAtRaw is String
-            ? (DateTime.tryParse(createdAtRaw) ?? DateTime.now())
-            : DateTime.now());
+              ? (DateTime.tryParse(createdAtRaw) ?? DateTime.now())
+              : DateTime.now());
 
     final updatedAtRaw = data['updatedAt'];
     final updatedAt = updatedAtRaw is Timestamp
         ? updatedAtRaw.toDate()
         : (updatedAtRaw is String
-            ? (DateTime.tryParse(updatedAtRaw) ?? DateTime.now())
-            : DateTime.now());
+              ? (DateTime.tryParse(updatedAtRaw) ?? DateTime.now())
+              : DateTime.now());
 
     final List<DesignReferenceModel> designRefs = [];
     if (data['designReferences'] is List) {
@@ -519,8 +379,8 @@ class StitchingOrderFirestoreRepository {
     final expectedReadyAt = expectedReadyAtRaw is Timestamp
         ? expectedReadyAtRaw.toDate()
         : (expectedReadyAtRaw is String
-            ? DateTime.tryParse(expectedReadyAtRaw)
-            : null);
+              ? DateTime.tryParse(expectedReadyAtRaw)
+              : null);
 
     return StitchingOrderModel(
       id: data['id'] as String? ?? doc.id,
@@ -535,7 +395,8 @@ class StitchingOrderFirestoreRepository {
       orderNumber: data['orderNumber'] as String? ?? 'ORD-000',
       status: status,
       requestName: data['requestName'] as String? ?? data['name'] as String?,
-      categoryName: data['categoryName'] as String? ?? data['category'] as String?,
+      categoryName:
+          data['categoryName'] as String? ?? data['category'] as String?,
       designReferences: designRefs,
       measurementSummary: measurementSummary,
       notes: data['notes'] as String?,

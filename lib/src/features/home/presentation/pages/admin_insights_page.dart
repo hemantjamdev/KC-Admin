@@ -32,12 +32,20 @@ class AdminInsightsPage extends ConsumerWidget {
       });
 
     // Stitching order pipeline stats
-    final requestedCount = orders.where((o) => o.status == StitchingOrderStatus.requested).length;
-    final acceptedCount = orders.where((o) => o.status == StitchingOrderStatus.accepted).length;
-    final completedCount = orders.where((o) => o.status == StitchingOrderStatus.completed).length;
+    final requestedCount = orders
+        .where((o) => o.status == StitchingOrderStatus.requested)
+        .length;
+    final acceptedCount = orders
+        .where((o) => o.status == StitchingOrderStatus.accepted)
+        .length;
+    final completedCount = orders
+        .where((o) => o.status == StitchingOrderStatus.completed)
+        .length;
     final totalOrders = orders.length;
 
-    final double fulfillmentRate = totalOrders > 0 ? (completedCount / totalOrders) * 100 : 100.0;
+    final double fulfillmentRate = totalOrders > 0
+        ? (completedCount / totalOrders) * 100
+        : 100.0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -89,7 +97,8 @@ class AdminInsightsPage extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _FavoritedDesignsCard(
                   topDesigns: sortedByFavorites,
-                  onTapDetail: () => _showFavoritesBottomSheet(context, sortedByFavorites),
+                  onTapDetail: () =>
+                      _showFavoritesBottomSheet(context, sortedByFavorites),
                 ),
               ),
             ),
@@ -186,8 +195,12 @@ class AdminInsightsPage extends ConsumerWidget {
               ...designs.take(8).toList().asMap().entries.map((entry) {
                 final rank = entry.key + 1;
                 final d = entry.value;
-                final favs = d.favoriteCount > 0 ? d.favoriteCount : (12 - rank * 2).clamp(1, 20);
-                final likes = d.likeCount > 0 ? d.likeCount : (24 - rank * 3).clamp(2, 40);
+                final favs = d.favoriteCount > 0
+                    ? d.favoriteCount
+                    : (12 - rank * 2).clamp(1, 20);
+                final likes = d.likeCount > 0
+                    ? d.likeCount
+                    : (24 - rank * 3).clamp(2, 40);
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 10),
@@ -206,10 +219,10 @@ class AdminInsightsPage extends ConsumerWidget {
                           color: rank == 1
                               ? const Color(0xFFE11D48)
                               : rank == 2
-                                  ? const Color(0xFFD4AF37)
-                                  : rank == 3
-                                      ? AppColors.primary
-                                      : AppColors.surfaceBorder,
+                              ? const Color(0xFFD4AF37)
+                              : rank == 3
+                              ? AppColors.primary
+                              : AppColors.surfaceBorder,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Center(
@@ -218,7 +231,9 @@ class AdminInsightsPage extends ConsumerWidget {
                             style: GoogleFonts.montserrat(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: rank <= 3 ? Colors.white : AppColors.textMuted,
+                              color: rank <= 3
+                                  ? Colors.white
+                                  : AppColors.textMuted,
                             ),
                           ),
                         ),
@@ -275,7 +290,10 @@ class AdminInsightsPage extends ConsumerWidget {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(6),
@@ -286,7 +304,9 @@ class AdminInsightsPage extends ConsumerWidget {
                           style: GoogleFonts.montserrat(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            color: d.isActive ? const Color(0xFF2E7D32) : AppColors.textMuted,
+                            color: d.isActive
+                                ? const Color(0xFF2E7D32)
+                                : AppColors.textMuted,
                           ),
                         ),
                       ),
@@ -349,7 +369,9 @@ class AdminInsightsPage extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 children: [
@@ -402,7 +424,8 @@ class AdminInsightsPage extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       builder: (ctx) => _BottomSheetContainer(
         title: 'Requested Fabric Colors & Sizing Breakdown',
-        subtitle: 'Most requested tailoring specifications across stitching requests',
+        subtitle:
+            'Most requested tailoring specifications across stitching requests',
         icon: PhosphorIcons.palette(PhosphorIconsStyle.fill),
         iconColor: const Color(0xFF7C3AED),
         child: Column(
@@ -421,7 +444,10 @@ class AdminInsightsPage extends ConsumerWidget {
             if (colors.isEmpty)
               Text(
                 'No color preferences recorded yet.',
-                style: GoogleFonts.montserrat(fontSize: 12, color: AppColors.textMuted),
+                style: GoogleFonts.montserrat(
+                  fontSize: 12,
+                  color: AppColors.textMuted,
+                ),
               )
             else
               ...colors.entries.map((e) {
@@ -459,7 +485,9 @@ class AdminInsightsPage extends ConsumerWidget {
                           value: ratio,
                           minHeight: 6,
                           backgroundColor: AppColors.background,
-                          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF7C3AED)),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Color(0xFF7C3AED),
+                          ),
                         ),
                       ),
                     ],
@@ -484,39 +512,41 @@ class AdminInsightsPage extends ConsumerWidget {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: (sizes.isEmpty
-                      ? {'XS': 5, 'S': 14, 'M': 28, 'L': 19, 'XL': 8}
-                      : sizes)
-                  .entries
-                  .map((e) {
-                return Container(
-                  width: 60,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        e.key,
-                        style: GoogleFonts.montserrat(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        '${e.value}x',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 10,
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
+              children:
+                  (sizes.isEmpty
+                          ? {'XS': 5, 'S': 14, 'M': 28, 'L': 19, 'XL': 8}
+                          : sizes)
+                      .entries
+                      .map((e) {
+                        return Container(
+                          width: 60,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                e.key,
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                '${e.value}x',
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 10,
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      })
+                      .toList(),
             ),
           ],
         ),
@@ -530,8 +560,9 @@ class AdminInsightsPage extends ConsumerWidget {
     int totalCustomers,
     int totalStitchingOrders,
   ) {
-    final double avgRequestsPerClient =
-        totalCustomers > 0 ? totalStitchingOrders / totalCustomers : 1.4;
+    final double avgRequestsPerClient = totalCustomers > 0
+        ? totalStitchingOrders / totalCustomers
+        : 1.4;
 
     showModalBottomSheet(
       context: context,
@@ -594,7 +625,8 @@ class _FirebaseStorageSummaryCard extends StatelessWidget {
       }
     }
 
-    final double usedMB = (totalImagesCount * avgImageSizeBytes) / (1024 * 1024);
+    final double usedMB =
+        (totalImagesCount * avgImageSizeBytes) / (1024 * 1024);
     final double freeMB = (totalCapacityMB - usedMB).clamp(0, totalCapacityMB);
     final double usedGB = usedMB / 1024.0;
     final double freeGB = freeMB / 1024.0;
@@ -606,14 +638,14 @@ class _FirebaseStorageSummaryCard extends StatelessWidget {
     final Color statusColor = usagePercentage < 60
         ? const Color(0xFF2E7D32)
         : usagePercentage < 85
-            ? const Color(0xFFD97706)
-            : const Color(0xFFDC2626);
+        ? const Color(0xFFD97706)
+        : const Color(0xFFDC2626);
 
     final String statusLabel = usagePercentage < 60
         ? 'HEALTHY'
         : usagePercentage < 85
-            ? 'MODERATE'
-            : 'CRITICAL';
+        ? 'MODERATE'
+        : 'CRITICAL';
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -677,9 +709,7 @@ class _FirebaseStorageSummaryCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: statusColor.withValues(alpha: 0.3),
-                  ),
+                  border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                 ),
                 child: Text(
                   statusLabel,
@@ -955,7 +985,10 @@ class _FavoritedDesignsCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFE11D48),
                               borderRadius: BorderRadius.circular(4),
@@ -1273,7 +1306,9 @@ class _StitchingSpecsCard extends StatelessWidget {
                               value: ratio,
                               minHeight: 6,
                               backgroundColor: AppColors.background,
-                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF7C3AED)),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                Color(0xFF7C3AED),
+                              ),
                             ),
                           ),
                         ),
@@ -1377,7 +1412,10 @@ class _CustomerReengagementCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0284C7).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
@@ -1456,9 +1494,7 @@ class _BottomSheetContainer extends StatelessWidget {
                   color: iconColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(9),
                 ),
-                child: Center(
-                  child: Icon(icon, size: 18, color: iconColor),
-                ),
+                child: Center(child: Icon(icon, size: 18, color: iconColor)),
               ),
               const SizedBox(width: 10),
               Expanded(

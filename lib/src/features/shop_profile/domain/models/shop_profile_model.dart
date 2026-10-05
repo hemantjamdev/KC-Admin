@@ -38,7 +38,10 @@ class DayOperatingSchedule {
     };
   }
 
-  factory DayOperatingSchedule.fromMap(Map<String, dynamic> map, String defaultDay) {
+  factory DayOperatingSchedule.fromMap(
+    Map<String, dynamic> map,
+    String defaultDay,
+  ) {
     return DayOperatingSchedule(
       day: map['day'] as String? ?? defaultDay,
       isOpen: map['isOpen'] as bool? ?? true,
@@ -51,9 +54,7 @@ class DayOperatingSchedule {
 /// Domain class representing structured weekly operating hours per day.
 @immutable
 class OperatingHoursModel {
-  const OperatingHoursModel({
-    required this.dailySchedules,
-  });
+  const OperatingHoursModel({required this.dailySchedules});
 
   /// Map of day name to individual DayOperatingSchedule
   final Map<String, DayOperatingSchedule> dailySchedules;
@@ -82,11 +83,19 @@ class OperatingHoursModel {
 
   /// Helper to generate a human-readable summary.
   String get summary {
-    final openDays = dailySchedules.entries.where((e) => e.value.isOpen).toList();
+    final openDays = dailySchedules.entries
+        .where((e) => e.value.isOpen)
+        .toList();
     if (openDays.isEmpty) return 'Closed All Days';
 
-    final monSatOpen = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-        .every((d) => dailySchedules[d]?.isOpen == true);
+    final monSatOpen = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ].every((d) => dailySchedules[d]?.isOpen == true);
     final sunOpen = dailySchedules['Sunday']?.isOpen == true;
 
     final firstOpen = openDays.first.value;
@@ -102,7 +111,15 @@ class OperatingHoursModel {
   /// Calculates whether the studio is currently OPEN or CLOSED right now.
   bool isCurrentlyOpen([DateTime? currentTime]) {
     final now = currentTime ?? DateTime.now();
-    final dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    final dayNames = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
     final currentDay = dayNames[now.weekday - 1];
 
     final schedule = dailySchedules[currentDay];
@@ -117,12 +134,18 @@ class OperatingHoursModel {
     return currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
   }
 
-  int? _parseTimeToMinutes(String timeStr) {
+  int? _parseTimeToMinutes(String timeStr) => parseTimeToMinutes(timeStr);
+
+  static int? parseTimeToMinutes(String timeStr) {
     try {
       final clean = timeStr.trim().toUpperCase();
       final isPm = clean.endsWith('PM');
       final isAm = clean.endsWith('AM');
-      final parts = clean.replaceAll('AM', '').replaceAll('PM', '').trim().split(':');
+      final parts = clean
+          .replaceAll('AM', '')
+          .replaceAll('PM', '')
+          .trim()
+          .split(':');
       if (parts.isEmpty) return null;
 
       int hour = int.parse(parts[0]);
@@ -166,7 +189,10 @@ class OperatingHoursModel {
     // Fallback if legacy map structure
     final openTime = map['openTime'] as String? ?? '10:00 AM';
     final closeTime = map['closeTime'] as String? ?? '08:30 PM';
-    final openDaysList = (map['openDays'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
+    final openDaysList =
+        (map['openDays'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
         ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     final schedules = <String, DayOperatingSchedule>{};
@@ -204,6 +230,7 @@ class ShopProfileModel {
     this.openingHours,
     this.operatingHours,
     this.logoUrl,
+    this.establishedYear = '2022',
     this.isActive = true,
   });
 
@@ -216,6 +243,7 @@ class ShopProfileModel {
   final String? openingHours;
   final OperatingHoursModel? operatingHours;
   final String? logoUrl;
+  final String? establishedYear;
   final bool isActive;
 
   static const String defaultId = 'boutique_01';
@@ -223,13 +251,14 @@ class ShopProfileModel {
   static const ShopProfileModel defaultProfile = ShopProfileModel(
     id: defaultId,
     name: 'Kapada Creation',
-    subtitle: 'Luxury Bespoke Designer Apparel & Custom Tailoring',
+    subtitle: 'Luxury Designer Apparel & Custom Tailoring',
     phone: '+91 98765 43210',
     email: 'contact@kapadacreation.com',
     address: 'Main Market, M.G. Road, Jaipur, Rajasthan 302001',
     openingHours: 'Mon - Sat: 10:00 AM - 8:30 PM',
     operatingHours: OperatingHoursModel.defaultSchedule,
     logoUrl: null,
+    establishedYear: '2022',
     isActive: true,
   );
 
@@ -243,6 +272,7 @@ class ShopProfileModel {
     String? openingHours,
     OperatingHoursModel? operatingHours,
     String? logoUrl,
+    String? establishedYear,
     bool? isActive,
   }) {
     return ShopProfileModel(
@@ -255,6 +285,7 @@ class ShopProfileModel {
       openingHours: openingHours ?? this.openingHours,
       operatingHours: operatingHours ?? this.operatingHours,
       logoUrl: logoUrl ?? this.logoUrl,
+      establishedYear: establishedYear ?? this.establishedYear,
       isActive: isActive ?? this.isActive,
     );
   }
@@ -270,6 +301,7 @@ class ShopProfileModel {
       if (openingHours != null) 'openingHours': openingHours,
       if (operatingHours != null) 'operatingHours': operatingHours!.toMap(),
       if (logoUrl != null) 'logoUrl': logoUrl,
+      if (establishedYear != null) 'establishedYear': establishedYear,
       'isActive': isActive,
     };
   }
@@ -294,6 +326,10 @@ class ShopProfileModel {
       openingHours: map['openingHours'] as String? ?? opHours.summary,
       operatingHours: opHours,
       logoUrl: map['logoUrl'] as String?,
+      establishedYear:
+          map['establishedYear'] as String? ??
+          map['sinceYear'] as String? ??
+          '2022',
       isActive: map['isActive'] as bool? ?? true,
     );
   }

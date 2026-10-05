@@ -76,13 +76,6 @@ class AdminAuthNotifier extends Notifier<AdminAuthState> {
 
     // Initialize with current state.
     final currentUser = auth.currentUser;
-    if (currentUser == null) {
-      Future.microtask(() async {
-        try {
-          await auth.signInAnonymously();
-        } catch (_) {}
-      });
-    }
 
     return AdminAuthState(
       status: currentUser != null

@@ -46,10 +46,8 @@ class CustomerRepositoryImpl implements CustomerRepository {
   }
 
   @override
-  Future<({List<CustomerModel> items, String? lastDocId, bool hasMore})> fetchPaginatedCustomers({
-    int limit = 20,
-    String? startAfterId,
-  }) {
+  Future<({List<CustomerModel> items, String? lastDocId, bool hasMore})>
+  fetchPaginatedCustomers({int limit = 20, String? startAfterId}) {
     return _dataSource.fetchPaginated(limit: limit, startAfterId: startAfterId);
   }
 
