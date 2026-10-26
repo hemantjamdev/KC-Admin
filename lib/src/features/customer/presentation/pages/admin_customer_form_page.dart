@@ -31,10 +31,12 @@ class _AdminCustomerFormPageState extends State<AdminCustomerFormPage> {
   final _displayNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _photoUrlController = TextEditingController();
 
   final _nameFocusNode = FocusNode();
   final _emailFocusNode = FocusNode();
   final _phoneFocusNode = FocusNode();
+  final _photoUrlFocusNode = FocusNode();
 
   bool _isSaving = false;
   bool _hasChanges = false;
@@ -50,11 +52,13 @@ class _AdminCustomerFormPageState extends State<AdminCustomerFormPage> {
       _displayNameController.text = c.displayName;
       _emailController.text = c.email ?? '';
       _phoneController.text = c.phone ?? '';
+      _photoUrlController.text = c.photoUrl ?? '';
     }
 
     _displayNameController.addListener(_markDirty);
     _emailController.addListener(_markDirty);
     _phoneController.addListener(_markDirty);
+    _photoUrlController.addListener(_markDirty);
   }
 
   @override
@@ -62,9 +66,11 @@ class _AdminCustomerFormPageState extends State<AdminCustomerFormPage> {
     _nameFocusNode.dispose();
     _emailFocusNode.dispose();
     _phoneFocusNode.dispose();
+    _photoUrlFocusNode.dispose();
     _displayNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _photoUrlController.dispose();
     super.dispose();
   }
 
@@ -117,6 +123,7 @@ class _AdminCustomerFormPageState extends State<AdminCustomerFormPage> {
     try {
       const adminUid = 'admin_local_actor';
       final now = DateTime.now();
+      final photo = _photoUrlController.text.trim();
 
       if (widget.isEditMode) {
         final existing = widget.existingCustomer!;
@@ -128,6 +135,8 @@ class _AdminCustomerFormPageState extends State<AdminCustomerFormPage> {
           phone: _phoneController.text.trim().isEmpty
               ? null
               : _phoneController.text.trim(),
+          photoUrl: photo.isNotEmpty ? photo : null,
+          clearPhotoUrl: photo.isEmpty,
           isActive: true,
           updatedAt: now,
           updatedBy: adminUid,
@@ -147,6 +156,7 @@ class _AdminCustomerFormPageState extends State<AdminCustomerFormPage> {
           phone: _phoneController.text.trim().isEmpty
               ? null
               : _phoneController.text.trim(),
+          photoUrl: photo.isNotEmpty ? photo : null,
           source: CustomerSource.admin,
           isActive: true,
           createdAt: now,
@@ -231,6 +241,79 @@ class _AdminCustomerFormPageState extends State<AdminCustomerFormPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Avatar Preview
+                      Center(
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                border: Border.all(
+                                  color: AppColors.primary,
+                                  width: 2,
+                                ),
+                              ),
+                              child: ClipOval(
+                                child: (_photoUrlController.text.trim().isNotEmpty &&
+                                        _photoUrlController.text
+                                            .trim()
+                                            .startsWith('http'))
+                                    ? Image.network(
+                                        _photoUrlController.text.trim(),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) => Center(
+                                          child: Text(
+                                            _displayNameController.text
+                                                    .trim()
+                                                    .isNotEmpty
+                                                ? _displayNameController.text
+                                                    .trim()[0]
+                                                    .toUpperCase()
+                                                : 'C',
+                                            style: const TextStyle(
+                                              fontSize: 28,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : Center(
+                                        child: Text(
+                                          _displayNameController.text
+                                                  .trim()
+                                                  .isNotEmpty
+                                              ? _displayNameController.text
+                                                  .trim()[0]
+                                                  .toUpperCase()
+                                              : 'C',
+                                          style: const TextStyle(
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              widget.isEditMode
+                                  ? 'Customer Photo Preview'
+                                  : 'New Customer Photo',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+
                       // Display Name
                       const Text(
                         'Full Name *',
@@ -310,9 +393,10 @@ class _AdminCustomerFormPageState extends State<AdminCustomerFormPage> {
                       TextFormField(
                         controller: _phoneController,
                         focusNode: _phoneFocusNode,
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) =>
-                            FocusScope.of(context).unfocus(),
+                        textInputAction: TextInputAction.next,
+                        onFieldSubmitted: (_) => FocusScope.of(
+                          context,
+                        ).requestFocus(_photoUrlFocusNode),
                         style: const TextStyle(color: AppColors.textPrimary),
                         keyboardType: TextInputType.phone,
                         decoration: const InputDecoration(
@@ -327,6 +411,48 @@ class _AdminCustomerFormPageState extends State<AdminCustomerFormPage> {
                           }
                           return null;
                         },
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+
+                      // Photo URL
+                      const Text(
+                        'Profile Photo URL (Optional)',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      TextFormField(
+                        controller: _photoUrlController,
+                        focusNode: _photoUrlFocusNode,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) =>
+                            FocusScope.of(context).unfocus(),
+                        style: const TextStyle(color: AppColors.textPrimary),
+                        keyboardType: TextInputType.url,
+                        decoration: InputDecoration(
+                          hintText: 'https://example.com/customer-photo.jpg',
+                          prefixIcon: Icon(
+                            PhosphorIcons.camera(),
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
+                          suffixIcon: _photoUrlController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(
+                                    Icons.clear_rounded,
+                                    size: 18,
+                                  ),
+                                  onPressed: () {
+                                    setState(
+                                      () => _photoUrlController.clear(),
+                                    );
+                                  },
+                                )
+                              : null,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.md),
 
